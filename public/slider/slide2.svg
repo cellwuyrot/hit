@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400">
+  <rect width="1200" height="400" fill="#5BA3E6"/>
+  <text x="600" y="180" font-family="Arial" font-size="48" fill="white" text-anchor="middle" font-weight="bold">Новое поступление</text>
+  <text x="600" y="240" font-family="Arial" font-size="28" fill="rgba(255,255,255,0.8)" text-anchor="middle">Профессиональные инструменты</text>
+</svg>
