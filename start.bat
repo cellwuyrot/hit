@@ -1,83 +1,85 @@
 @echo off
+cd /d "%~dp0"
 chcp 65001 >nul 2>&1
-title МагазинПро — Установка и запуск
+title TopHitStore
 
 echo ============================================
-echo   МагазинПро — Интернет-магазин
-echo   Автоматическая установка и запуск
+echo   TopHitStore
+echo   Avtomaticheskaya ustanovka i zapusk
 echo ============================================
 echo.
 
-:: Проверяем Node.js
+:: Check Node.js
 where node >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ОШИБКА] Node.js не найден!
-    echo Скачайте и установите Node.js: https://nodejs.org/
-    echo Рекомендуется версия LTS ^(20 или выше^).
+    echo [ERROR] Node.js ne najden!
+    echo Skachajte: https://nodejs.org/
     echo.
     pause
     exit /b 1
 )
 
-echo [1/6] Node.js найден:
+echo [1/6] Node.js najden:
 node --version
 echo.
 
-:: Устанавливаем зависимости
-echo [2/6] Установка зависимостей (npm install)...
+:: Install deps
+echo [2/6] Ustanovka zavisimostej (npm install)...
 call npm install
 if %errorlevel% neq 0 (
-    echo [ОШИБКА] Не удалось установить зависимости.
+    echo [ERROR] npm install ne udalos.
     pause
     exit /b 1
 )
 echo.
 
-:: Копируем .env если нет
+:: Create .env
 if not exist ".env" (
-    echo [3/6] Создание файла .env...
+    echo [3/6] Sozdanie .env...
     copy .env.example .env >nul
 ) else (
-    echo [3/6] Файл .env уже существует, пропускаем.
+    echo [3/6] .env uzhe sushchestvuet.
 )
 echo.
 
-:: Генерируем Prisma клиент
-echo [4/6] Генерация Prisma клиента...
+:: Prisma generate
+echo [4/6] Generaciya Prisma klienta...
 call npx prisma generate
 if %errorlevel% neq 0 (
-    echo [ОШИБКА] Не удалось сгенерировать Prisma клиент.
+    echo [ERROR] Prisma generate ne udalos.
     pause
     exit /b 1
 )
 echo.
 
-:: Создаём/обновляем БД
-echo [5/6] Создание базы данных и применение миграций...
+:: DB migrate
+echo [5/6] Sozdanie bazy dannyh...
 call npx prisma migrate dev --name init
 if %errorlevel% neq 0 (
-    echo [ПРЕДУПРЕЖДЕНИЕ] Миграция не удалась, пробуем db push...
+    echo [WARNING] Migraciya ne udalas, probuyem db push...
     call npx prisma db push
 )
 echo.
 
-:: Заполняем БД начальными данными
-echo [6/6] Заполнение базы данных тестовыми данными...
+:: Seed
+echo [6/6] Zapolnenie bazy testovymi dannymi...
 call npm run seed
 echo.
 
 echo ============================================
-echo   Установка завершена!
-echo   Запуск сервера разработки...
+echo   Ustanovka zavershena!
+echo   Zapusk servera...
 echo.
-echo   Сайт:         http://localhost:3000
-echo   Админ-панель: http://localhost:3000/admin
-echo   Логин: admin
-echo   Пароль: admin123
+echo   Sajt:         http://localhost:3000
+echo   Admin-panel:  http://localhost:3000/admin
+echo   Login: admin
+echo   Password: admin123
 echo ============================================
 echo.
-echo Для остановки сервера нажмите Ctrl+C
+echo Dlya ostanovki nazmite Ctrl+C
 echo.
 
-:: Запускаем dev-сервер
+:: Start dev server
 call npm run dev
+
+pause
