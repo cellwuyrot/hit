@@ -8,6 +8,7 @@ interface UserProfile {
   id: string;
   email: string;
   name: string;
+  lastName: string;
   phone: string;
   address: string;
 }
@@ -41,8 +42,8 @@ export default function AccountPage() {
   const [activeSection, setActiveSection] = useState<"profile" | "orders">("profile");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [form, setForm] = useState({ email: "", password: "", name: "" });
-  const [editForm, setEditForm] = useState({ name: "", phone: "", address: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [editForm, setEditForm] = useState({ name: "", lastName: "", phone: "", address: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -57,7 +58,7 @@ export default function AccountPage() {
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((data) => startTransition(() => {
         setProfile(data);
-        setEditForm({ name: data.name, phone: data.phone, address: data.address });
+        setEditForm({ name: data.name, lastName: data.lastName, phone: data.phone, address: data.address });
       }))
       .catch(() => { localStorage.removeItem("userToken"); startTransition(() => setToken(null)); });
 
@@ -72,13 +73,13 @@ export default function AccountPage() {
     const res = await fetch("/api/user/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, ...form }),
+      body: JSON.stringify({ action, email: form.email, password: form.password }),
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error); return; }
     localStorage.setItem("userToken", data.token);
     setToken(data.token);
-    setForm({ email: "", password: "", name: "" });
+    setForm({ email: "", password: "" });
   };
 
   const handleUpdateProfile = async () => {
@@ -116,10 +117,6 @@ export default function AccountPage() {
                 <button onClick={() => setTab("register")} className={`flex-1 py-2 text-center font-medium border-b-2 ${tab === "register" ? "border-primary text-primary" : "border-transparent text-text-gray"}`}>Регистрация</button>
               </div>
               {error && <p className="text-danger text-sm mb-4">{error}</p>}
-              {tab === "register" && (
-                <input type="text" placeholder="Имя" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary" />
-              )}
               <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary" />
               <input type="password" placeholder="Пароль" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -127,6 +124,9 @@ export default function AccountPage() {
               <button onClick={handleAuth} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
                 {tab === "login" ? "Войти" : "Зарегистрироваться"}
               </button>
+              {tab === "register" && (
+                <p className="text-xs text-text-gray text-center mt-3">После регистрации вы сможете заполнить данные профиля в личном кабинете</p>
+              )}
             </div>
           </div>
         </main>
@@ -140,30 +140,46 @@ export default function AccountPage() {
       <Header />
       <main className="flex-1 bg-bg-light">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
             <h1 className="text-2xl font-bold text-text-dark">Личный кабинет</h1>
             <button onClick={logout} className="text-sm text-text-gray hover:text-danger transition-colors">Выйти</button>
           </div>
 
-          <div className="flex gap-4 mb-6">
-            <button onClick={() => setActiveSection("profile")} className={`px-4 py-2 rounded-lg font-medium ${activeSection === "profile" ? "bg-primary text-white" : "bg-bg-white border border-border text-text-gray"}`}>Профиль</button>
-            <button onClick={() => setActiveSection("orders")} className={`px-4 py-2 rounded-lg font-medium ${activeSection === "orders" ? "bg-primary text-white" : "bg-bg-white border border-border text-text-gray"}`}>Мои заказы ({orders.length})</button>
+          <div className="flex gap-2 sm:gap-4 mb-6 flex-wrap">
+            <button onClick={() => setActiveSection("profile")} className={`px-4 py-2 rounded-lg font-medium text-sm ${activeSection === "profile" ? "bg-primary text-white" : "bg-bg-white border border-border text-text-gray"}`}>Профиль</button>
+            <button onClick={() => setActiveSection("orders")} className={`px-4 py-2 rounded-lg font-medium text-sm ${activeSection === "orders" ? "bg-primary text-white" : "bg-bg-white border border-border text-text-gray"}`}>Мои заказы ({orders.length})</button>
           </div>
 
           {activeSection === "profile" && profile && (
-            <div className="bg-bg-white rounded-xl border border-border p-6">
+            <div className="bg-bg-white rounded-xl border border-border p-5 sm:p-6">
               <h2 className="text-lg font-bold text-text-dark mb-4">Данные профиля</h2>
-              <p className="text-sm text-text-gray mb-4">Email: {profile.email}</p>
-              {success && <p className="text-success text-sm mb-4">{success}</p>}
-              <div className="space-y-3">
-                <input type="text" placeholder="Имя" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-                <input type="tel" placeholder="Телефон" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-                <textarea placeholder="Адрес доставки" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                  className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" rows={3} />
-                <button onClick={handleUpdateProfile} className="bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">Сохранить</button>
+              <div className="bg-bg-light rounded-lg p-3 mb-4">
+                <p className="text-sm text-text-gray">Email: <span className="text-text-dark font-medium">{profile.email}</span></p>
               </div>
+              {success && <p className="text-success text-sm mb-4">{success}</p>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-text-gray mb-1 block">Имя</label>
+                  <input type="text" placeholder="Имя" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                </div>
+                <div>
+                  <label className="text-sm text-text-gray mb-1 block">Фамилия</label>
+                  <input type="text" placeholder="Фамилия" value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                </div>
+                <div>
+                  <label className="text-sm text-text-gray mb-1 block">Телефон</label>
+                  <input type="tel" placeholder="+7 (___) ___-__-__" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-sm text-text-gray mb-1 block">Адрес доставки</label>
+                  <textarea placeholder="Город, улица, дом, квартира" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" rows={3} />
+                </div>
+              </div>
+              <button onClick={handleUpdateProfile} className="mt-4 bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">Сохранить</button>
             </div>
           )}
 
@@ -171,8 +187,8 @@ export default function AccountPage() {
             <div className="space-y-4">
               {orders.length === 0 && <p className="text-text-gray text-center py-8">У вас пока нет заказов</p>}
               {orders.map((order) => (
-                <div key={order.id} className="bg-bg-white rounded-xl border border-border p-6">
-                  <div className="flex items-center justify-between mb-3">
+                <div key={order.id} className="bg-bg-white rounded-xl border border-border p-4 sm:p-6">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <div>
                       <span className="font-medium text-text-dark">Заказ #{order.id.slice(0, 8)}</span>
                       <span className="ml-3 text-sm text-text-gray">{new Date(order.createdAt).toLocaleDateString("ru-RU")}</span>

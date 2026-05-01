@@ -60,6 +60,7 @@ model User {
   email     String   @unique
   password  String
   name      String   @default("")
+  lastName  String   @default("")
   phone     String   @default("")
   address   String   @default("")
   cart      CartItem[]
@@ -109,6 +110,7 @@ model News {
   slug      String   @unique
   content   String   @default("")
   image     String   @default("")
+  type      String   @default("article")
   published Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
