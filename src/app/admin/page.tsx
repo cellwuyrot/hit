@@ -44,6 +44,7 @@ interface NewsItem {
   slug: string;
   content: string;
   image: string;
+  type: string;
   published: boolean;
   createdAt: string;
 }
@@ -107,7 +108,7 @@ export default function AdminPage() {
   });
   const [editingSlide, setEditingSlide] = useState<SliderImage | null>(null);
 
-  const [newsForm, setNewsForm] = useState({ title: "", content: "", image: "", published: false });
+  const [newsForm, setNewsForm] = useState({ title: "", content: "", image: "", type: "article", published: false });
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
 
   const [importStatus, setImportStatus] = useState("");
@@ -244,7 +245,7 @@ export default function AdminPage() {
     const method = editingNews ? "PUT" : "POST";
     const body = editingNews ? { id: editingNews.id, ...newsForm } : newsForm;
     await fetch("/api/admin/news", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setNewsForm({ title: "", content: "", image: "", published: false });
+    setNewsForm({ title: "", content: "", image: "", type: "article", published: false });
     setEditingNews(null); fetchData();
   };
 
@@ -505,6 +506,11 @@ export default function AdminPage() {
                   className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <input type="text" placeholder="URL изображения" value={newsForm.image} onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })}
                   className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                <select value={newsForm.type} onChange={(e) => setNewsForm({ ...newsForm, type: e.target.value })}
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                  <option value="article">Статья</option>
+                  <option value="delivery">Поставка</option>
+                </select>
                 <div>
                   <label className="text-xs text-text-gray mb-1 block">Содержание (поддерживает HTML: &lt;a href=&quot;...&quot;&gt;, &lt;strong&gt;, &lt;ul&gt;, &lt;p&gt;)</label>
                   <textarea placeholder="Текст новости с HTML-разметкой..." value={newsForm.content} onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
@@ -515,7 +521,7 @@ export default function AdminPage() {
                 </label>
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-primary hover:bg-primary-dark text-white text-sm py-2 rounded-lg">{editingNews ? "Сохранить" : "Создать"}</button>
-                  {editingNews && <button type="button" onClick={() => { setEditingNews(null); setNewsForm({ title: "", content: "", image: "", published: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingNews && <button type="button" onClick={() => { setEditingNews(null); setNewsForm({ title: "", content: "", image: "", type: "article", published: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
                 </div>
               </form>
             </div>
@@ -529,11 +535,12 @@ export default function AdminPage() {
                         <p className="font-medium text-text-dark truncate">{item.title}</p>
                         <div className="flex items-center gap-2 text-xs text-text-gray">
                           <span>{new Date(item.createdAt).toLocaleDateString("ru-RU")}</span>
+                          <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">{item.type === "delivery" ? "Поставка" : "Статья"}</span>
                           <span className={item.published ? "text-success" : "text-danger"}>{item.published ? "Опубликовано" : "Черновик"}</span>
                         </div>
                       </div>
                       <div className="flex gap-2 flex-shrink-0 ml-4">
-                        <button onClick={() => { setEditingNews(item); setNewsForm({ title: item.title, content: item.content, image: item.image, published: item.published }); }} className="text-primary hover:underline text-sm">Изменить</button>
+                        <button onClick={() => { setEditingNews(item); setNewsForm({ title: item.title, content: item.content, image: item.image, type: item.type || "article", published: item.published }); }} className="text-primary hover:underline text-sm">Изменить</button>
                         <button onClick={() => deleteNews(item.id)} className="text-danger hover:underline text-sm">Удалить</button>
                       </div>
                     </div>
@@ -587,7 +594,7 @@ export default function AdminPage() {
           <div className="bg-bg-white rounded-xl border border-border p-5">
             <h2 className="font-bold text-text-dark mb-4">Оптовые заказы</h2>
             <p className="text-text-gray text-sm mb-4">Раздел оптовых продаж доступен на сайте по адресу <a href="/wholesale" target="_blank" className="text-primary hover:underline">/wholesale</a></p>
-            <p className="text-text-gray text-sm">Оптовые заявки поступают на email <strong>opt@tophit.ru</strong> и по телефону <strong>+7 (495) 120-36-44</strong></p>
+            <p className="text-text-gray text-sm">Оптовые заявки поступают на email <strong>opt@топхит.store</strong> и по телефону <strong>+7 (936) 256-89-50</strong></p>
           </div>
         )}
       </div>

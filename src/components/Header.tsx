@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 
 export default function Header() {
@@ -17,8 +18,8 @@ export default function Header() {
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <span className="hidden md:inline">Москва и МО</span>
-            <a href="tel:+74951203644" className="font-bold hover:underline">
-              +7 (495) 120-36-44
+            <a href="tel:+79362568950" className="font-bold hover:underline">
+              +7 (936) 256-89-50
             </a>
           </div>
         </div>
@@ -30,9 +31,7 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg sm:text-xl">Т</span>
-              </div>
+              <Image src="/logo.png" alt="ТОПХИТ" width={40} height={40} className="w-8 h-8 sm:w-10 sm:h-10" />
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-primary leading-tight">ТОПХИТ</h1>
                 <p className="text-[10px] sm:text-xs text-text-gray leading-tight">интернет-магазин</p>
@@ -58,8 +57,8 @@ export default function Header() {
 
           {/* Contact info */}
           <div className="hidden lg:flex flex-col items-end">
-            <a href="tel:+74951203644" className="text-lg font-bold text-text-dark hover:text-primary transition-colors">
-              +7 (495) 120-36-44
+            <a href="tel:+79362568950" className="text-lg font-bold text-text-dark hover:text-primary transition-colors">
+              +7 (936) 256-89-50
             </a>
             <button className="text-sm text-primary hover:underline">Заказать звонок</button>
           </div>
