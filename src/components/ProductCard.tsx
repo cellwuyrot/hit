@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 
 interface ProductCardProps {
   id: string;
@@ -12,15 +15,32 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({
+  id,
   name,
   price,
   oldPrice,
   image,
   inStock,
 }: ProductCardProps) {
+  const [added, setAdded] = useState(false);
+
+  const addToCart = async () => {
+    const token = localStorage.getItem("userToken");
+    if (!token) {
+      window.location.href = "/account";
+      return;
+    }
+    await fetch("/api/user/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ productId: id, quantity: 1 }),
+    });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
+
   return (
     <div className="bg-bg-white rounded-xl border border-border hover:shadow-lg transition-shadow p-4 flex flex-col">
-      {/* Image */}
       <div className="relative aspect-square mb-3 bg-bg-light rounded-lg flex items-center justify-center overflow-hidden">
         {image ? (
           <Image src={image} alt={name} fill className="object-contain p-2" />
@@ -39,12 +59,8 @@ export default function ProductCard({
         )}
       </div>
 
-      {/* Info */}
-      <h3 className="text-sm font-medium text-text-dark leading-tight mb-2 line-clamp-2 min-h-[2.5rem]">
-        {name}
-      </h3>
+      <h3 className="text-sm font-medium text-text-dark leading-tight mb-2 line-clamp-2 min-h-[2.5rem]">{name}</h3>
 
-      {/* Availability */}
       <div className="flex items-center gap-1 mb-2">
         {inStock > 0 ? (
           <>
@@ -58,23 +74,20 @@ export default function ProductCard({
         )}
       </div>
 
-      {/* Price */}
       <div className="mt-auto">
         <div className="flex items-baseline gap-2">
-          <span className="text-lg font-bold text-text-dark">
-            {price.toLocaleString("ru-RU")} руб./шт
-          </span>
+          <span className="text-lg font-bold text-text-dark">{price.toLocaleString("ru-RU")} ₽</span>
         </div>
         {oldPrice && (
-          <span className="text-sm text-text-light line-through">
-            {oldPrice.toLocaleString("ru-RU")} руб.
-          </span>
+          <span className="text-sm text-text-light line-through">{oldPrice.toLocaleString("ru-RU")} ₽</span>
         )}
       </div>
 
-      {/* Add to cart */}
-      <button className="mt-3 w-full bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2.5 rounded-lg transition-colors">
-        В корзину
+      <button onClick={addToCart} disabled={inStock === 0}
+        className={`mt-3 w-full text-sm font-medium py-2.5 rounded-lg transition-colors ${
+          added ? "bg-success text-white" : inStock === 0 ? "bg-gray-200 text-text-gray cursor-not-allowed" : "bg-primary hover:bg-primary-dark text-white"
+        }`}>
+        {added ? "Добавлено!" : inStock === 0 ? "Нет в наличии" : "В корзину"}
       </button>
     </div>
   );

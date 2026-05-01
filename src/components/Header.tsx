@@ -31,11 +31,11 @@ export default function Header() {
           <Link href="/" className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">М</span>
+                <span className="text-white font-bold text-xl">Т</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-primary leading-tight">МагазинПро</h1>
-                <p className="text-xs text-text-gray leading-tight">товары для дома</p>
+                <h1 className="text-xl font-bold text-primary leading-tight">ТОПХИТ</h1>
+                <p className="text-xs text-text-gray leading-tight">интернет-магазин</p>
               </div>
             </div>
           </Link>
@@ -78,13 +78,18 @@ export default function Header() {
               </svg>
               <span className="text-xs mt-0.5">Избранное</span>
             </button>
-            <button className="flex flex-col items-center text-text-gray hover:text-primary transition-colors relative">
+            <Link href="/cart" className="flex flex-col items-center text-text-gray hover:text-primary transition-colors relative">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
               </svg>
               <span className="text-xs mt-0.5">Корзина</span>
-              <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">0</span>
-            </button>
+            </Link>
+            <Link href="/account" className="flex flex-col items-center text-text-gray hover:text-primary transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="text-xs mt-0.5">Кабинет</span>
+            </Link>
 
             {/* Mobile menu toggle */}
             <button
@@ -112,6 +117,9 @@ export default function Header() {
             />
             <nav className="mt-3 flex flex-col gap-2">
               <Link href="/catalog" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Каталог</Link>
+              <Link href="/news" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Новости</Link>
+              <Link href="/cart" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Корзина</Link>
+              <Link href="/account" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Кабинет</Link>
               <Link href="/admin" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Админ</Link>
             </nav>
           </div>
@@ -132,6 +140,9 @@ export default function Header() {
             </li>
             <li>
               <span className="text-text-gray hover:text-primary cursor-pointer transition-colors">Оплата</span>
+            </li>
+            <li>
+              <Link href="/news" className="text-text-gray hover:text-primary transition-colors">Новости</Link>
             </li>
             <li>
               <span className="text-text-gray hover:text-primary cursor-pointer transition-colors">О компании</span>

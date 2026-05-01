@@ -21,7 +21,10 @@ async function CategoryContent({
   categorySlug: string;
   searchParams: Record<string, string | undefined>;
 }) {
-  const category = await prisma.category.findUnique({ where: { slug: categorySlug } });
+  const category = await prisma.category.findUnique({
+    where: { slug: categorySlug },
+    include: { children: { orderBy: { order: "asc" } }, parent: true },
+  });
   if (!category) notFound();
 
   const sort = searchParams.sort || "popular";
@@ -31,7 +34,9 @@ async function CategoryContent({
   const types = searchParams.types?.split(",").filter(Boolean);
   const colors = searchParams.colors?.split(",").filter(Boolean);
 
-  const where: Record<string, unknown> = { categoryId: category.id };
+  const childIds = category.children.map((c) => c.id);
+  const catIds = [category.id, ...childIds];
+  const where: Record<string, unknown> = { categoryId: { in: catIds } };
   if (priceFrom !== undefined || priceTo !== undefined) {
     where.price = {};
     if (priceFrom !== undefined) (where.price as Record<string, number>).gte = priceFrom;
@@ -52,7 +57,7 @@ async function CategoryContent({
   const [products, catProducts] = await Promise.all([
     prisma.product.findMany({ where, orderBy, include: { category: true } }),
     prisma.product.findMany({
-      where: { categoryId: category.id },
+      where: { categoryId: { in: catIds } },
       select: { brand: true, productType: true, color: true, price: true },
     }),
   ]);
@@ -70,11 +75,28 @@ async function CategoryContent({
         <Link href="/" className="hover:text-primary">Главная</Link>
         <span className="mx-2">›</span>
         <Link href="/catalog" className="hover:text-primary">Каталог</Link>
+        {category.parent && (
+          <>
+            <span className="mx-2">›</span>
+            <Link href={`/catalog/${category.parent.slug}`} className="hover:text-primary">{category.parent.name}</Link>
+          </>
+        )}
         <span className="mx-2">›</span>
         <span className="text-text-dark">{category.name}</span>
       </nav>
 
       <h1 className="text-2xl font-bold text-text-dark mb-6">{category.name}</h1>
+
+      {category.children.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          {category.children.map((sub) => (
+            <Link key={sub.id} href={`/catalog/${sub.slug}`}
+              className="px-4 py-2 bg-bg-white border border-border rounded-lg text-sm text-text-gray hover:text-primary hover:border-primary/30 transition-colors">
+              {sub.name}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="flex gap-6">
         <div className="hidden lg:block w-72 flex-shrink-0">

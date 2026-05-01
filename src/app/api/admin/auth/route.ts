@@ -15,6 +15,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "Неверный логин или пароль" }, { status: 401 });
   }
 
-  const token = signToken({ id: admin.id, username: admin.username });
+  const token = signToken({ id: admin.id, username: admin.username, role: "admin" });
   return Response.json({ token, username: admin.username });
 }

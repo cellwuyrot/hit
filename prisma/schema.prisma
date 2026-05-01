@@ -14,37 +14,102 @@ model Admin {
 }
 
 model Category {
-  id       String    @id @default(uuid())
-  name     String
-  slug     String    @unique
-  order    Int       @default(0)
-  products Product[]
+  id            String        @id @default(uuid())
+  name          String
+  slug          String        @unique
+  icon          String        @default("")
+  order         Int           @default(0)
+  parentId      String?
+  parent        Category?     @relation("CategoryChildren", fields: [parentId], references: [id])
+  children      Category[]    @relation("CategoryChildren")
+  products      Product[]
 }
 
 model Product {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
-  slug        String   @unique
-  description String   @default("")
+  slug        String     @unique
+  description String     @default("")
   price       Float
   oldPrice    Float?
-  image       String   @default("")
-  inStock     Int      @default(0)
-  brand       String   @default("")
-  color       String   @default("")
-  productType String   @default("")
+  image       String     @default("")
+  inStock     Int        @default(0)
+  brand       String     @default("")
+  color       String     @default("")
+  productType String     @default("")
   categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  category    Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 model SliderImage {
-  id       String @id @default(uuid())
-  title    String @default("")
-  subtitle String @default("")
+  id       String  @id @default(uuid())
+  title    String  @default("")
+  subtitle String  @default("")
   imageUrl String
-  link     String @default("")
-  order    Int    @default(0)
+  link     String  @default("")
+  order    Int     @default(0)
   active   Boolean @default(true)
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String   @default("")
+  phone     String   @default("")
+  address   String   @default("")
+  cart      CartItem[]
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int     @default(1)
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String      @default("new")
+  total     Float
+  name      String      @default("")
+  phone     String      @default("")
+  address   String      @default("")
+  comment   String      @default("")
+  items     OrderItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  price     Float
+}
+
+model News {
+  id        String   @id @default(uuid())
+  title     String
+  slug      String   @unique
+  content   String   @default("")
+  image     String   @default("")
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
