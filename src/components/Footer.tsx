@@ -34,10 +34,10 @@ export default function Footer() {
           <div>
             <h3 className="font-bold mb-4">Информация</h3>
             <ul className="space-y-2 text-sm text-white/60">
+              <li><Link href="/wholesale" className="hover:text-white transition-colors">Оптовые продажи</Link></li>
               <li><Link href="/news" className="hover:text-white transition-colors">Новости</Link></li>
+              <li><Link href="/compare" className="hover:text-white transition-colors">Сравнение</Link></li>
               <li><span className="hover:text-white transition-colors cursor-pointer">Доставка и оплата</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">О компании</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Контакты</span></li>
               <li><Link href="/account" className="hover:text-white transition-colors">Личный кабинет</Link></li>
             </ul>
           </div>

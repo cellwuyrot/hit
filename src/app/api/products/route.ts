@@ -4,6 +4,13 @@ import { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
+  const id = searchParams.get("id");
+  if (id) {
+    const product = await prisma.product.findUnique({ where: { id }, include: { category: true } });
+    if (!product) return Response.json(null, { status: 404 });
+    return Response.json(product);
+  }
+
   const categorySlug = searchParams.get("category");
   const sort = searchParams.get("sort") || "popular";
   const priceFrom = searchParams.get("priceFrom");

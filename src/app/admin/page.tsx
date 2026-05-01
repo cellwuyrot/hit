@@ -76,7 +76,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "categories" | "products" | "slider" | "news" | "orders";
+type TabType = "categories" | "products" | "slider" | "news" | "orders" | "bulk-orders";
 
 export default function AdminPage() {
   const [token, setToken] = useState("");
@@ -109,6 +109,8 @@ export default function AdminPage() {
 
   const [newsForm, setNewsForm] = useState({ title: "", content: "", image: "", published: false });
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
+
+  const [importStatus, setImportStatus] = useState("");
 
   const hdrs = useCallback(() => ({
     "Content-Type": "application/json",
@@ -209,6 +211,33 @@ export default function AdminPage() {
     fetchData();
   };
 
+  // Import
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportStatus("Импорт...");
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/admin/import", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setImportStatus(`Импортировано: ${data.imported} из ${data.total} (пропущено: ${data.skipped})`);
+      fetchData();
+    } else {
+      setImportStatus(`Ошибка: ${data.error}`);
+    }
+    e.target.value = "";
+    setTimeout(() => setImportStatus(""), 5000);
+  };
+
+  const searchProduct = (name: string) => {
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(name + " товар описание фото")}&tbm=isch`, "_blank");
+  };
+
   // News CRUD
   const saveNews = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,7 +289,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    categories: "Категории", products: "Товары", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`,
+    categories: "Категории", products: "Товары", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "bulk-orders": "Оптовые",
   };
 
   return (
@@ -337,6 +366,20 @@ export default function AdminPage() {
         {/* Products */}
         {activeTab === "products" && (
           <div className="space-y-6">
+            {/* Import section */}
+            <div className="bg-bg-white rounded-xl border border-border p-5">
+              <h2 className="font-bold text-text-dark mb-3">Импорт товаров</h2>
+              <p className="text-sm text-text-gray mb-3">Загрузите файл CSV, XLSX или XLS с колонками: Название, Цена, Описание, Бренд, Категория, В наличии и др.</p>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <label className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  Выбрать файл
+                  <input type="file" accept=".csv,.xlsx,.xls" onChange={handleImport} className="hidden" />
+                </label>
+                {importStatus && <span className={`text-sm ${importStatus.startsWith("Ошибка") ? "text-danger" : "text-success"}`}>{importStatus}</span>}
+              </div>
+            </div>
+
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <h2 className="font-bold text-text-dark mb-4">{editingProd ? "Редактировать" : "Добавить"} товар</h2>
               <form onSubmit={saveProduct} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -388,7 +431,10 @@ export default function AdminPage() {
                           <td className="py-2 px-2 text-text-gray">{prod.category?.name}</td>
                           <td className="py-2 px-2 text-right font-medium">{prod.price.toLocaleString("ru-RU")} ₽</td>
                           <td className="py-2 px-2 text-right">{prod.inStock}</td>
-                          <td className="py-2 px-2 text-right">
+                          <td className="py-2 px-2 text-right whitespace-nowrap">
+                            <button onClick={() => searchProduct(prod.name)} className="text-accent hover:underline mr-2" title="Поиск в интернете">
+                              <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </button>
                             <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, inStock: String(prod.inStock), brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId }); }} className="text-primary hover:underline mr-2">Изменить</button>
                             <button onClick={() => deleteProduct(prod.id)} className="text-danger hover:underline">Удалить</button>
                           </td>
@@ -534,6 +580,14 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+        {/* Bulk Orders info */}
+        {activeTab === "bulk-orders" && (
+          <div className="bg-bg-white rounded-xl border border-border p-5">
+            <h2 className="font-bold text-text-dark mb-4">Оптовые заказы</h2>
+            <p className="text-text-gray text-sm mb-4">Раздел оптовых продаж доступен на сайте по адресу <a href="/wholesale" target="_blank" className="text-primary hover:underline">/wholesale</a></p>
+            <p className="text-text-gray text-sm">Оптовые заявки поступают на email <strong>opt@tophit.ru</strong> и по телефону <strong>+7 (495) 120-36-44</strong></p>
           </div>
         )}
       </div>
