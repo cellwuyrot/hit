@@ -15,7 +15,18 @@ export async function GET(request: NextRequest) {
   const where: Record<string, unknown> = {};
 
   if (categorySlug) {
-    where.category = { slug: categorySlug };
+    const cat = await prisma.category.findUnique({
+      where: { slug: categorySlug },
+      include: { children: true },
+    });
+    if (cat) {
+      const childIds = cat.children.map((c) => c.id);
+      if (childIds.length > 0) {
+        where.categoryId = { in: [cat.id, ...childIds] };
+      } else {
+        where.category = { slug: categorySlug };
+      }
+    }
   }
   if (priceFrom || priceTo) {
     where.price = {};

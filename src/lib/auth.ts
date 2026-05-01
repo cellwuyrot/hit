@@ -2,13 +2,13 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "shop-admin-secret-key-change-in-production";
 
-export function signToken(payload: { id: string; username: string }): string {
+export function signToken(payload: { id: string; username?: string; email?: string; role: "admin" | "user" }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
 }
 
-export function verifyToken(token: string): { id: string; username: string } | null {
+export function verifyToken(token: string): { id: string; username?: string; email?: string; role: "admin" | "user" } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { id: string; username: string };
+    return jwt.verify(token, JWT_SECRET) as { id: string; username?: string; email?: string; role: "admin" | "user" };
   } catch {
     return null;
   }
