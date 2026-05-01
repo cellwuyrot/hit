@@ -67,7 +67,7 @@ export default function AboutPage() {
           </div>
 
           {/* Delivery */}
-          <div className="bg-bg-white rounded-xl border border-border p-6 md:p-8 mb-8">
+          <div className="bg-bg-white rounded-xl border border-border p-6 md:p-8 mb-8" id="delivery">
             <h2 className="text-xl font-bold text-text-dark mb-2">Доставка</h2>
             <p className="text-text-gray mb-6">Ваши покупки — наша забота. Доставляем товары через проверенных партнёров по всей России.</p>
 

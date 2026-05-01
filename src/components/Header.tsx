@@ -112,6 +112,9 @@ export default function Header() {
               <Link href="/catalog" className="text-text-dark hover:text-primary py-1 font-medium" onClick={() => setMenuOpen(false)}>Каталог</Link>
               <Link href="/wholesale" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Оптовые продажи</Link>
               <Link href="/news" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Новости</Link>
+              <Link href="/about#delivery" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Доставка</Link>
+              <Link href="/about" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>О компании</Link>
+              <Link href="/about#contacts" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Контакты</Link>
               <Link href="/compare" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Сравнение</Link>
               <Link href="/cart" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Корзина</Link>
               <Link href="/account" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Личный кабинет</Link>
@@ -135,13 +138,13 @@ export default function Header() {
               <Link href="/news" className="text-text-gray hover:text-primary transition-colors">Новости</Link>
             </li>
             <li>
-              <span className="text-text-gray hover:text-primary cursor-pointer transition-colors">Доставка</span>
+              <Link href="/about#delivery" className="text-text-gray hover:text-primary transition-colors">Доставка</Link>
             </li>
             <li>
-              <span className="text-text-gray hover:text-primary cursor-pointer transition-colors">О компании</span>
+              <Link href="/about" className="text-text-gray hover:text-primary transition-colors">О компании</Link>
             </li>
             <li>
-              <span className="text-text-gray hover:text-primary cursor-pointer transition-colors">Контакты</span>
+              <Link href="/about#contacts" className="text-text-gray hover:text-primary transition-colors">Контакты</Link>
             </li>
             <li className="ml-auto">
               <Link href="/admin" className="text-text-gray hover:text-primary transition-colors">Админ-панель</Link>
