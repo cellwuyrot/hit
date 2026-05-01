@@ -99,34 +99,36 @@ export default function CartPage() {
             <>
               <div className="space-y-3">
                 {items.map((item) => (
-                  <div key={item.id} className="bg-bg-white rounded-xl border border-border p-4 flex items-center gap-4">
-                    <div className="w-16 h-16 bg-bg-light rounded-lg flex items-center justify-center text-2xl flex-shrink-0">📦</div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-text-dark truncate">{item.product.name}</h3>
-                      <p className="text-sm text-text-gray">{item.product.price.toLocaleString("ru-RU")} ₽ за шт.</p>
+                  <div key={item.id} className="bg-bg-white rounded-xl border border-border p-3 sm:p-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-bg-light rounded-lg flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">📦</div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-text-dark text-sm sm:text-base truncate">{item.product.name}</h3>
+                        <p className="text-xs sm:text-sm text-text-gray">{item.product.price.toLocaleString("ru-RU")} ₽ за шт.</p>
+                      </div>
+                      <button onClick={() => removeItem(item.productId)} className="text-text-gray hover:text-danger transition-colors flex-shrink-0">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => updateQty(item.productId, item.quantity - 1)} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light">−</button>
-                      <span className="w-8 text-center font-medium">{item.quantity}</span>
-                      <button onClick={() => updateQty(item.productId, item.quantity + 1)} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light">+</button>
+                    <div className="flex items-center justify-between mt-3 pl-[3.75rem] sm:pl-[5rem]">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => updateQty(item.productId, item.quantity - 1)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light text-sm">−</button>
+                        <span className="w-6 sm:w-8 text-center font-medium text-sm">{item.quantity}</span>
+                        <button onClick={() => updateQty(item.productId, item.quantity + 1)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light text-sm">+</button>
+                      </div>
+                      <p className="font-bold text-primary text-sm sm:text-base">{(item.product.price * item.quantity).toLocaleString("ru-RU")} ₽</p>
                     </div>
-                    <div className="text-right min-w-[80px]">
-                      <p className="font-bold text-primary">{(item.product.price * item.quantity).toLocaleString("ru-RU")} ₽</p>
-                    </div>
-                    <button onClick={() => removeItem(item.productId)} className="text-text-gray hover:text-danger transition-colors ml-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
                   </div>
                 ))}
               </div>
-              <div className="mt-6 bg-bg-white rounded-xl border border-border p-6 flex items-center justify-between">
-                <div>
+              <div className="mt-6 bg-bg-white rounded-xl border border-border p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-center sm:text-left">
                   <p className="text-text-gray text-sm">Товаров: {items.reduce((s, i) => s + i.quantity, 0)}</p>
                   <p className="text-xl font-bold text-text-dark">Итого: {total.toLocaleString("ru-RU")} ₽</p>
                 </div>
-                <Link href="/checkout" className="bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium text-lg">
+                <Link href="/checkout" className="w-full sm:w-auto bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium text-lg text-center">
                   Оформить заказ
                 </Link>
               </div>
