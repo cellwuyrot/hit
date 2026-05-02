@@ -30,13 +30,19 @@ model Product {
   name        String
   slug        String     @unique
   description String     @default("")
-  price       Float
+  price       Float      @default(0)
   oldPrice    Float?
   image       String     @default("")
   inStock     Int        @default(0)
   brand       String     @default("")
   color       String     @default("")
   productType String     @default("")
+  country     String     @default("")
+  barcode     String     @default("")
+  code        String     @default("")
+  weight      Float?
+  volume      Float?
+  packSize    Int?
   categoryId  String
   category    Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   cartItems   CartItem[]
