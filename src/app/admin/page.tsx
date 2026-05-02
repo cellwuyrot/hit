@@ -28,6 +28,23 @@ interface Product {
   category?: Category;
 }
 
+interface ImportRow {
+  index: number;
+  name: string;
+  price: number;
+  brand: string;
+  category: string;
+  image: string;
+  inStock: number;
+  country: string;
+  barcode: string;
+  code: string;
+  weight: number | null;
+  volume: number | null;
+  packSize: number | null;
+  description: string;
+}
+
 interface SliderImage {
   id: string;
   title: string;
@@ -112,6 +129,10 @@ export default function AdminPage() {
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
 
   const [importStatus, setImportStatus] = useState("");
+  const [importPreview, setImportPreview] = useState<ImportRow[]>([]);
+  const [importSelected, setImportSelected] = useState<Set<number>>(new Set());
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
 
   const hdrs = useCallback(() => ({
     "Content-Type": "application/json",
@@ -212,27 +233,77 @@ export default function AdminPage() {
     fetchData();
   };
 
-  // Import
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Import — step 1: preview
+  const handleImportPreview = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImportStatus("Импорт...");
+    setImportLoading(true);
+    setImportStatus("");
+    setImportPreview([]);
+    setImportFile(file);
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("mode", "preview");
     const res = await fetch("/api/admin/import", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
     const data = await res.json();
-    if (res.ok) {
-      setImportStatus(`Импортировано: ${data.imported} из ${data.total} (пропущено: ${data.skipped})`);
-      fetchData();
+    setImportLoading(false);
+    if (res.ok && data.preview) {
+      setImportPreview(data.preview);
+      const all = new Set<number>(data.preview.map((r: ImportRow) => r.index));
+      setImportSelected(all);
     } else {
       setImportStatus(`Ошибка: ${data.error}`);
     }
     e.target.value = "";
+  };
+
+  // Import — step 2: import selected
+  const handleImportSelected = async () => {
+    if (!importFile || importSelected.size === 0) return;
+    setImportLoading(true);
+    setImportStatus("Импорт...");
+    const formData = new FormData();
+    formData.append("file", importFile);
+    formData.append("mode", "import");
+    formData.append("selected", JSON.stringify([...importSelected]));
+    const res = await fetch("/api/admin/import", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    setImportLoading(false);
+    if (res.ok) {
+      setImportStatus(`Импортировано: ${data.imported} из ${data.total}`);
+      setImportPreview([]);
+      setImportFile(null);
+      setImportSelected(new Set());
+      fetchData();
+    } else {
+      setImportStatus(`Ошибка: ${data.error}`);
+    }
     setTimeout(() => setImportStatus(""), 5000);
+  };
+
+  const toggleImportRow = (index: number) => {
+    setImportSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const toggleImportAll = () => {
+    if (importSelected.size === importPreview.length) {
+      setImportSelected(new Set());
+    } else {
+      setImportSelected(new Set(importPreview.map((r) => r.index)));
+    }
   };
 
   const searchProduct = (name: string) => {
@@ -370,15 +441,86 @@ export default function AdminPage() {
             {/* Import section */}
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <h2 className="font-bold text-text-dark mb-3">Импорт товаров</h2>
-              <p className="text-sm text-text-gray mb-3">Загрузите файл CSV, XLSX или XLS с колонками: Название, Цена, Описание, Бренд, Категория, В наличии и др.</p>
+              <p className="text-sm text-text-gray mb-3">
+                Загрузите CSV, XLSX или XLS. Поддерживаемые колонки: Наименование товара, Категория, Бренд, Цена, Кол-во, Изображение, Страна произв., Код, Штрихкод, ВЕС, Объем и др.
+              </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <label className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                  Выбрать файл
-                  <input type="file" accept=".csv,.xlsx,.xls" onChange={handleImport} className="hidden" />
+                  {importPreview.length > 0 ? "Загрузить другой файл" : "Выбрать файл"}
+                  <input type="file" accept=".csv,.xlsx,.xls" onChange={handleImportPreview} className="hidden" />
                 </label>
+                {importLoading && <span className="text-sm text-text-gray">Загрузка...</span>}
                 {importStatus && <span className={`text-sm ${importStatus.startsWith("Ошибка") ? "text-danger" : "text-success"}`}>{importStatus}</span>}
               </div>
+
+              {importPreview.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium text-text-dark">
+                      Найдено товаров: {importPreview.length} | Выбрано: {importSelected.size}
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={toggleImportAll} className="text-sm text-primary hover:underline">
+                        {importSelected.size === importPreview.length ? "Снять все" : "Выбрать все"}
+                      </button>
+                      <button
+                        onClick={handleImportSelected}
+                        disabled={importSelected.size === 0 || importLoading}
+                        className="bg-success hover:bg-green-600 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
+                      >
+                        Импортировать выбранные ({importSelected.size})
+                      </button>
+                      <button
+                        onClick={() => { setImportPreview([]); setImportFile(null); setImportSelected(new Set()); }}
+                        className="text-sm text-danger hover:underline"
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto max-h-96 overflow-y-auto border border-border rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-2 py-2 text-left">
+                            <input type="checkbox" checked={importSelected.size === importPreview.length} onChange={toggleImportAll} />
+                          </th>
+                          <th className="px-2 py-2 text-left">Название</th>
+                          <th className="px-2 py-2 text-left">Бренд</th>
+                          <th className="px-2 py-2 text-left">Категория</th>
+                          <th className="px-2 py-2 text-right">Цена</th>
+                          <th className="px-2 py-2 text-right">Кол-во</th>
+                          <th className="px-2 py-2 text-left">Страна</th>
+                          <th className="px-2 py-2 text-left">Код</th>
+                          <th className="px-2 py-2 text-left">Штрихкод</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importPreview.map((row) => (
+                          <tr
+                            key={row.index}
+                            className={`border-t border-border hover:bg-gray-50 cursor-pointer ${importSelected.has(row.index) ? "bg-blue-50" : ""}`}
+                            onClick={() => toggleImportRow(row.index)}
+                          >
+                            <td className="px-2 py-1.5">
+                              <input type="checkbox" checked={importSelected.has(row.index)} onChange={() => toggleImportRow(row.index)} />
+                            </td>
+                            <td className="px-2 py-1.5 max-w-[200px] truncate" title={row.name}>{row.name || "—"}</td>
+                            <td className="px-2 py-1.5">{row.brand || "—"}</td>
+                            <td className="px-2 py-1.5">{row.category || "—"}</td>
+                            <td className="px-2 py-1.5 text-right">{row.price || "—"}</td>
+                            <td className="px-2 py-1.5 text-right">{row.inStock || "—"}</td>
+                            <td className="px-2 py-1.5">{row.country || "—"}</td>
+                            <td className="px-2 py-1.5">{row.code || "—"}</td>
+                            <td className="px-2 py-1.5">{row.barcode || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-bg-white rounded-xl border border-border p-5">
