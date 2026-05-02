@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     return Response.json(product);
   }
 
+  const search = searchParams.get("search")?.trim();
   const categorySlug = searchParams.get("category");
   const sort = searchParams.get("sort") || "popular";
   const priceFrom = searchParams.get("priceFrom");
@@ -20,6 +21,14 @@ export async function GET(request: NextRequest) {
   const colors = searchParams.get("colors")?.split(",").filter(Boolean);
 
   const where: Record<string, unknown> = {};
+
+  if (search) {
+    where.OR = [
+      { name: { contains: search } },
+      { description: { contains: search } },
+      { brand: { contains: search } },
+    ];
+  }
 
   if (categorySlug) {
     const cat = await prisma.category.findUnique({

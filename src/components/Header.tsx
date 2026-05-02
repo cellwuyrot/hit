@@ -3,9 +3,21 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+
+  const handleSearch = () => {
+    const q = searchQuery.trim();
+    if (q) {
+      router.push(`/catalog?search=${encodeURIComponent(q)}`);
+      setSearchQuery("");
+      setMenuOpen(false);
+    }
+  };
 
   return (
     <header className="bg-bg-white shadow-sm">
@@ -41,18 +53,20 @@ export default function Header() {
 
           {/* Search - hidden on mobile */}
           <div className="hidden md:flex flex-1 max-w-xl">
-            <div className="relative w-full">
+            <form className="relative w-full" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск товаров..."
                 className="w-full border border-border rounded-lg px-4 py-2.5 pr-10 focus:outline-none focus:border-primary transition-colors"
               />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-primary transition-colors">
+              <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-primary transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </button>
-            </div>
+            </form>
           </div>
 
           {/* Contact info */}
@@ -103,11 +117,15 @@ export default function Header() {
         {/* Mobile search + menu */}
         {menuOpen && (
           <div className="md:hidden mt-3 pb-2">
-            <input
-              type="text"
-              placeholder="Поиск товаров..."
-              className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
-            />
+            <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск товаров..."
+                className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
+              />
+            </form>
             <nav className="mt-3 flex flex-col gap-2">
               <Link href="/catalog" className="text-text-dark hover:text-primary py-1 font-medium" onClick={() => setMenuOpen(false)}>Каталог</Link>
               <Link href="/wholesale" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Оптовые продажи</Link>

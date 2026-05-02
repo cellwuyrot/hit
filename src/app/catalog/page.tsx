@@ -13,6 +13,7 @@ interface PageProps {
 }
 
 async function CatalogContent({ searchParams }: { searchParams: Record<string, string | undefined> }) {
+  const search = searchParams.search?.trim();
   const sort = searchParams.sort || "popular";
   const priceFrom = searchParams.priceFrom ? Number(searchParams.priceFrom) : undefined;
   const priceTo = searchParams.priceTo ? Number(searchParams.priceTo) : undefined;
@@ -21,6 +22,13 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
   const colors = searchParams.colors?.split(",").filter(Boolean);
 
   const where: Record<string, unknown> = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search } },
+      { description: { contains: search } },
+      { brand: { contains: search } },
+    ];
+  }
   if (priceFrom !== undefined || priceTo !== undefined) {
     where.price = {};
     if (priceFrom !== undefined) (where.price as Record<string, number>).gte = priceFrom;
@@ -83,6 +91,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
       <div className="flex-1">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <p className="text-sm text-text-gray">
+            {search && <span>Поиск: &laquo;{search}&raquo; &mdash; </span>}
             Подобрано: <strong className="text-text-dark">{products.length} товаров</strong>
           </p>
           <div className="flex items-center gap-2 text-sm">
