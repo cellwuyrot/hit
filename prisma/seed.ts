@@ -21,22 +21,17 @@ function slug(name: string): string {
 }
 
 async function main() {
-// Admins
-	const admins = [
-	  { username: "TZacoulbot",    password: "1acoulbotTZpss11" },
-	  { username: "TZadminSergay", password: "vapelabhit2026"   },
-	  { username: "TZmanag2026",   password: "2026managTZend"   },
-	]
-
-	for (const admin of admins) {
-	  const hashed = await bcrypt.hash(admin.password, 10)
-	  await prisma.admin.upsert({
-		where:  { username: admin.username },
-		update: {},
-		create: { username: admin.username, password: hashed },
-	  })
-	  console.log(`✅ Admin: ${admin.username}`)
-	}
+  // Admin — create default only if no admins exist (first install)
+  const existingAdmins = await prisma.admin.count();
+  if (existingAdmins === 0) {
+    const hashedPassword = await bcrypt.hash("admin123", 10);
+    await prisma.admin.create({
+      data: { username: "admin", password: hashedPassword },
+    });
+    console.log("Default admin created (login: admin). Change password after first login!");
+  } else {
+    console.log(`Skipping admin seed — ${existingAdmins} admin(s) already exist.`);
+  }
 
   // Top-level categories
   const cats = [
