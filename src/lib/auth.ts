@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
-const JWT_SECRET = process.env.JWT_SECRET || "shop-admin-secret-key-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
 
 export function signToken(payload: { id: string; username?: string; email?: string; role: "admin" | "user" }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
