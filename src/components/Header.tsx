@@ -95,7 +95,7 @@ export default function Header() {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              <span className="text-[10px] sm:text-xs mt-0.5">Кабинет</span>
+              <span className="text-[10px] sm:text-xs mt-0.5">Вход</span>
             </Link>
 
             {/* Mobile menu toggle */}
@@ -135,8 +135,7 @@ export default function Header() {
               <Link href="/about#contacts" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Контакты</Link>
               <Link href="/compare" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Сравнение</Link>
               <Link href="/cart" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Корзина</Link>
-              <Link href="/account" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Личный кабинет</Link>
-              <Link href="/admin" className="text-text-gray hover:text-primary py-1 text-sm" onClick={() => setMenuOpen(false)}>Админ-панель</Link>
+              <Link href="/account" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Вход / Кабинет</Link>
             </nav>
           </div>
         )}
@@ -164,9 +163,7 @@ export default function Header() {
             <li>
               <Link href="/about#contacts" className="text-text-gray hover:text-primary transition-colors">Контакты</Link>
             </li>
-            <li className="ml-auto">
-              <Link href="/admin" className="text-text-gray hover:text-primary transition-colors">Админ-панель</Link>
-            </li>
+
           </ul>
         </div>
       </nav>

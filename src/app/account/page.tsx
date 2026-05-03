@@ -3,6 +3,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useState, useEffect, startTransition } from "react";
+import { useRouter } from "next/navigation";
 
 interface UserProfile {
   id: string;
@@ -37,6 +38,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AccountPage() {
+  const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [tab, setTab] = useState<"login" | "register">("login");
   const [activeSection, setActiveSection] = useState<"profile" | "orders">("profile");
@@ -69,17 +71,43 @@ export default function AccountPage() {
 
   const handleAuth = async () => {
     setError("");
-    const action = tab === "login" ? "login" : "register";
-    const res = await fetch("/api/user/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, email: form.email, password: form.password }),
-    });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error); return; }
-    localStorage.setItem("userToken", data.token);
-    setToken(data.token);
-    setForm({ email: "", password: "" });
+    if (tab === "login") {
+      // Try admin auth first
+      const adminRes = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: form.email, password: form.password }),
+      });
+      if (adminRes.ok) {
+        const adminData = await adminRes.json();
+        localStorage.setItem("admin_token", adminData.token);
+        router.push("/admin");
+        return;
+      }
+      // Then try user auth
+      const res = await fetch("/api/user/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "login", email: form.email, password: form.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Неверный логин или пароль"); return; }
+      localStorage.setItem("userToken", data.token);
+      setToken(data.token);
+      setForm({ email: "", password: "" });
+    } else {
+      // Register — user only
+      const res = await fetch("/api/user/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "register", email: form.email, password: form.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error); return; }
+      localStorage.setItem("userToken", data.token);
+      setToken(data.token);
+      setForm({ email: "", password: "" });
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -110,20 +138,23 @@ export default function AccountPage() {
         <Header />
         <main className="flex-1 bg-bg-light">
           <div className="max-w-md mx-auto px-4 py-10">
-            <h1 className="text-2xl font-bold text-text-dark mb-6 text-center">Личный кабинет</h1>
+            <h1 className="text-2xl font-bold text-text-dark mb-6 text-center">Вход в систему</h1>
             <div className="bg-bg-white rounded-xl border border-border p-6">
               <div className="flex mb-6">
                 <button onClick={() => setTab("login")} className={`flex-1 py-2 text-center font-medium border-b-2 ${tab === "login" ? "border-primary text-primary" : "border-transparent text-text-gray"}`}>Вход</button>
                 <button onClick={() => setTab("register")} className={`flex-1 py-2 text-center font-medium border-b-2 ${tab === "register" ? "border-primary text-primary" : "border-transparent text-text-gray"}`}>Регистрация</button>
               </div>
               {error && <p className="text-danger text-sm mb-4">{error}</p>}
-              <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+              <input type="text" placeholder={tab === "login" ? "Email или Логин" : "Email"} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary" />
               <input type="password" placeholder="Пароль" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary" />
               <button onClick={handleAuth} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
                 {tab === "login" ? "Войти" : "Зарегистрироваться"}
               </button>
+              {tab === "login" && (
+                <p className="text-xs text-text-gray text-center mt-3">Используйте email для клиентов или логин для администраторов</p>
+              )}
               {tab === "register" && (
                 <p className="text-xs text-text-gray text-center mt-3">После регистрации вы сможете заполнить данные профиля в личном кабинете</p>
               )}
