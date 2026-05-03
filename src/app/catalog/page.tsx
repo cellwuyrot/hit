@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import CatalogFilters from "@/components/CatalogFilters";
+import Pagination, { PER_PAGE } from "@/components/Pagination";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Suspense } from "react";
@@ -46,8 +47,12 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
     default: orderBy = { createdAt: "desc" };
   }
 
-  const [products, allProducts, categories] = await Promise.all([
-    prisma.product.findMany({ where, orderBy, include: { category: true } }),
+  const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
+  const skip = (page - 1) * PER_PAGE;
+
+  const [totalCount, products, allProducts, categories] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({ where, orderBy, include: { category: true }, take: PER_PAGE, skip }),
     prisma.product.findMany({ select: { brand: true, productType: true, color: true, price: true } }),
     prisma.category.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { products: true } } } }),
   ]);
@@ -58,6 +63,8 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
   const prices = allProducts.map((p) => p.price);
   const minPrice = Math.min(...prices, 0);
   const maxPrice = Math.max(...prices, 10000);
+
+  const totalPages = Math.ceil(totalCount / PER_PAGE);
 
   return (
     <div className="flex gap-6">
@@ -91,8 +98,10 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
       <div className="flex-1">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <p className="text-sm text-text-gray">
-            {search && <span>Поиск: &laquo;{search}&raquo; &mdash; </span>}
-            Подобрано: <strong className="text-text-dark">{products.length} товаров</strong>
+            {search ? <span>{"Поиск: \u00AB"}{search}{"\u00BB \u2014 "}</span> : null}
+            {"Подобрано: "}
+            <strong className="text-text-dark">{totalCount}{" товаров"}</strong>
+            {totalPages > 1 ? <span className="text-text-light">{` (стр. ${page} из ${totalPages})`}</span> : null}
           </p>
           <div className="flex items-center gap-2 text-sm">
             <span className="text-text-gray">Сортировка:</span>
@@ -122,6 +131,8 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
             ))}
           </div>
         )}
+
+        <Pagination currentPage={page} totalItems={totalCount} baseParams={searchParams} />
       </div>
     </div>
   );
