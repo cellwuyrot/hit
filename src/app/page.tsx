@@ -35,7 +35,13 @@ export default async function HomePage() {
             {categories.map((cat) => (
               <Link key={cat.id} href={`/catalog/${cat.slug}`}
                 className="bg-bg-white rounded-xl border border-border p-6 hover:shadow-lg hover:border-primary/30 transition-all group">
-                <div className="text-3xl mb-3 text-center">{cat.icon || "📦"}</div>
+                <div className="mb-3 flex justify-center">
+                  {cat.icon && (cat.icon.startsWith("/") || cat.icon.startsWith("http")) ? (
+                    <img src={cat.icon} alt={cat.name} className="w-16 h-16 object-cover rounded-lg" style={{ maxWidth: 256, maxHeight: 256 }} />
+                  ) : (
+                    <span className="text-3xl">{cat.icon || "📦"}</span>
+                  )}
+                </div>
                 <h3 className="font-medium text-text-dark text-center group-hover:text-primary transition-colors">{cat.name}</h3>
                 {cat.children.length > 0 && (
                   <p className="text-xs text-text-gray text-center mt-1">{cat.children.length} подкатегорий</p>

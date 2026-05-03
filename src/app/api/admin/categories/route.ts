@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 
-  const { name, order, parentId, metaTitle, metaDescription, seoText } = await request.json();
+  const { name, icon, order, parentId, metaTitle, metaDescription, seoText } = await request.json();
   if (!name) {
     return Response.json({ error: "Название обязательно" }, { status: 400 });
   }
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   const slug = slugify(name);
   const category = await prisma.category.create({
     data: {
-      name, slug, order: order || 0, parentId: parentId || null,
+      name, slug, icon: icon || "", order: order || 0, parentId: parentId || null,
       metaTitle: metaTitle || "", metaDescription: metaDescription || "", seoText: seoText || "",
     },
   });
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 
-  const { id, name, order, parentId, metaTitle, metaDescription, seoText } = await request.json();
+  const { id, name, icon, order, parentId, metaTitle, metaDescription, seoText } = await request.json();
   if (!id || !name) {
     return Response.json({ error: "ID и название обязательны" }, { status: 400 });
   }
@@ -64,7 +64,7 @@ export async function PUT(request: Request) {
   const category = await prisma.category.update({
     where: { id },
     data: {
-      name, slug, order: order || 0, parentId: parentId || null,
+      name, slug, icon: icon || "", order: order || 0, parentId: parentId || null,
       metaTitle: metaTitle || "", metaDescription: metaDescription || "", seoText: seoText || "",
     },
   });

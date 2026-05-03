@@ -7,6 +7,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  icon: string;
   order: number;
   parentId?: string | null;
   metaTitle?: string;
@@ -117,9 +118,11 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
 
   const [catName, setCatName] = useState("");
+  const [catIcon, setCatIcon] = useState("");
   const [catOrder, setCatOrder] = useState(0);
   const [catParentId, setCatParentId] = useState("");
   const [catMetaTitle, setCatMetaTitle] = useState("");
+  const [uploadingCatIcon, setUploadingCatIcon] = useState(false);
   const [catMetaDesc, setCatMetaDesc] = useState("");
   const [catSeoText, setCatSeoText] = useState("");
   const [editingCat, setEditingCat] = useState<Category | null>(null);
@@ -216,15 +219,24 @@ export default function AdminPage() {
   const logout = () => { setToken(""); localStorage.removeItem("admin_token"); };
 
   // Category CRUD
+  const uploadCatIcon = async (file: File) => {
+    setUploadingCatIcon(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+    if (res.ok) { const { url } = await res.json(); setCatIcon(url); }
+    setUploadingCatIcon(false);
+  };
+
   const saveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingCat ? "PUT" : "POST";
     const seoFields = { metaTitle: catMetaTitle, metaDescription: catMetaDesc, seoText: catSeoText };
     const body = editingCat
-      ? { id: editingCat.id, name: catName, order: catOrder, parentId: catParentId || null, ...seoFields }
-      : { name: catName, order: catOrder, parentId: catParentId || null, ...seoFields };
+      ? { id: editingCat.id, name: catName, icon: catIcon, order: catOrder, parentId: catParentId || null, ...seoFields }
+      : { name: catName, icon: catIcon, order: catOrder, parentId: catParentId || null, ...seoFields };
     await fetch("/api/admin/categories", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setCatName(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); setEditingCat(null);
+    setCatName(""); setCatIcon(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); setEditingCat(null);
     fetchData();
   };
 
@@ -610,6 +622,20 @@ export default function AdminPage() {
               <form onSubmit={saveCategory} className="space-y-3">
                 <input type="text" placeholder="Название" value={catName} onChange={(e) => setCatName(e.target.value)} required
                   className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                <div>
+                  <label className="text-xs text-text-gray mb-1 block">Изображение категории (256x256)</label>
+                  <div className="flex gap-2 items-center">
+                    <input type="text" placeholder="URL или эмодзи (напр. 📦)" value={catIcon} onChange={(e) => setCatIcon(e.target.value)}
+                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                    <label className="px-3 py-2 bg-bg-light border border-border rounded-lg text-sm cursor-pointer hover:bg-primary/5">
+                      {uploadingCatIcon ? "..." : "Файл"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadCatIcon(e.target.files[0]); }} />
+                    </label>
+                  </div>
+                  {catIcon && catIcon.startsWith("/") && (
+                    <img src={catIcon} alt="Превью" className="mt-2 w-16 h-16 object-cover rounded-lg border border-border" />
+                  )}
+                </div>
                 <select value={catParentId} onChange={(e) => setCatParentId(e.target.value)}
                   className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
                   <option value="">Корневая категория</option>
@@ -628,7 +654,7 @@ export default function AdminPage() {
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-primary hover:bg-primary-dark text-white text-sm py-2 rounded-lg">{editingCat ? "Сохранить" : "Добавить"}</button>
-                  {editingCat && <button type="button" onClick={() => { setEditingCat(null); setCatName(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingCat && <button type="button" onClick={() => { setEditingCat(null); setCatName(""); setCatIcon(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
                 </div>
               </form>
             </div>
@@ -638,13 +664,20 @@ export default function AdminPage() {
                 <div className="space-y-2">
                   {categories.map((cat) => (
                     <div key={cat.id} className={`flex items-center justify-between p-3 rounded-lg ${cat.parentId ? "bg-bg-light/50 ml-6 border-l-2 border-primary/20" : "bg-bg-light"}`}>
-                      <div>
-                        <span className="font-medium text-text-dark">{cat.name}</span>
-                        {cat.parentId && <span className="text-xs text-primary ml-2">подкатегория</span>}
-                        <span className="text-text-light text-sm ml-2">({cat._count?.products || 0} товаров)</span>
+                      <div className="flex items-center gap-2">
+                        {cat.icon && (cat.icon.startsWith("/") || cat.icon.startsWith("http")) ? (
+                          <img src={cat.icon} alt="" className="w-8 h-8 object-cover rounded" />
+                        ) : (
+                          <span className="text-lg">{cat.icon || "📦"}</span>
+                        )}
+                        <div>
+                          <span className="font-medium text-text-dark">{cat.name}</span>
+                          {cat.parentId && <span className="text-xs text-primary ml-2">подкатегория</span>}
+                          <span className="text-text-light text-sm ml-2">({cat._count?.products || 0} товаров)</span>
+                        </div>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => { setEditingCat(cat); setCatName(cat.name); setCatOrder(cat.order); setCatParentId(cat.parentId || ""); setCatMetaTitle(cat.metaTitle || ""); setCatMetaDesc(cat.metaDescription || ""); setCatSeoText(cat.seoText || ""); }} className="text-primary hover:underline text-sm">Изменить</button>
+                        <button onClick={() => { setEditingCat(cat); setCatName(cat.name); setCatIcon(cat.icon || ""); setCatOrder(cat.order); setCatParentId(cat.parentId || ""); setCatMetaTitle(cat.metaTitle || ""); setCatMetaDesc(cat.metaDescription || ""); setCatSeoText(cat.seoText || ""); }} className="text-primary hover:underline text-sm">Изменить</button>
                         <button onClick={() => deleteCategory(cat.id)} className="text-danger hover:underline text-sm">Удалить</button>
                       </div>
                     </div>
