@@ -26,29 +26,32 @@ model Category {
 }
 
 model Product {
-  id          String     @id @default(uuid())
+  id          String         @id @default(uuid())
   name        String
-  slug        String     @unique
-  description String     @default("")
-  price       Float      @default(0)
+  slug        String         @unique
+  description String         @default("")
+  price       Float          @default(0)
   oldPrice    Float?
-  image       String     @default("")
-  inStock     Int        @default(0)
-  brand       String     @default("")
-  color       String     @default("")
-  productType String     @default("")
-  country     String     @default("")
-  barcode     String     @default("")
-  code        String     @default("")
+  image       String         @default("")
+  image2      String         @default("")
+  image3      String         @default("")
+  image4      String         @default("")
+  inStock     Int            @default(0)
+  brand       String         @default("")
+  color       String         @default("")
+  productType String         @default("")
+  country     String         @default("")
+  barcode     String         @default("")
+  code        String         @default("")
   weight      Float?
   volume      Float?
   packSize    Int?
   categoryId  String
-  category    Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category    Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   cartItems   CartItem[]
   orderItems  OrderItem[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 }
 
 model SliderImage {

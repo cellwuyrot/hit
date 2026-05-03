@@ -45,7 +45,8 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [form, setForm] = useState({ email: "", password: "" });
-  const [editForm, setEditForm] = useState({ name: "", lastName: "", phone: "", address: "" });
+  const [editForm, setEditForm] = useState({ name: "", lastName: "", phone: "", address: "", email: "" });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -60,7 +61,7 @@ export default function AccountPage() {
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((data) => startTransition(() => {
         setProfile(data);
-        setEditForm({ name: data.name, lastName: data.lastName, phone: data.phone, address: data.address });
+        setEditForm({ name: data.name, lastName: data.lastName, phone: data.phone, address: data.address, email: data.email });
       }))
       .catch(() => { localStorage.removeItem("userToken"); startTransition(() => setToken(null)); });
 
@@ -111,17 +112,39 @@ export default function AccountPage() {
   };
 
   const handleUpdateProfile = async () => {
-    setSuccess("");
+    setSuccess(""); setError("");
     const res = await fetch("/api/user/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(editForm),
     });
+    const data = await res.json();
     if (res.ok) {
-      const data = await res.json();
       setProfile(data);
       setSuccess("Профиль обновлён");
       setTimeout(() => setSuccess(""), 3000);
+    } else {
+      setError(data.error || "Ошибка обновления");
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setSuccess(""); setError("");
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      setError("Заполните оба поля пароля"); return;
+    }
+    const res = await fetch("/api/user/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(passwordForm),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setPasswordForm({ currentPassword: "", newPassword: "" });
+      setSuccess("Пароль изменён");
+      setTimeout(() => setSuccess(""), 3000);
+    } else {
+      setError(data.error || "Ошибка");
     }
   };
 
@@ -182,35 +205,59 @@ export default function AccountPage() {
           </div>
 
           {activeSection === "profile" && profile && (
-            <div className="bg-bg-white rounded-xl border border-border p-5 sm:p-6">
-              <h2 className="text-lg font-bold text-text-dark mb-4">Данные профиля</h2>
-              <div className="bg-bg-light rounded-lg p-3 mb-4">
-                <p className="text-sm text-text-gray">Email: <span className="text-text-dark font-medium">{profile.email}</span></p>
+            <div className="space-y-6">
+              <div className="bg-bg-white rounded-xl border border-border p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-text-dark mb-4">Данные профиля</h2>
+                {success && <p className="text-success text-sm mb-4">{success}</p>}
+                {error && <p className="text-danger text-sm mb-4">{error}</p>}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Email</label>
+                    <input type="email" placeholder="Email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Имя</label>
+                    <input type="text" placeholder="Имя" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Фамилия</label>
+                    <input type="text" placeholder="Фамилия" value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Телефон</label>
+                    <input type="tel" placeholder="+7 (___) ___-__-__" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-sm text-text-gray mb-1 block">Адрес доставки</label>
+                    <textarea placeholder="Город, улица, дом, квартира" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" rows={3} />
+                  </div>
+                </div>
+                <button onClick={handleUpdateProfile} className="mt-4 bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">Сохранить</button>
               </div>
-              {success && <p className="text-success text-sm mb-4">{success}</p>}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-text-gray mb-1 block">Имя</label>
-                  <input type="text" placeholder="Имя" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+
+              <div className="bg-bg-white rounded-xl border border-border p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-text-dark mb-4">Сменить пароль</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Текущий пароль</label>
+                    <input type="password" placeholder="Текущий пароль" value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Новый пароль</label>
+                    <input type="password" placeholder="Минимум 6 символов" value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm text-text-gray mb-1 block">Фамилия</label>
-                  <input type="text" placeholder="Фамилия" value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-                </div>
-                <div>
-                  <label className="text-sm text-text-gray mb-1 block">Телефон</label>
-                  <input type="tel" placeholder="+7 (___) ___-__-__" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="text-sm text-text-gray mb-1 block">Адрес доставки</label>
-                  <textarea placeholder="Город, улица, дом, квартира" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" rows={3} />
-                </div>
+                <button onClick={handleChangePassword} className="mt-4 bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">Сменить пароль</button>
               </div>
-              <button onClick={handleUpdateProfile} className="mt-4 bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">Сохранить</button>
             </div>
           )}
 
