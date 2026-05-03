@@ -20,6 +20,9 @@ interface Product {
   price: number;
   oldPrice: number | null;
   image: string;
+  image2: string;
+  image3: string;
+  image4: string;
   inStock: number;
   brand: string;
   color: string;
@@ -88,7 +91,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "categories" | "products" | "slider" | "news" | "orders" | "bulk-orders";
+type TabType = "categories" | "products" | "slider" | "news" | "orders" | "bulk-orders" | "settings";
 
 export default function AdminPage() {
   const [token, setToken] = useState("");
@@ -109,11 +112,17 @@ export default function AdminPage() {
   const [editingCat, setEditingCat] = useState<Category | null>(null);
 
   const [prodForm, setProdForm] = useState({
-    name: "", description: "", price: "", oldPrice: "", image: "",
+    name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "",
     inStock: "0", brand: "", color: "", productType: "", categoryId: "",
   });
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [filterCategory, setFilterCategory] = useState("");
+  const [hideOutOfStock, setHideOutOfStock] = useState(false);
+  const [bulkCategoryId, setBulkCategoryId] = useState("");
+  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+  const [adminSettings, setAdminSettings] = useState({ newUsername: "", currentPassword: "", newPassword: "" });
+  const [adminSettingsMsg, setAdminSettingsMsg] = useState("");
 
   const [slideForm, setSlideForm] = useState({
     title: "", subtitle: "", imageUrl: "", link: "", order: "0", active: true,
@@ -206,7 +215,7 @@ export default function AdminPage() {
     const method = editingProd ? "PUT" : "POST";
     const body = editingProd ? { id: editingProd.id, ...prodForm } : prodForm;
     await fetch("/api/admin/products", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "" });
+    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "" });
     setEditingProd(null); fetchData();
   };
 
@@ -227,10 +236,11 @@ export default function AdminPage() {
   };
 
   const toggleAllProducts = () => {
-    if (selectedProducts.size === products.length) {
+    const visible = filteredProducts;
+    if (selectedProducts.size === visible.length && visible.length > 0) {
       setSelectedProducts(new Set());
     } else {
-      setSelectedProducts(new Set(products.map((p) => p.id)));
+      setSelectedProducts(new Set(visible.map((p) => p.id)));
     }
   };
 
@@ -245,6 +255,61 @@ export default function AdminPage() {
     setSelectedProducts(new Set());
     fetchData();
   };
+
+  const bulkAssignCategory = async () => {
+    if (selectedProducts.size === 0 || !bulkCategoryId) return;
+    await fetch("/api/admin/products", {
+      method: "PUT",
+      headers: hdrs(),
+      body: JSON.stringify({ ids: Array.from(selectedProducts), categoryId: bulkCategoryId }),
+    });
+    setSelectedProducts(new Set());
+    setBulkCategoryId("");
+    fetchData();
+  };
+
+  const uploadImage = async (file: File, field: string) => {
+    setUploadingImage(field);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/admin/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setProdForm((prev) => ({ ...prev, [field]: data.url }));
+    }
+    setUploadingImage(null);
+  };
+
+  const updateAdminSettings = async () => {
+    setAdminSettingsMsg("");
+    const res = await fetch("/api/admin/auth", {
+      method: "PUT",
+      headers: hdrs(),
+      body: JSON.stringify(adminSettings),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      if (data.token) {
+        setToken(data.token);
+        localStorage.setItem("admin_token", data.token);
+      }
+      setAdminSettings({ newUsername: "", currentPassword: "", newPassword: "" });
+      setAdminSettingsMsg("Данные обновлены");
+      setTimeout(() => setAdminSettingsMsg(""), 3000);
+    } else {
+      setAdminSettingsMsg(data.error || "Ошибка");
+    }
+  };
+
+  const filteredProducts = products.filter((p) => {
+    if (filterCategory && p.categoryId !== filterCategory) return false;
+    if (hideOutOfStock && p.inStock <= 0) return false;
+    return true;
+  });
 
   // Slider CRUD
   const saveSlide = async (e: React.FormEvent) => {
@@ -466,7 +531,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    categories: "Категории", products: "Товары", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "bulk-orders": "Оптовые",
+    categories: "Категории", products: "Товары", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "bulk-orders": "Оптовые", settings: "Настройки",
   };
 
   return (
@@ -691,8 +756,54 @@ export default function AdminPage() {
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <input type="number" placeholder="Старая цена" value={prodForm.oldPrice} onChange={(e) => setProdForm({ ...prodForm, oldPrice: e.target.value })}
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                <input type="text" placeholder="URL изображения" value={prodForm.image} onChange={(e) => setProdForm({ ...prodForm, image: e.target.value })}
-                  className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                <div className="border border-border rounded-lg px-3 py-2 text-sm">
+                  <label className="text-text-gray text-xs block mb-1">Изображение 1 (основное)</label>
+                  <div className="flex gap-2 items-center">
+                    <input type="text" placeholder="URL или загрузите файл" value={prodForm.image} onChange={(e) => setProdForm({ ...prodForm, image: e.target.value })}
+                      className="flex-1 border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-primary" />
+                    <label className="cursor-pointer bg-bg-light hover:bg-gray-200 text-text-gray text-xs px-2 py-1 rounded transition-colors">
+                      {uploadingImage === "image" ? "..." : "Файл"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f, "image"); e.target.value = ""; }} />
+                    </label>
+                  </div>
+                  {prodForm.image && <img src={prodForm.image} alt="" className="mt-1 w-12 h-12 object-cover rounded" />}
+                </div>
+                <div className="border border-border rounded-lg px-3 py-2 text-sm">
+                  <label className="text-text-gray text-xs block mb-1">Изображение 2</label>
+                  <div className="flex gap-2 items-center">
+                    <input type="text" placeholder="URL или загрузите файл" value={prodForm.image2} onChange={(e) => setProdForm({ ...prodForm, image2: e.target.value })}
+                      className="flex-1 border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-primary" />
+                    <label className="cursor-pointer bg-bg-light hover:bg-gray-200 text-text-gray text-xs px-2 py-1 rounded transition-colors">
+                      {uploadingImage === "image2" ? "..." : "Файл"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f, "image2"); e.target.value = ""; }} />
+                    </label>
+                  </div>
+                  {prodForm.image2 && <img src={prodForm.image2} alt="" className="mt-1 w-12 h-12 object-cover rounded" />}
+                </div>
+                <div className="border border-border rounded-lg px-3 py-2 text-sm">
+                  <label className="text-text-gray text-xs block mb-1">Изображение 3</label>
+                  <div className="flex gap-2 items-center">
+                    <input type="text" placeholder="URL или загрузите файл" value={prodForm.image3} onChange={(e) => setProdForm({ ...prodForm, image3: e.target.value })}
+                      className="flex-1 border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-primary" />
+                    <label className="cursor-pointer bg-bg-light hover:bg-gray-200 text-text-gray text-xs px-2 py-1 rounded transition-colors">
+                      {uploadingImage === "image3" ? "..." : "Файл"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f, "image3"); e.target.value = ""; }} />
+                    </label>
+                  </div>
+                  {prodForm.image3 && <img src={prodForm.image3} alt="" className="mt-1 w-12 h-12 object-cover rounded" />}
+                </div>
+                <div className="border border-border rounded-lg px-3 py-2 text-sm">
+                  <label className="text-text-gray text-xs block mb-1">Изображение 4</label>
+                  <div className="flex gap-2 items-center">
+                    <input type="text" placeholder="URL или загрузите файл" value={prodForm.image4} onChange={(e) => setProdForm({ ...prodForm, image4: e.target.value })}
+                      className="flex-1 border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-primary" />
+                    <label className="cursor-pointer bg-bg-light hover:bg-gray-200 text-text-gray text-xs px-2 py-1 rounded transition-colors">
+                      {uploadingImage === "image4" ? "..." : "Файл"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f, "image4"); e.target.value = ""; }} />
+                    </label>
+                  </div>
+                  {prodForm.image4 && <img src={prodForm.image4} alt="" className="mt-1 w-12 h-12 object-cover rounded" />}
+                </div>
                 <input type="number" placeholder="В наличии" value={prodForm.inStock} onChange={(e) => setProdForm({ ...prodForm, inStock: e.target.value })}
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <input type="text" placeholder="Бренд" value={prodForm.brand} onChange={(e) => setProdForm({ ...prodForm, brand: e.target.value })}
@@ -710,25 +821,50 @@ export default function AdminPage() {
                   className="md:col-span-2 lg:col-span-3 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={2} />
                 <div className="md:col-span-2 lg:col-span-3 flex gap-2">
                   <button type="submit" className="bg-primary hover:bg-primary-dark text-white text-sm px-6 py-2 rounded-lg">{editingProd ? "Сохранить" : "Добавить"}</button>
-                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "" }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "" }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
                 </div>
               </form>
             </div>
             <div className="bg-bg-white rounded-xl border border-border p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-text-dark">Все товары ({products.length})</h2>
-                {selectedProducts.size > 0 && (
-                  <button onClick={bulkDeleteProducts} className="bg-danger hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-                    Удалить выбранные ({selectedProducts.size})
-                  </button>
-                )}
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h2 className="font-bold text-text-dark">Все товары ({filteredProducts.length}{filterCategory || hideOutOfStock ? ` из ${products.length}` : ""})</h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {selectedProducts.size > 0 && (
+                    <>
+                      <select value={bulkCategoryId} onChange={(e) => setBulkCategoryId(e.target.value)}
+                        className="border border-border rounded-lg px-2 py-1.5 text-sm">
+                        <option value="">Назначить категорию...</option>
+                        {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                      </select>
+                      {bulkCategoryId && (
+                        <button onClick={bulkAssignCategory} className="bg-primary hover:bg-primary-dark text-white text-sm px-3 py-1.5 rounded-lg transition-colors">
+                          Применить ({selectedProducts.size})
+                        </button>
+                      )}
+                      <button onClick={bulkDeleteProducts} className="bg-danger hover:bg-red-700 text-white text-sm px-3 py-1.5 rounded-lg transition-colors">
+                        Удалить ({selectedProducts.size})
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              {products.length === 0 ? <p className="text-text-gray text-sm">Товаров пока нет</p> : (
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setSelectedProducts(new Set()); }}
+                  className="border border-border rounded-lg px-3 py-1.5 text-sm">
+                  <option value="">Все категории</option>
+                  {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                </select>
+                <label className="flex items-center gap-1.5 text-sm text-text-gray cursor-pointer">
+                  <input type="checkbox" checked={hideOutOfStock} onChange={(e) => { setHideOutOfStock(e.target.checked); setSelectedProducts(new Set()); }} className="w-4 h-4 rounded" />
+                  Скрыть отсутствующие (0 шт)
+                </label>
+              </div>
+              {filteredProducts.length === 0 ? <p className="text-text-gray text-sm">Товаров не найдено</p> : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead><tr className="border-b border-border">
                       <th className="py-2 px-2 w-8">
-                        <input type="checkbox" checked={selectedProducts.size === products.length && products.length > 0} onChange={toggleAllProducts} className="w-4 h-4 rounded border-border cursor-pointer" />
+                        <input type="checkbox" checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0} onChange={toggleAllProducts} className="w-4 h-4 rounded border-border cursor-pointer" />
                       </th>
                       <th className="text-left py-2 px-2 text-text-gray font-medium">Название</th>
                       <th className="text-left py-2 px-2 text-text-gray font-medium">Категория</th>
@@ -737,7 +873,7 @@ export default function AdminPage() {
                       <th className="text-right py-2 px-2 text-text-gray font-medium">Действия</th>
                     </tr></thead>
                     <tbody>
-                      {products.map((prod) => (
+                      {filteredProducts.map((prod) => (
                         <tr key={prod.id} className={`border-b border-border/50 hover:bg-bg-light ${selectedProducts.has(prod.id) ? "bg-blue-50" : ""}`}>
                           <td className="py-2 px-2">
                             <input type="checkbox" checked={selectedProducts.has(prod.id)} onChange={() => toggleProductSelection(prod.id)} className="w-4 h-4 rounded border-border cursor-pointer" />
@@ -750,7 +886,7 @@ export default function AdminPage() {
                             <button onClick={() => searchProduct(prod.name)} className="text-accent hover:underline mr-2" title="Поиск в интернете">
                               <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </button>
-                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, inStock: String(prod.inStock), brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId }); }} className="text-primary hover:underline mr-2">Изменить</button>
+                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, image2: prod.image2 || "", image3: prod.image3 || "", image4: prod.image4 || "", inStock: String(prod.inStock), brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId }); }} className="text-primary hover:underline mr-2">Изменить</button>
                             <button onClick={() => deleteProduct(prod.id)} className="text-danger hover:underline">Удалить</button>
                           </td>
                         </tr>
@@ -909,6 +1045,41 @@ export default function AdminPage() {
             <h2 className="font-bold text-text-dark mb-4">Оптовые заказы</h2>
             <p className="text-text-gray text-sm mb-4">Раздел оптовых продаж доступен на сайте по адресу <a href="/wholesale" target="_blank" className="text-primary hover:underline">/wholesale</a></p>
             <p className="text-text-gray text-sm">Оптовые заявки поступают на email <strong>opt@топхит.store</strong> и по телефону <strong>+7 (936) 256-89-50</strong></p>
+          </div>
+        )}
+
+        {/* Settings */}
+        {activeTab === "settings" && (
+          <div className="max-w-lg">
+            <div className="bg-bg-white rounded-xl border border-border p-5">
+              <h2 className="font-bold text-text-dark mb-4">Настройки аккаунта</h2>
+              {adminSettingsMsg && (
+                <p className={`text-sm mb-4 ${adminSettingsMsg.includes("Ошибка") || adminSettingsMsg.includes("Неверный") || adminSettingsMsg.includes("занят") ? "text-danger" : "text-success"}`}>{adminSettingsMsg}</p>
+              )}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-text-gray mb-1 block">Новый логин</label>
+                  <input type="text" placeholder="Оставьте пустым, если не менять" value={adminSettings.newUsername}
+                    onChange={(e) => setAdminSettings({ ...adminSettings, newUsername: e.target.value })}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                </div>
+                <div>
+                  <label className="text-sm text-text-gray mb-1 block">Текущий пароль</label>
+                  <input type="password" placeholder="Для смены пароля или логина" value={adminSettings.currentPassword}
+                    onChange={(e) => setAdminSettings({ ...adminSettings, currentPassword: e.target.value })}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                </div>
+                <div>
+                  <label className="text-sm text-text-gray mb-1 block">Новый пароль</label>
+                  <input type="password" placeholder="Минимум 6 символов" value={adminSettings.newPassword}
+                    onChange={(e) => setAdminSettings({ ...adminSettings, newPassword: e.target.value })}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                </div>
+                <button onClick={updateAdminSettings} className="bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-lg transition-colors font-medium">
+                  Сохранить
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

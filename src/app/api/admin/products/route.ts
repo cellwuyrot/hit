@@ -60,7 +60,17 @@ export async function PUT(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 
   const body = await request.json();
-  const { id, name, description, price, oldPrice, image, inStock, brand, color, productType, categoryId } = body;
+
+  // Bulk category assignment
+  if (body.ids && body.categoryId) {
+    const result = await prisma.product.updateMany({
+      where: { id: { in: body.ids } },
+      data: { categoryId: body.categoryId },
+    });
+    return Response.json({ success: true, updated: result.count });
+  }
+
+  const { id, name, description, price, oldPrice, image, image2, image3, image4, inStock, brand, color, productType, categoryId } = body;
 
   if (!id || !name || !price || !categoryId) {
     return Response.json({ error: "Обязательные поля не заполнены" }, { status: 400 });
@@ -71,6 +81,7 @@ export async function PUT(request: Request) {
     data: {
       name, description: description || "", price: Number(price),
       oldPrice: oldPrice ? Number(oldPrice) : null, image: image || "",
+      image2: image2 || "", image3: image3 || "", image4: image4 || "",
       inStock: Number(inStock) || 0, brand: brand || "", color: color || "",
       productType: productType || "", categoryId,
     },

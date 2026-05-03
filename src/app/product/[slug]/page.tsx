@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import AddToCartButton from "@/components/AddToCartButton";
 import CompareButton from "@/components/CompareButton";
+import ProductGallery from "@/components/ProductGallery";
 
 export const dynamic = "force-dynamic";
 
@@ -50,25 +51,12 @@ export default async function ProductPage({ params }: PageProps) {
           </nav>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Image */}
-            <div className="bg-bg-white rounded-xl border border-border p-4">
-              <div className="relative aspect-square">
-                {product.image ? (
-                  <Image src={product.image} alt={product.name} fill className="object-contain p-4" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-text-light">
-                    <svg className="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                )}
-                {product.oldPrice && (
-                  <span className="absolute top-4 left-4 bg-danger text-white text-sm font-bold px-3 py-1 rounded-lg">
-                    -{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%
-                  </span>
-                )}
-              </div>
-            </div>
+            {/* Image Gallery */}
+            <ProductGallery
+              images={[product.image, product.image2, product.image3, product.image4].filter(Boolean)}
+              name={product.name}
+              discount={product.oldPrice ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0}
+            />
 
             {/* Info */}
             <div>
