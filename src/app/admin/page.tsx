@@ -264,8 +264,8 @@ export default function AdminPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/admin/import/parse", {
-        method: "POST",
+      const res = await fetch("/api/admin/import", {
+        method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
