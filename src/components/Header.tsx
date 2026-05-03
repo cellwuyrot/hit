@@ -2,13 +2,32 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import CallbackModal from "@/components/CallbackModal";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [cartCount, setCartCount] = useState(0);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchCart = async () => {
+      const token = localStorage.getItem("userToken");
+      if (!token) return;
+      try {
+        const res = await fetch("/api/user/cart", { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const items = await res.json();
+          setCartCount(items.reduce((sum: number, i: { quantity: number }) => sum + i.quantity, 0));
+        }
+      } catch {}
+    };
+    fetchCart();
+    const interval = setInterval(fetchCart, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSearch = () => {
     const q = searchQuery.trim();
@@ -74,7 +93,7 @@ export default function Header() {
             <a href="tel:+79362568950" className="text-lg font-bold text-text-dark hover:text-primary transition-colors">
               +7 (936) 256-89-50
             </a>
-            <button className="text-sm text-primary hover:underline">Заказать звонок</button>
+            <CallbackModal />
           </div>
 
           {/* Action icons */}
@@ -85,10 +104,17 @@ export default function Header() {
               </svg>
               <span className="text-[10px] sm:text-xs mt-0.5">Сравнение</span>
             </Link>
-            <Link href="/cart" className="flex flex-col items-center text-text-gray hover:text-primary transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
-              </svg>
+            <Link href="/cart" className="flex flex-col items-center text-text-gray hover:text-primary transition-colors relative">
+              <div className="relative">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+                </svg>
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-danger text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] sm:text-xs mt-0.5">Корзина</span>
             </Link>
             <Link href="/account" className="flex flex-col items-center text-text-gray hover:text-primary transition-colors">

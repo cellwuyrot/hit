@@ -7,6 +7,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Breadcrumbs from "@/components/Breadcrumbs";
+
 
 export const dynamic = "force-dynamic";
 
@@ -145,8 +147,12 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
 
         {products.length === 0 ? (
           <div className="bg-bg-white rounded-xl border border-border p-12 text-center">
-            <p className="text-text-gray text-lg">Товары не найдены</p>
-            <p className="text-text-light text-sm mt-2">Попробуйте изменить параметры фильтра</p>
+            <svg className="w-16 h-16 text-text-light mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p className="text-text-gray text-lg font-medium">Товары не найдены</p>
+            <p className="text-text-light text-sm mt-2 mb-4">Попробуйте изменить параметры фильтра или посмотреть все товары</p>
+            <Link href="/catalog" className="inline-block px-6 py-2.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-dark transition-colors">Все товары</Link>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -205,12 +211,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
       <Header />
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          {/* Breadcrumbs */}
-          <nav className="text-sm text-text-gray mb-4">
-            <Link href="/" className="hover:text-primary">Главная</Link>
-            <span className="mx-2">›</span>
-            <span className="text-text-dark">Каталог</span>
-          </nav>
+          <Breadcrumbs items={[{ label: "Каталог" }]} />
 
           <h1 className="text-2xl font-bold text-text-dark mb-6">Каталог товаров</h1>
 

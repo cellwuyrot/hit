@@ -2,8 +2,22 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
+import Breadcrumbs from "@/components/Breadcrumbs";
+
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Оптовые продажи — ТОПХИТ",
+  description: "Оптовые поставки товаров от ТОПХИТ. Специальные условия для юридических лиц и ИП. Доставка по Москве и МО.",
+  openGraph: {
+    title: "Оптовые продажи — ТОПХИТ",
+    description: "Выгодные условия оптовых поставок для бизнеса",
+    locale: "ru_RU",
+    type: "website",
+  },
+};
 
 export default async function WholesalePage() {
   const wholesalePage = await prisma.sitePage.findUnique({ where: { slug: "wholesale" } });
@@ -13,6 +27,7 @@ export default async function WholesalePage() {
       <Header />
       <main className="flex-1 bg-bg-light">
         <div className="max-w-4xl mx-auto px-4 py-8">
+          <Breadcrumbs items={[{ label: "Оптовые продажи" }]} />
           <h1 className="text-2xl md:text-3xl font-bold text-text-dark mb-6">{wholesalePage?.title || "Оптовые продажи"}</h1>
 
           {wholesalePage?.content ? (
