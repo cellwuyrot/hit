@@ -278,7 +278,7 @@ export default function AdminPage() {
     const data = await res.json();
     setImportLoading(false);
     if (res.ok) {
-      setImportStatus(`Импортировано: ${data.imported} из ${data.total}`);
+      setImportStatus(`Новых: ${data.imported}, обновлено: ${data.updated || 0} из ${data.total}`);
       setImportPreview([]);
       setImportFile(null);
       setImportSelected(new Set());
@@ -487,13 +487,12 @@ export default function AdminPage() {
                             <input type="checkbox" checked={importSelected.size === importPreview.length} onChange={toggleImportAll} />
                           </th>
                           <th className="px-2 py-2 text-left">Название</th>
-                          <th className="px-2 py-2 text-left">Бренд</th>
                           <th className="px-2 py-2 text-left">Категория</th>
-                          <th className="px-2 py-2 text-right">Цена</th>
-                          <th className="px-2 py-2 text-right">Кол-во</th>
+                          <th className="px-2 py-2 text-left">Бренд</th>
                           <th className="px-2 py-2 text-left">Страна</th>
-                          <th className="px-2 py-2 text-left">Код</th>
-                          <th className="px-2 py-2 text-left">Штрихкод</th>
+                          <th className="px-2 py-2 text-right">Цена</th>
+                          <th className="px-2 py-2 text-right">Вес (кг)</th>
+                          <th className="px-2 py-2 text-right">Кол-во</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -507,13 +506,12 @@ export default function AdminPage() {
                               <input type="checkbox" checked={importSelected.has(row.index)} onChange={() => toggleImportRow(row.index)} />
                             </td>
                             <td className="px-2 py-1.5 max-w-[200px] truncate" title={row.name}>{row.name || "—"}</td>
-                            <td className="px-2 py-1.5">{row.brand || "—"}</td>
                             <td className="px-2 py-1.5">{row.category || "—"}</td>
-                            <td className="px-2 py-1.5 text-right">{row.price || "—"}</td>
-                            <td className="px-2 py-1.5 text-right">{row.inStock || "—"}</td>
+                            <td className="px-2 py-1.5">{row.brand || "—"}</td>
                             <td className="px-2 py-1.5">{row.country || "—"}</td>
-                            <td className="px-2 py-1.5">{row.code || "—"}</td>
-                            <td className="px-2 py-1.5">{row.barcode || "—"}</td>
+                            <td className="px-2 py-1.5 text-right">{row.price || "—"}</td>
+                            <td className="px-2 py-1.5 text-right">{row.weight ?? "—"}</td>
+                            <td className="px-2 py-1.5 text-right">{row.inStock || "—"}</td>
                           </tr>
                         ))}
                       </tbody>

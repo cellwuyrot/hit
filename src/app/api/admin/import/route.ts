@@ -147,6 +147,7 @@ export async function POST(request: Request) {
   }
 
   let imported = 0;
+  let updated = 0;
   for (const row of validRows) {
     const price = Number(row.price) || 0;
     const oldPrice = row.oldPrice ? Number(row.oldPrice) : null;
@@ -154,6 +155,8 @@ export async function POST(request: Request) {
     const weight = row.weight ? Number(row.weight) : null;
     const volume = row.volume ? Number(row.volume) : null;
     const packSize = row.packSize ? Number(row.packSize) : null;
+    const name = String(row.name);
+    const brand = String(row.brand || "");
 
     let categoryId: string | undefined;
     if (row.category) {
@@ -166,30 +169,43 @@ export async function POST(request: Request) {
     }
     if (!categoryId) continue;
 
-    const slug = slugify(String(row.name)) + "-" + Date.now() + "-" + imported;
-    await prisma.product.create({
-      data: {
-        name: String(row.name),
-        slug,
-        price,
-        oldPrice,
-        description: String(row.description || ""),
-        image: String(row.image || ""),
-        inStock,
-        brand: String(row.brand || ""),
-        color: String(row.color || ""),
-        productType: String(row.productType || ""),
-        country: String(row.country || ""),
-        barcode: String(row.barcode || ""),
-        code: String(row.code || ""),
-        weight,
-        volume,
-        packSize,
-        categoryId,
-      },
+    // Check if product already exists (by name + brand)
+    const existing = await prisma.product.findFirst({
+      where: { name, brand },
     });
-    imported++;
+
+    if (existing) {
+      await prisma.product.update({
+        where: { id: existing.id },
+        data: { inStock: existing.inStock + inStock },
+      });
+      updated++;
+    } else {
+      const slug = slugify(name) + "-" + Date.now() + "-" + imported;
+      await prisma.product.create({
+        data: {
+          name,
+          slug,
+          price,
+          oldPrice,
+          description: String(row.description || ""),
+          image: String(row.image || ""),
+          inStock,
+          brand,
+          color: String(row.color || ""),
+          productType: String(row.productType || ""),
+          country: String(row.country || ""),
+          barcode: String(row.barcode || ""),
+          code: String(row.code || ""),
+          weight,
+          volume,
+          packSize,
+          categoryId,
+        },
+      });
+      imported++;
+    }
   }
 
-  return Response.json({ imported, total: rowsToImport.length, skipped: rowsToImport.length - imported });
+  return Response.json({ imported, updated, total: rowsToImport.length, skipped: rowsToImport.length - imported - updated });
 }
