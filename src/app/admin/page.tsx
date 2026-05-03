@@ -34,15 +34,9 @@ interface ImportRow {
   price: number;
   brand: string;
   category: string;
-  image: string;
   inStock: number;
   country: string;
-  barcode: string;
-  code: string;
   weight: number | null;
-  volume: number | null;
-  packSize: number | null;
-  description: string;
 }
 
 interface SliderImage {
@@ -133,6 +127,10 @@ export default function AdminPage() {
   const [importSelected, setImportSelected] = useState<Set<number>>(new Set());
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importLoading, setImportLoading] = useState(false);
+  const [importHeaders, setImportHeaders] = useState<string[]>([]);
+  const [importColumnMap, setImportColumnMap] = useState<Record<string, string>>({});
+  const [importSample, setImportSample] = useState<Record<string, string>[]>([]);
+  const [importStep, setImportStep] = useState<"idle" | "mapping" | "preview">("idle");
 
   const hdrs = useCallback(() => ({
     "Content-Type": "application/json",
@@ -233,17 +231,65 @@ export default function AdminPage() {
     fetchData();
   };
 
-  // Import — step 1: preview
-  const handleImportPreview = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Target fields for column mapping
+  const targetFields: { value: string; label: string }[] = [
+    { value: "", label: "— Пропустить —" },
+    { value: "name", label: "Название" },
+    { value: "category", label: "Категория" },
+    { value: "brand", label: "Бренд" },
+    { value: "country", label: "Страна" },
+    { value: "price", label: "Цена" },
+    { value: "weight", label: "Вес (кг)" },
+    { value: "inStock", label: "Кол-во" },
+    { value: "barcode", label: "Штрихкод" },
+    { value: "code", label: "Код/Артикул" },
+    { value: "image", label: "Изображение" },
+    { value: "volume", label: "Объём" },
+    { value: "packSize", label: "Кол-во в упаковке" },
+    { value: "description", label: "Описание" },
+    { value: "oldPrice", label: "Старая цена" },
+    { value: "color", label: "Цвет" },
+    { value: "productType", label: "Тип/Вид" },
+  ];
+
+  // Import — step 1: upload file, get headers
+  const handleImportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportLoading(true);
     setImportStatus("");
     setImportPreview([]);
     setImportFile(file);
+    setImportStep("idle");
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("mode", "headers");
+    const res = await fetch("/api/admin/import", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    setImportLoading(false);
+    if (res.ok && data.headers) {
+      setImportHeaders(data.headers);
+      setImportColumnMap(data.autoMap || {});
+      setImportSample(data.sample || []);
+      setImportStep("mapping");
+    } else {
+      setImportStatus(`Ошибка: ${data.error}`);
+    }
+    e.target.value = "";
+  };
+
+  // Import — step 2: apply mapping, get preview
+  const handleImportPreview = async () => {
+    if (!importFile) return;
+    setImportLoading(true);
+    const formData = new FormData();
+    formData.append("file", importFile);
     formData.append("mode", "preview");
+    formData.append("columnMap", JSON.stringify(importColumnMap));
     const res = await fetch("/api/admin/import", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
@@ -255,13 +301,13 @@ export default function AdminPage() {
       setImportPreview(data.preview);
       const all = new Set<number>(data.preview.map((r: ImportRow) => r.index));
       setImportSelected(all);
+      setImportStep("preview");
     } else {
       setImportStatus(`Ошибка: ${data.error}`);
     }
-    e.target.value = "";
   };
 
-  // Import — step 2: import selected
+  // Import — step 3: import selected
   const handleImportSelected = async () => {
     if (!importFile || importSelected.size === 0) return;
     setImportLoading(true);
@@ -270,6 +316,7 @@ export default function AdminPage() {
     formData.append("file", importFile);
     formData.append("mode", "import");
     formData.append("selected", JSON.stringify([...importSelected]));
+    formData.append("columnMap", JSON.stringify(importColumnMap));
     const res = await fetch("/api/admin/import", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
@@ -282,11 +329,26 @@ export default function AdminPage() {
       setImportPreview([]);
       setImportFile(null);
       setImportSelected(new Set());
+      setImportHeaders([]);
+      setImportColumnMap({});
+      setImportSample([]);
+      setImportStep("idle");
       fetchData();
     } else {
       setImportStatus(`Ошибка: ${data.error}`);
     }
     setTimeout(() => setImportStatus(""), 5000);
+  };
+
+  const resetImport = () => {
+    setImportPreview([]);
+    setImportFile(null);
+    setImportSelected(new Set());
+    setImportHeaders([]);
+    setImportColumnMap({});
+    setImportSample([]);
+    setImportStep("idle");
+    setImportStatus("");
   };
 
   const toggleImportRow = (index: number) => {
@@ -442,25 +504,87 @@ export default function AdminPage() {
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <h2 className="font-bold text-text-dark mb-3">Импорт товаров</h2>
               <p className="text-sm text-text-gray mb-3">
-                Загрузите CSV, XLSX или XLS. Поддерживаемые колонки: Наименование товара, Категория, Бренд, Цена, Кол-во, Изображение, Страна произв., Код, Штрихкод, ВЕС, Объем и др.
+                Загрузите CSV, XLSX или XLS. После загрузки настройте соответствие колонок файла полям товара.
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <label className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                  {importPreview.length > 0 ? "Загрузить другой файл" : "Выбрать файл"}
-                  <input type="file" accept=".csv,.xlsx,.xls" onChange={handleImportPreview} className="hidden" />
+                  {importStep !== "idle" ? "Загрузить другой файл" : "Выбрать файл"}
+                  <input type="file" accept=".csv,.xlsx,.xls" onChange={handleImportUpload} className="hidden" />
                 </label>
+                {importStep !== "idle" && (
+                  <button onClick={resetImport} className="text-sm text-danger hover:underline">Отмена</button>
+                )}
                 {importLoading && <span className="text-sm text-text-gray">Загрузка...</span>}
                 {importStatus && <span className={`text-sm ${importStatus.startsWith("Ошибка") ? "text-danger" : "text-success"}`}>{importStatus}</span>}
               </div>
 
-              {importPreview.length > 0 && (
+              {/* Step 1: Column mapping */}
+              {importStep === "mapping" && importHeaders.length > 0 && (
                 <div className="mt-4">
+                  <h3 className="text-sm font-bold text-text-dark mb-2">Шаг 1: Настройте соответствие колонок</h3>
+                  <p className="text-xs text-text-gray mb-3">Для каждой колонки файла выберите поле товара. Автоматически определённые поля уже выбраны.</p>
+                  <div className="overflow-x-auto border border-border rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Колонка файла</th>
+                          <th className="px-3 py-2 text-left">Поле товара</th>
+                          <th className="px-3 py-2 text-left">Пример данных</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importHeaders.map((header) => (
+                          <tr key={header} className="border-t border-border">
+                            <td className="px-3 py-2 font-medium">{header}</td>
+                            <td className="px-3 py-2">
+                              <select
+                                value={importColumnMap[header] || ""}
+                                onChange={(e) => setImportColumnMap({ ...importColumnMap, [header]: e.target.value })}
+                                className="border border-border rounded px-2 py-1 text-sm w-full max-w-[200px] focus:outline-none focus:border-primary"
+                              >
+                                {targetFields.map((f) => (
+                                  <option key={f.value} value={f.value}>{f.label}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-2 text-text-gray text-xs max-w-[200px] truncate">
+                              {importSample.map((s, i) => (
+                                <span key={i}>{i > 0 && " | "}{s[header] || "—"}</span>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={handleImportPreview}
+                      disabled={importLoading || !Object.values(importColumnMap).some((v) => v === "name")}
+                      className="bg-primary hover:bg-primary-dark disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Предпросмотр
+                    </button>
+                    {!Object.values(importColumnMap).some((v) => v === "name") && (
+                      <span className="text-xs text-danger self-center">Выберите колонку для &quot;Название&quot;</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Preview & select rows */}
+              {importStep === "preview" && importPreview.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-bold text-text-dark mb-2">Шаг 2: Выберите товары для импорта</h3>
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium text-text-dark">
-                      Найдено товаров: {importPreview.length} | Выбрано: {importSelected.size}
+                    <p className="text-sm text-text-dark">
+                      Найдено: {importPreview.length} | Выбрано: {importSelected.size}
                     </p>
                     <div className="flex gap-2">
+                      <button onClick={() => setImportStep("mapping")} className="text-sm text-primary hover:underline">
+                        Назад к маппингу
+                      </button>
                       <button onClick={toggleImportAll} className="text-sm text-primary hover:underline">
                         {importSelected.size === importPreview.length ? "Снять все" : "Выбрать все"}
                       </button>
@@ -469,13 +593,7 @@ export default function AdminPage() {
                         disabled={importSelected.size === 0 || importLoading}
                         className="bg-success hover:bg-green-600 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
                       >
-                        Импортировать выбранные ({importSelected.size})
-                      </button>
-                      <button
-                        onClick={() => { setImportPreview([]); setImportFile(null); setImportSelected(new Set()); }}
-                        className="text-sm text-danger hover:underline"
-                      >
-                        Отмена
+                        Импортировать ({importSelected.size})
                       </button>
                     </div>
                   </div>
