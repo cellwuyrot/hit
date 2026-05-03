@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, startTransition } from "react";
+import { showToast } from "@/components/Toast";
 
 interface ProductCardProps {
   id: string;
@@ -41,6 +42,7 @@ export default function ProductCard({
       body: JSON.stringify({ productId: id, quantity: 1 }),
     });
     setAdded(true);
+    showToast(`«${name.slice(0, 30)}${name.length > 30 ? "..." : ""}» добавлен в корзину`);
     setTimeout(() => setAdded(false), 2000);
   };
 

@@ -12,7 +12,7 @@ export default function Footer() {
               <Image src="/logo.png" alt="ТОПХИТ" width={32} height={32} className="w-8 h-8" />
               <span className="text-lg font-bold">ТОПХИТ</span>
             </div>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/75 text-sm">
               Динамично развивающаяся торговая компания с широким ассортиментом товаров для повседневной жизни, бизнеса и семьи.
             </p>
           </div>
@@ -20,7 +20,7 @@ export default function Footer() {
           {/* Catalog */}
           <div>
             <h3 className="font-bold mb-4">Каталог</h3>
-            <ul className="space-y-2 text-sm text-white/60">
+            <ul className="space-y-2 text-sm text-white/75">
               <li><Link href="/catalog" className="hover:text-white transition-colors">Все категории</Link></li>
               <li><Link href="/catalog/produkty-pitaniya" className="hover:text-white transition-colors">Продукты питания</Link></li>
               <li><Link href="/catalog/bytovaya-himiya" className="hover:text-white transition-colors">Бытовая химия</Link></li>
@@ -32,7 +32,7 @@ export default function Footer() {
           {/* Info */}
           <div>
             <h3 className="font-bold mb-4">Информация</h3>
-            <ul className="space-y-2 text-sm text-white/60">
+            <ul className="space-y-2 text-sm text-white/75">
               <li><Link href="/about" className="hover:text-white transition-colors">О компании</Link></li>
               <li><Link href="/wholesale" className="hover:text-white transition-colors">Оптовые продажи</Link></li>
               <li><Link href="/news" className="hover:text-white transition-colors">Новости</Link></li>
@@ -44,7 +44,7 @@ export default function Footer() {
           {/* Contacts */}
           <div>
             <h3 className="font-bold mb-4">Контакты</h3>
-            <div className="space-y-2 text-sm text-white/60">
+            <div className="space-y-2 text-sm text-white/75">
               <p><a href="tel:+79362568950" className="hover:text-white transition-colors">📞 +7 (936) 256-89-50</a></p>
               <p><a href="mailto:zakaz@топхит.store" className="hover:text-white transition-colors">📧 zakaz@топхит.store</a></p>
               <p><a href="mailto:opt@топхит.store" className="hover:text-white transition-colors">📧 opt@топхит.store (опт)</a></p>
@@ -100,10 +100,10 @@ export default function Footer() {
         </div>
 
         {/* Legal info */}
-        <div className="border-t border-white/10 mt-8 pt-6 text-xs text-white/40 space-y-2">
+        <div className="border-t border-white/10 mt-8 pt-6 text-xs text-white/55 space-y-2">
           <p>© {new Date().getFullYear()} ТОПХИТ. Все права защищены.</p>
           <p>Юридический адрес: 127018, г. Москва, ул. Складочная д. 1 стр. 18</p>
-          <p className="text-white/30">
+          <p className="text-white/45">
             Информация на сайте не является публичной офертой. Изображения товаров могут отличаться от фактического вида.
             Все цены указаны в рублях и включают НДС.
           </p>

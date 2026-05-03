@@ -2,8 +2,22 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
+import Breadcrumbs from "@/components/Breadcrumbs";
+
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "О компании ТОПХИТ — доставка, контакты",
+  description: "ТОПХИТ — динамично развивающаяся торговая компания. Доставка по Москве и МО. Продукты питания, бытовая химия, электроника, товары для дома.",
+  openGraph: {
+    title: "О компании ТОПХИТ",
+    description: "Широкий ассортимент товаров по честным ценам с доставкой по Москве и МО",
+    locale: "ru_RU",
+    type: "website",
+  },
+};
 
 export default async function AboutPage() {
   const [aboutPage, deliveryPage, contactsPage] = await Promise.all([
@@ -17,6 +31,7 @@ export default async function AboutPage() {
       <Header />
       <main className="flex-1 bg-bg-light">
         <div className="max-w-4xl mx-auto px-4 py-8">
+          <Breadcrumbs items={[{ label: "О компании" }]} />
           {/* Hero */}
           <div className="bg-bg-white rounded-xl border border-border p-6 md:p-8 mb-8">
             <div className="flex items-center gap-4 mb-6">

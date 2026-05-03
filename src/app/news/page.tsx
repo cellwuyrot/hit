@@ -3,8 +3,22 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import NewsFilter from "@/components/NewsFilter";
+import type { Metadata } from "next";
+import Breadcrumbs from "@/components/Breadcrumbs";
+
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Новости — ТОПХИТ",
+  description: "Новости интернет-магазина ТОПХИТ. Новые поставки, акции, статьи о товарах.",
+  openGraph: {
+    title: "Новости — ТОПХИТ",
+    description: "Новости и обновления магазина ТОПХИТ",
+    locale: "ru_RU",
+    type: "website",
+  },
+};
 
 export default async function NewsPage(props: { searchParams: Promise<{ type?: string }> }) {
   const searchParams = await props.searchParams;
@@ -25,6 +39,7 @@ export default async function NewsPage(props: { searchParams: Promise<{ type?: s
       <Header />
       <main className="flex-1 bg-bg-light">
         <div className="max-w-4xl mx-auto px-4 py-8">
+          <Breadcrumbs items={[{ label: "Новости" }]} />
           <h1 className="text-2xl font-bold text-text-dark mb-6">Новости</h1>
 
           <NewsFilter activeType={typeFilter || "all"} />
