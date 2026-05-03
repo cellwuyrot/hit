@@ -125,11 +125,11 @@ export default function AdminPage() {
   const [importStatus, setImportStatus] = useState("");
   const [importPreview, setImportPreview] = useState<ImportRow[]>([]);
   const [importSelected, setImportSelected] = useState<Set<number>>(new Set());
-  const [importFile, setImportFile] = useState<File | null>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importHeaders, setImportHeaders] = useState<string[]>([]);
   const [importColumnMap, setImportColumnMap] = useState<Record<string, string>>({});
   const [importSample, setImportSample] = useState<Record<string, string>[]>([]);
+  const [importRawRows, setImportRawRows] = useState<Record<string, string>[]>([]);
   const [importStep, setImportStep] = useState<"idle" | "mapping" | "preview">("idle");
 
   const hdrs = useCallback(() => ({
@@ -252,18 +252,16 @@ export default function AdminPage() {
     { value: "productType", label: "Тип/Вид" },
   ];
 
-  // Import — step 1: upload file, get headers
+  // Import — step 1: upload file once, get all data back
   const handleImportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportLoading(true);
     setImportStatus("");
     setImportPreview([]);
-    setImportFile(file);
     setImportStep("idle");
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("mode", "headers");
     const res = await fetch("/api/admin/import", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
@@ -275,6 +273,7 @@ export default function AdminPage() {
       setImportHeaders(data.headers);
       setImportColumnMap(data.autoMap || {});
       setImportSample(data.sample || []);
+      setImportRawRows(data.rows || []);
       setImportStep("mapping");
     } else {
       setImportStatus(`Ошибка: ${data.error}`);
@@ -282,57 +281,61 @@ export default function AdminPage() {
     e.target.value = "";
   };
 
-  // Import — step 2: apply mapping, get preview
-  const handleImportPreview = async () => {
-    if (!importFile) return;
-    setImportLoading(true);
-    const formData = new FormData();
-    formData.append("file", importFile);
-    formData.append("mode", "preview");
-    formData.append("columnMap", JSON.stringify(importColumnMap));
-    const res = await fetch("/api/admin/import", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+  // Import — step 2: apply mapping client-side (no server call)
+  const handleImportPreview = () => {
+    const preview: ImportRow[] = importRawRows.map((row, i) => {
+      const mapped: Record<string, string> = {};
+      for (const [sourceCol, targetField] of Object.entries(importColumnMap)) {
+        if (targetField && row[sourceCol] !== undefined) {
+          mapped[targetField] = row[sourceCol];
+        }
+      }
+      return {
+        index: i,
+        name: mapped.name || "",
+        price: mapped.price ? Number(mapped.price) : 0,
+        brand: mapped.brand || "",
+        category: mapped.category || "",
+        inStock: mapped.inStock ? Number(mapped.inStock) : 0,
+        country: mapped.country || "",
+        weight: mapped.weight ? Number(mapped.weight) : null,
+      };
     });
-    const data = await res.json();
-    setImportLoading(false);
-    if (res.ok && data.preview) {
-      setImportPreview(data.preview);
-      const all = new Set<number>(data.preview.map((r: ImportRow) => r.index));
-      setImportSelected(all);
-      setImportStep("preview");
-    } else {
-      setImportStatus(`Ошибка: ${data.error}`);
-    }
+    setImportPreview(preview);
+    const all = new Set<number>(preview.map((r) => r.index));
+    setImportSelected(all);
+    setImportStep("preview");
   };
 
-  // Import — step 3: import selected
+  // Import — step 3: send mapped data as JSON (no file re-upload)
   const handleImportSelected = async () => {
-    if (!importFile || importSelected.size === 0) return;
+    if (importSelected.size === 0) return;
     setImportLoading(true);
     setImportStatus("Импорт...");
-    const formData = new FormData();
-    formData.append("file", importFile);
-    formData.append("mode", "import");
-    formData.append("selected", JSON.stringify([...importSelected]));
-    formData.append("columnMap", JSON.stringify(importColumnMap));
+
+    // Apply mapping to selected raw rows and send as JSON
+    const products = importRawRows
+      .filter((_, i) => importSelected.has(i))
+      .map((row) => {
+        const mapped: Record<string, string> = {};
+        for (const [sourceCol, targetField] of Object.entries(importColumnMap)) {
+          if (targetField && row[sourceCol] !== undefined) {
+            mapped[targetField] = row[sourceCol];
+          }
+        }
+        return mapped;
+      });
+
     const res = await fetch("/api/admin/import", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+      method: "PUT",
+      headers: { ...hdrs() },
+      body: JSON.stringify({ products }),
     });
     const data = await res.json();
     setImportLoading(false);
     if (res.ok) {
       setImportStatus(`Новых: ${data.imported}, обновлено: ${data.updated || 0} из ${data.total}`);
-      setImportPreview([]);
-      setImportFile(null);
-      setImportSelected(new Set());
-      setImportHeaders([]);
-      setImportColumnMap({});
-      setImportSample([]);
-      setImportStep("idle");
+      resetImport();
       fetchData();
     } else {
       setImportStatus(`Ошибка: ${data.error}`);
@@ -342,11 +345,11 @@ export default function AdminPage() {
 
   const resetImport = () => {
     setImportPreview([]);
-    setImportFile(null);
     setImportSelected(new Set());
     setImportHeaders([]);
     setImportColumnMap({});
     setImportSample([]);
+    setImportRawRows([]);
     setImportStep("idle");
     setImportStatus("");
   };
