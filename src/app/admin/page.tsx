@@ -113,6 +113,7 @@ export default function AdminPage() {
     inStock: "0", brand: "", color: "", productType: "", categoryId: "",
   });
   const [editingProd, setEditingProd] = useState<Product | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
   const [slideForm, setSlideForm] = useState({
     title: "", subtitle: "", imageUrl: "", link: "", order: "0", active: true,
@@ -212,6 +213,36 @@ export default function AdminPage() {
   const deleteProduct = async (id: string) => {
     if (!confirm("Удалить товар?")) return;
     await fetch("/api/admin/products", { method: "DELETE", headers: hdrs(), body: JSON.stringify({ id }) });
+    setSelectedProducts((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    fetchData();
+  };
+
+  const toggleProductSelection = (id: string) => {
+    setSelectedProducts((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllProducts = () => {
+    if (selectedProducts.size === products.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(products.map((p) => p.id)));
+    }
+  };
+
+  const bulkDeleteProducts = async () => {
+    if (selectedProducts.size === 0) return;
+    if (!confirm(`Удалить ${selectedProducts.size} товар(ов)?`)) return;
+    await fetch("/api/admin/products", {
+      method: "DELETE",
+      headers: hdrs(),
+      body: JSON.stringify({ ids: Array.from(selectedProducts) }),
+    });
+    setSelectedProducts(new Set());
     fetchData();
   };
 
@@ -684,11 +715,21 @@ export default function AdminPage() {
               </form>
             </div>
             <div className="bg-bg-white rounded-xl border border-border p-5">
-              <h2 className="font-bold text-text-dark mb-4">Все товары ({products.length})</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-text-dark">Все товары ({products.length})</h2>
+                {selectedProducts.size > 0 && (
+                  <button onClick={bulkDeleteProducts} className="bg-danger hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+                    Удалить выбранные ({selectedProducts.size})
+                  </button>
+                )}
+              </div>
               {products.length === 0 ? <p className="text-text-gray text-sm">Товаров пока нет</p> : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead><tr className="border-b border-border">
+                      <th className="py-2 px-2 w-8">
+                        <input type="checkbox" checked={selectedProducts.size === products.length && products.length > 0} onChange={toggleAllProducts} className="w-4 h-4 rounded border-border cursor-pointer" />
+                      </th>
                       <th className="text-left py-2 px-2 text-text-gray font-medium">Название</th>
                       <th className="text-left py-2 px-2 text-text-gray font-medium">Категория</th>
                       <th className="text-right py-2 px-2 text-text-gray font-medium">Цена</th>
@@ -697,7 +738,10 @@ export default function AdminPage() {
                     </tr></thead>
                     <tbody>
                       {products.map((prod) => (
-                        <tr key={prod.id} className="border-b border-border/50 hover:bg-bg-light">
+                        <tr key={prod.id} className={`border-b border-border/50 hover:bg-bg-light ${selectedProducts.has(prod.id) ? "bg-blue-50" : ""}`}>
+                          <td className="py-2 px-2">
+                            <input type="checkbox" checked={selectedProducts.has(prod.id)} onChange={() => toggleProductSelection(prod.id)} className="w-4 h-4 rounded border-border cursor-pointer" />
+                          </td>
                           <td className="py-2 px-2 text-text-dark">{prod.name}</td>
                           <td className="py-2 px-2 text-text-gray">{prod.category?.name}</td>
                           <td className="py-2 px-2 text-right font-medium">{prod.price.toLocaleString("ru-RU")} ₽</td>

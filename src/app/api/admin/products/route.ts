@@ -81,11 +81,18 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 
-  const { id } = await request.json();
+  const body = await request.json();
+  const { id, ids } = body as { id?: string; ids?: string[] };
+
+  if (ids && ids.length > 0) {
+    const result = await prisma.product.deleteMany({ where: { id: { in: ids } } });
+    return Response.json({ success: true, deleted: result.count });
+  }
+
   if (!id) {
     return Response.json({ error: "ID обязателен" }, { status: 400 });
   }
 
   await prisma.product.delete({ where: { id } });
-  return Response.json({ success: true });
+  return Response.json({ success: true, deleted: 1 });
 }
