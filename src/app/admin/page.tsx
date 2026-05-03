@@ -252,32 +252,153 @@ export default function AdminPage() {
     { value: "productType", label: "Тип/Вид" },
   ];
 
-  // Import — step 1: upload file once, get all data back
+  // Auto-detection mapping for column names
+  const autoDetectMap: Record<string, string[]> = {
+    name: ["название", "наименование", "наименование товара", "товар", "name", "product"],
+    category: ["категория", "category"],
+    brand: ["бренд", "brand", "производитель"],
+    country: ["страна произв.", "страна", "country"],
+    price: ["цена", "price", "стоимость"],
+    weight: ["вес (кг)", "вес", "weight"],
+    inStock: ["в наличии", "остаток", "количество", "instock", "stock", "кол-во", "ваш заказ (упаковки)", "ваш заказ"],
+    barcode: ["штрихкод", "barcode", "штрих-код", "ean"],
+    code: ["код", "code", "артикул", "sku"],
+    image: ["изображение", "картинка", "фото", "image"],
+    volume: ["объем (м³)", "объём (м³)", "объем", "объём", "volume"],
+    packSize: ["кол-во (шт) в упаковке"],
+    description: ["описание", "description"],
+    oldPrice: ["старая цена", "old price", "oldprice"],
+    color: ["цвет", "color"],
+    productType: ["тип", "type", "вид", "producttype", "дистр"],
+  };
+
+  const detectColumnMapping = (headers: string[]): Record<string, string> => {
+    const mapping: Record<string, string> = {};
+    for (const header of headers) {
+      const lower = header.toLowerCase().trim();
+      for (const [field, aliases] of Object.entries(autoDetectMap)) {
+        if (aliases.includes(lower) && !Object.values(mapping).includes(field)) {
+          mapping[header] = field;
+          break;
+        }
+      }
+    }
+    return mapping;
+  };
+
+  // Parse PDF table text into rows
+  const parsePdfText = (text: string): Record<string, string>[] => {
+    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length < 2) return [];
+    // First non-empty line is header
+    const headerLine = lines[0];
+    const headers = headerLine.split(/\t|  +/).map((h) => h.trim()).filter(Boolean);
+    if (headers.length < 2) return [];
+    const rows: Record<string, string>[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cells = lines[i].split(/\t|  +/).map((c) => c.trim());
+      if (cells.length < 2) continue;
+      const row: Record<string, string> = {};
+      for (let j = 0; j < headers.length; j++) {
+        row[headers[j]] = cells[j] || "";
+      }
+      rows.push(row);
+    }
+    return rows;
+  };
+
+  // Import — step 1: parse file entirely in browser (no server request)
   const handleImportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportLoading(true);
-    setImportStatus("");
+    setImportStatus("Чтение файла...");
     setImportPreview([]);
     setImportStep("idle");
-    const formData = new FormData();
-    formData.append("file", file);
-    const res = await fetch("/api/admin/import", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-    const data = await res.json();
-    setImportLoading(false);
-    if (res.ok && data.headers) {
-      setImportHeaders(data.headers);
-      setImportColumnMap(data.autoMap || {});
-      setImportSample(data.sample || []);
-      setImportRawRows(data.rows || []);
+
+    try {
+      const fileName = file.name.toLowerCase();
+      let rawRows: Record<string, string>[] = [];
+
+      if (fileName.endsWith(".csv") || fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+        // Parse spreadsheet in browser using xlsx
+        const XLSX = (await import("xlsx")).default;
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+        rawRows = jsonRows.map((row) => {
+          const obj: Record<string, string> = {};
+          for (const [key, val] of Object.entries(row)) {
+            obj[key] = val !== undefined && val !== null ? String(val) : "";
+          }
+          return obj;
+        });
+      } else if (fileName.endsWith(".pdf")) {
+        // Parse PDF in browser using pdfjs-dist
+        const pdfjsLib = await import("pdfjs-dist");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+        const buffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buffer, useWorkerFetch: false, isEvalSupported: false, useSystemFonts: true }).promise;
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const pageText = content.items.map((item) => ("str" in item ? item.str : "")).join(" ");
+          fullText += pageText + "\n";
+        }
+        rawRows = parsePdfText(fullText);
+        if (rawRows.length === 0) {
+          setImportLoading(false);
+          setImportStatus("Не удалось распознать таблицу из PDF. Попробуйте сохранить файл как XLSX или CSV.");
+          e.target.value = "";
+          return;
+        }
+      } else {
+        setImportLoading(false);
+        setImportStatus("Поддерживаемые форматы: CSV, XLSX, XLS, PDF");
+        e.target.value = "";
+        return;
+      }
+
+      if (rawRows.length === 0) {
+        setImportLoading(false);
+        setImportStatus("Файл пуст или не удалось распознать данные");
+        e.target.value = "";
+        return;
+      }
+
+      // Extract headers
+      const headerSet = new Set<string>();
+      for (const row of rawRows) {
+        for (const key of Object.keys(row)) {
+          headerSet.add(key);
+        }
+      }
+      const headers = Array.from(headerSet);
+
+      // Auto-detect column mapping
+      const autoMap = detectColumnMapping(headers);
+
+      // Sample data (first 3 rows)
+      const sample = rawRows.slice(0, 3).map((row) => {
+        const obj: Record<string, string> = {};
+        for (const h of headers) {
+          obj[h] = row[h] || "";
+        }
+        return obj;
+      });
+
+      setImportHeaders(headers);
+      setImportColumnMap(autoMap);
+      setImportSample(sample);
+      setImportRawRows(rawRows);
       setImportStep("mapping");
-    } else {
-      setImportStatus(`Ошибка: ${data.error}`);
+      setImportStatus("");
+    } catch (err) {
+      setImportStatus(`Ошибка чтения файла: ${err instanceof Error ? err.message : "неизвестная ошибка"}`);
     }
+    setImportLoading(false);
     e.target.value = "";
   };
 
@@ -327,7 +448,7 @@ export default function AdminPage() {
       });
 
     const res = await fetch("/api/admin/import", {
-      method: "PUT",
+      method: "POST",
       headers: { ...hdrs() },
       body: JSON.stringify({ products }),
     });
@@ -507,13 +628,13 @@ export default function AdminPage() {
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <h2 className="font-bold text-text-dark mb-3">Импорт товаров</h2>
               <p className="text-sm text-text-gray mb-3">
-                Загрузите CSV, XLSX или XLS. После загрузки настройте соответствие колонок файла полям товара.
+                Загрузите CSV, XLSX, XLS или PDF. Файл обрабатывается прямо в браузере — мгновенно.
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <label className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                   {importStep !== "idle" ? "Загрузить другой файл" : "Выбрать файл"}
-                  <input type="file" accept=".csv,.xlsx,.xls" onChange={handleImportUpload} className="hidden" />
+                  <input type="file" accept=".csv,.xlsx,.xls,.pdf" onChange={handleImportUpload} className="hidden" />
                 </label>
                 {importStep !== "idle" && (
                   <button onClick={resetImport} className="text-sm text-danger hover:underline">Отмена</button>
