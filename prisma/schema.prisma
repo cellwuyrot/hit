@@ -14,15 +14,18 @@ model Admin {
 }
 
 model Category {
-  id            String        @id @default(uuid())
-  name          String
-  slug          String        @unique
-  icon          String        @default("")
-  order         Int           @default(0)
-  parentId      String?
-  parent        Category?     @relation("CategoryChildren", fields: [parentId], references: [id])
-  children      Category[]    @relation("CategoryChildren")
-  products      Product[]
+  id              String        @id @default(uuid())
+  name            String
+  slug            String        @unique
+  icon            String        @default("")
+  order           Int           @default(0)
+  metaTitle       String        @default("")
+  metaDescription String        @default("")
+  seoText         String        @default("")
+  parentId        String?
+  parent          Category?     @relation("CategoryChildren", fields: [parentId], references: [id])
+  children        Category[]    @relation("CategoryChildren")
+  products        Product[]
 }
 
 model Product {
@@ -122,5 +125,13 @@ model News {
   type      String   @default("article")
   published Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SitePage {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  title     String   @default("")
+  content   String   @default("")
   updatedAt DateTime @updatedAt
 }

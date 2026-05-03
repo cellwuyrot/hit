@@ -9,7 +9,17 @@ interface Category {
   slug: string;
   order: number;
   parentId?: string | null;
+  metaTitle?: string;
+  metaDescription?: string;
+  seoText?: string;
   _count?: { products: number };
+}
+
+interface SitePage {
+  id?: string;
+  slug: string;
+  title: string;
+  content: string;
 }
 
 interface Product {
@@ -91,7 +101,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "categories" | "products" | "slider" | "news" | "orders" | "bulk-orders" | "settings";
+type TabType = "categories" | "products" | "slider" | "news" | "orders" | "bulk-orders" | "settings" | "site-editor";
 
 export default function AdminPage() {
   const [token, setToken] = useState("");
@@ -109,7 +119,14 @@ export default function AdminPage() {
   const [catName, setCatName] = useState("");
   const [catOrder, setCatOrder] = useState(0);
   const [catParentId, setCatParentId] = useState("");
+  const [catMetaTitle, setCatMetaTitle] = useState("");
+  const [catMetaDesc, setCatMetaDesc] = useState("");
+  const [catSeoText, setCatSeoText] = useState("");
   const [editingCat, setEditingCat] = useState<Category | null>(null);
+  const [sitePages, setSitePages] = useState<Record<string, SitePage>>({});
+  const [editingPage, setEditingPage] = useState<string | null>(null);
+  const [pageForm, setPageForm] = useState({ title: "", content: "" });
+  const [pageSaveMsg, setPageSaveMsg] = useState("");
 
   const [prodForm, setProdForm] = useState({
     name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "",
@@ -149,18 +166,25 @@ export default function AdminPage() {
 
   const fetchData = useCallback(async () => {
     if (!token) return;
-    const [catRes, prodRes, slideRes, newsRes, ordersRes] = await Promise.all([
+    const [catRes, prodRes, slideRes, newsRes, ordersRes, pagesRes] = await Promise.all([
       fetch("/api/admin/categories", { headers: hdrs() }),
       fetch("/api/admin/products", { headers: hdrs() }),
       fetch("/api/admin/slider", { headers: hdrs() }),
       fetch("/api/admin/news", { headers: hdrs() }),
       fetch("/api/admin/orders", { headers: hdrs() }),
+      fetch("/api/admin/pages", { headers: hdrs() }),
     ]);
     if (catRes.ok) setCategories(await catRes.json());
     if (prodRes.ok) setProducts(await prodRes.json());
     if (slideRes.ok) setSlides(await slideRes.json());
     if (newsRes.ok) setNews(await newsRes.json());
     if (ordersRes.ok) setOrders(await ordersRes.json());
+    if (pagesRes.ok) {
+      const pages: SitePage[] = await pagesRes.json();
+      const map: Record<string, SitePage> = {};
+      for (const p of pages) map[p.slug] = p;
+      setSitePages(map);
+    }
   }, [token, hdrs]);
 
   useEffect(() => {
@@ -195,12 +219,29 @@ export default function AdminPage() {
   const saveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingCat ? "PUT" : "POST";
+    const seoFields = { metaTitle: catMetaTitle, metaDescription: catMetaDesc, seoText: catSeoText };
     const body = editingCat
-      ? { id: editingCat.id, name: catName, order: catOrder, parentId: catParentId || null }
-      : { name: catName, order: catOrder, parentId: catParentId || null };
+      ? { id: editingCat.id, name: catName, order: catOrder, parentId: catParentId || null, ...seoFields }
+      : { name: catName, order: catOrder, parentId: catParentId || null, ...seoFields };
     await fetch("/api/admin/categories", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setCatName(""); setCatOrder(0); setCatParentId(""); setEditingCat(null);
+    setCatName(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); setEditingCat(null);
     fetchData();
+  };
+
+  // Site pages
+  const saveSitePage = async (slug: string) => {
+    setPageSaveMsg("");
+    const res = await fetch("/api/admin/pages", {
+      method: "PUT",
+      headers: hdrs(),
+      body: JSON.stringify({ slug, ...pageForm }),
+    });
+    if (res.ok) {
+      const page = await res.json();
+      setSitePages((prev) => ({ ...prev, [slug]: page }));
+      setPageSaveMsg("Сохранено");
+      setTimeout(() => setPageSaveMsg(""), 3000);
+    }
   };
 
   const deleteCategory = async (id: string) => {
@@ -531,7 +572,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    categories: "Категории", products: "Товары", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "bulk-orders": "Оптовые", settings: "Настройки",
+    categories: "Категории", products: "Товары", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "bulk-orders": "Оптовые", "site-editor": "Редактирование сайта", settings: "Настройки",
   };
 
   return (
@@ -576,9 +617,18 @@ export default function AdminPage() {
                 </select>
                 <input type="number" placeholder="Порядок" value={catOrder} onChange={(e) => setCatOrder(Number(e.target.value))}
                   className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                <div className="border-t border-border pt-3 mt-3">
+                  <p className="text-xs text-text-gray mb-2 font-medium">SEO настройки</p>
+                  <input type="text" placeholder="Meta Title (для поисковиков)" value={catMetaTitle} onChange={(e) => setCatMetaTitle(e.target.value)}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary mb-2" />
+                  <input type="text" placeholder="Meta Description" value={catMetaDesc} onChange={(e) => setCatMetaDesc(e.target.value)}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary mb-2" />
+                  <textarea placeholder="SEO-текст (описание категории)" value={catSeoText} onChange={(e) => setCatSeoText(e.target.value)}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={3} />
+                </div>
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-primary hover:bg-primary-dark text-white text-sm py-2 rounded-lg">{editingCat ? "Сохранить" : "Добавить"}</button>
-                  {editingCat && <button type="button" onClick={() => { setEditingCat(null); setCatName(""); setCatOrder(0); setCatParentId(""); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingCat && <button type="button" onClick={() => { setEditingCat(null); setCatName(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
                 </div>
               </form>
             </div>
@@ -594,7 +644,7 @@ export default function AdminPage() {
                         <span className="text-text-light text-sm ml-2">({cat._count?.products || 0} товаров)</span>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => { setEditingCat(cat); setCatName(cat.name); setCatOrder(cat.order); setCatParentId(cat.parentId || ""); }} className="text-primary hover:underline text-sm">Изменить</button>
+                        <button onClick={() => { setEditingCat(cat); setCatName(cat.name); setCatOrder(cat.order); setCatParentId(cat.parentId || ""); setCatMetaTitle(cat.metaTitle || ""); setCatMetaDesc(cat.metaDescription || ""); setCatSeoText(cat.seoText || ""); }} className="text-primary hover:underline text-sm">Изменить</button>
                         <button onClick={() => deleteCategory(cat.id)} className="text-danger hover:underline text-sm">Удалить</button>
                       </div>
                     </div>
@@ -1045,6 +1095,66 @@ export default function AdminPage() {
             <h2 className="font-bold text-text-dark mb-4">Оптовые заказы</h2>
             <p className="text-text-gray text-sm mb-4">Раздел оптовых продаж доступен на сайте по адресу <a href="/wholesale" target="_blank" className="text-primary hover:underline">/wholesale</a></p>
             <p className="text-text-gray text-sm">Оптовые заявки поступают на email <strong>opt@топхит.store</strong> и по телефону <strong>+7 (936) 256-89-50</strong></p>
+          </div>
+        )}
+
+        {/* Site Editor */}
+        {activeTab === "site-editor" && (
+          <div className="space-y-6">
+            <div className="bg-bg-white rounded-xl border border-border p-5">
+              <h2 className="font-bold text-text-dark mb-4">Редактирование разделов сайта</h2>
+              <p className="text-text-gray text-sm mb-4">Выберите раздел для редактирования. Контент обновится на сайте после сохранения.</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { slug: "about", label: "О компании" },
+                  { slug: "delivery", label: "Доставка" },
+                  { slug: "contacts", label: "Контакты" },
+                  { slug: "wholesale", label: "Оптовые продажи" },
+                ].map((p) => (
+                  <button key={p.slug} onClick={() => {
+                    setEditingPage(p.slug);
+                    const existing = sitePages[p.slug];
+                    setPageForm({ title: existing?.title || "", content: existing?.content || "" });
+                    setPageSaveMsg("");
+                  }} className={`p-4 rounded-lg border text-left transition-colors ${editingPage === p.slug ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                    <p className="font-medium text-text-dark text-sm">{p.label}</p>
+                    <p className="text-xs text-text-gray mt-1">{sitePages[p.slug] ? "Редактировано" : "По умолчанию"}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {editingPage && (
+              <div className="bg-bg-white rounded-xl border border-border p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-text-dark">
+                    Редактирование: {editingPage === "about" ? "О компании" : editingPage === "delivery" ? "Доставка" : editingPage === "contacts" ? "Контакты" : "Оптовые продажи"}
+                  </h3>
+                  {pageSaveMsg && <span className="text-sm text-success font-medium">{pageSaveMsg}</span>}
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Заголовок раздела</label>
+                    <input type="text" value={pageForm.title} onChange={(e) => setPageForm({ ...pageForm, title: e.target.value })}
+                      placeholder="Заголовок страницы" className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Содержимое (HTML поддерживается)</label>
+                    <textarea value={pageForm.content} onChange={(e) => setPageForm({ ...pageForm, content: e.target.value })}
+                      placeholder={"Введите текст раздела...\n\nПоддерживается HTML разметка:\n<p>Параграф</p>\n<h3>Подзаголовок</h3>\n<ul><li>Пункт</li></ul>\n<strong>Жирный</strong>"}
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono" rows={15} />
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => saveSitePage(editingPage)} className="bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-lg transition-colors font-medium text-sm">
+                      Сохранить
+                    </button>
+                    <button onClick={() => { setEditingPage(null); setPageSaveMsg(""); }} className="bg-bg-light text-text-gray px-4 py-2.5 rounded-lg text-sm">
+                      Закрыть
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

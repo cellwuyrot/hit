@@ -6,8 +6,19 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { categorySlug } = await params;
+  const category = await prisma.category.findUnique({ where: { slug: categorySlug } });
+  if (!category) return {};
+  return {
+    title: category.metaTitle || `${category.name} — ТОПХИТ`,
+    description: category.metaDescription || `Купить ${category.name} в магазине ТОПХИТ. Широкий ассортимент, выгодные цены.`,
+  };
+}
 
 interface PageProps {
   params: Promise<{ categorySlug: string }>;
@@ -86,6 +97,10 @@ async function CategoryContent({
       </nav>
 
       <h1 className="text-2xl font-bold text-text-dark mb-6">{category.name}</h1>
+
+      {category.seoText && (
+        <div className="text-text-gray text-sm leading-relaxed mb-6 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: category.seoText }} />
+      )}
 
       {category.children.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
