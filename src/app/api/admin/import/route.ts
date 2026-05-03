@@ -25,69 +25,106 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, "");
 }
 
-interface RowData {
-  name?: string;
-  price?: number | string;
-  oldPrice?: number | string;
-  description?: string;
-  image?: string;
-  inStock?: number | string;
-  brand?: string;
-  color?: string;
-  productType?: string;
-  category?: string;
-  country?: string;
-  barcode?: string;
-  code?: string;
-  weight?: number | string;
-  volume?: number | string;
-  packSize?: number | string;
-}
-
-const COL_MAP: Record<string, keyof RowData> = {
-  "название": "name", "наименование": "name", "наименование товара": "name",
-  "товар": "name", "name": "name", "product": "name",
-  "цена": "price", "price": "price", "стоимость": "price",
-  "старая цена": "oldPrice", "old price": "oldPrice", "oldprice": "oldPrice",
-  "описание": "description", "description": "description",
-  "изображение": "image", "картинка": "image", "фото": "image", "image": "image",
-  "в наличии": "inStock", "остаток": "inStock", "количество": "inStock",
-  "instock": "inStock", "stock": "inStock",
-  "кол-во": "inStock", "кол-во (шт) в упаковке": "packSize",
-  "бренд": "brand", "brand": "brand", "производитель": "brand",
-  "цвет": "color", "color": "color",
-  "тип": "productType", "type": "productType", "вид": "productType", "producttype": "productType",
-  "дистр": "productType",
-  "категория": "category", "category": "category",
-  "страна произв.": "country", "страна": "country", "country": "country",
-  "штрихкод": "barcode", "barcode": "barcode", "штрих-код": "barcode", "ean": "barcode",
-  "код": "code", "code": "code", "артикул": "code", "sku": "code",
-  "вес (кг)": "weight", "вес": "weight", "weight": "weight",
-  "объем (м³)": "volume", "объём (м³)": "volume", "объем": "volume", "объём": "volume", "volume": "volume",
-  "ваш заказ (упаковки)": "inStock", "ваш заказ": "inStock", "годен до": "description",
+// Auto-detection hints for column mapping
+const AUTO_DETECT: Record<string, string[]> = {
+  name: ["название", "наименование", "наименование товара", "товар", "name", "product"],
+  category: ["категория", "category"],
+  brand: ["бренд", "brand", "производитель"],
+  country: ["страна произв.", "страна", "country"],
+  price: ["цена", "price", "стоимость"],
+  weight: ["вес (кг)", "вес", "weight"],
+  inStock: ["в наличии", "остаток", "количество", "instock", "stock", "кол-во", "ваш заказ (упаковки)", "ваш заказ"],
+  barcode: ["штрихкод", "barcode", "штрих-код", "ean"],
+  code: ["код", "code", "артикул", "sku"],
+  image: ["изображение", "картинка", "фото", "image"],
+  volume: ["объем (м³)", "объём (м³)", "объем", "объём", "volume"],
+  packSize: ["кол-во (шт) в упаковке"],
+  description: ["описание", "description"],
+  oldPrice: ["старая цена", "old price", "oldprice"],
+  color: ["цвет", "color"],
+  productType: ["тип", "type", "вид", "producttype", "дистр"],
 };
 
-function normalizeRows(raw: Record<string, unknown>[]): RowData[] {
-  return raw.map((row) => {
-    const out: RowData = {};
-    for (const [key, val] of Object.entries(row)) {
-      const mapped = COL_MAP[key.toLowerCase().trim()];
-      if (mapped) {
-        (out as Record<string, unknown>)[mapped] = val;
+function autoDetectMapping(headers: string[]): Record<string, string> {
+  const mapping: Record<string, string> = {};
+  for (const header of headers) {
+    const lower = header.toLowerCase().trim();
+    for (const [field, aliases] of Object.entries(AUTO_DETECT)) {
+      if (aliases.includes(lower) && !Object.values(mapping).includes(field)) {
+        mapping[header] = field;
+        break;
       }
     }
-    return out;
-  });
+  }
+  return mapping;
 }
 
-function parseFile(buffer: Buffer, fileName: string): RowData[] {
+function parseRawRows(buffer: Buffer, fileName: string): Record<string, unknown>[] {
   if (fileName.endsWith(".csv") || fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
     const workbook = XLSX.read(buffer, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
-    return normalizeRows(raw);
+    return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
   }
   return [];
+}
+
+function getHeaders(raw: Record<string, unknown>[]): string[] {
+  if (raw.length === 0) return [];
+  const headerSet = new Set<string>();
+  for (const row of raw) {
+    for (const key of Object.keys(row)) {
+      headerSet.add(key);
+    }
+  }
+  return Array.from(headerSet);
+}
+
+interface MappedRow {
+  name?: string;
+  price?: number;
+  brand?: string;
+  category?: string;
+  image?: string;
+  inStock?: number;
+  country?: string;
+  barcode?: string;
+  code?: string;
+  weight?: number | null;
+  volume?: number | null;
+  packSize?: number | null;
+  description?: string;
+  oldPrice?: number | null;
+  color?: string;
+  productType?: string;
+}
+
+function applyMapping(raw: Record<string, unknown>[], columnMap: Record<string, string>): MappedRow[] {
+  return raw.map((row) => {
+    const out: Record<string, unknown> = {};
+    for (const [sourceCol, targetField] of Object.entries(columnMap)) {
+      if (targetField && targetField !== "" && row[sourceCol] !== undefined) {
+        out[targetField] = row[sourceCol];
+      }
+    }
+    return {
+      name: out.name ? String(out.name) : undefined,
+      price: out.price ? Number(out.price) : 0,
+      brand: out.brand ? String(out.brand) : "",
+      category: out.category ? String(out.category) : "",
+      image: out.image ? String(out.image) : "",
+      inStock: out.inStock ? Number(out.inStock) : 0,
+      country: out.country ? String(out.country) : "",
+      barcode: out.barcode ? String(out.barcode) : "",
+      code: out.code ? String(out.code) : "",
+      weight: out.weight ? Number(out.weight) : null,
+      volume: out.volume ? Number(out.volume) : null,
+      packSize: out.packSize ? Number(out.packSize) : null,
+      description: out.description ? String(out.description) : "",
+      oldPrice: out.oldPrice ? Number(out.oldPrice) : null,
+      color: out.color ? String(out.color) : "",
+      productType: out.productType ? String(out.productType) : "",
+    };
+  });
 }
 
 export async function POST(request: Request) {
@@ -97,6 +134,7 @@ export async function POST(request: Request) {
   const file = formData.get("file") as File | null;
   const mode = formData.get("mode") as string | null;
   const selectedIndices = formData.get("selected") as string | null;
+  const columnMapStr = formData.get("columnMap") as string | null;
 
   if (!file) return Response.json({ error: "Файл не выбран" }, { status: 400 });
 
@@ -107,29 +145,49 @@ export async function POST(request: Request) {
     return Response.json({ error: "Поддерживаемые форматы: CSV, XLSX, XLS" }, { status: 400 });
   }
 
-  const rows = parseFile(buffer, fileName);
+  const rawRows = parseRawRows(buffer, fileName);
 
-  if (rows.length === 0) {
+  if (rawRows.length === 0) {
     return Response.json({ error: "Файл пуст или не удалось распознать данные" }, { status: 400 });
   }
 
-  // Preview mode — return parsed rows for selection
+  // Headers mode — return column names + auto-detected mapping + sample data
+  if (mode === "headers") {
+    const headers = getHeaders(rawRows);
+    const autoMap = autoDetectMapping(headers);
+    const sample = rawRows.slice(0, 3).map((row) => {
+      const obj: Record<string, string> = {};
+      for (const h of headers) {
+        obj[h] = row[h] !== undefined ? String(row[h]) : "";
+      }
+      return obj;
+    });
+    return Response.json({ headers, autoMap, sample, totalRows: rawRows.length });
+  }
+
+  // Parse column mapping from request
+  const columnMap: Record<string, string> = columnMapStr ? JSON.parse(columnMapStr) : {};
+
+  // If no mapping provided, try auto-detection
+  if (Object.keys(columnMap).length === 0) {
+    const headers = getHeaders(rawRows);
+    const autoMap = autoDetectMapping(headers);
+    Object.assign(columnMap, autoMap);
+  }
+
+  const rows = applyMapping(rawRows, columnMap);
+
+  // Preview mode — return mapped rows for selection
   if (mode === "preview") {
     const preview = rows.map((r, i) => ({
       index: i,
-      name: String(r.name || ""),
-      price: r.price ? Number(r.price) : 0,
-      brand: String(r.brand || ""),
-      category: String(r.category || ""),
-      image: String(r.image || ""),
-      inStock: r.inStock ? Number(r.inStock) : 0,
-      country: String(r.country || ""),
-      barcode: String(r.barcode || ""),
-      code: String(r.code || ""),
-      weight: r.weight ? Number(r.weight) : null,
-      volume: r.volume ? Number(r.volume) : null,
-      packSize: r.packSize ? Number(r.packSize) : null,
-      description: String(r.description || ""),
+      name: r.name || "",
+      price: r.price || 0,
+      brand: r.brand || "",
+      category: r.category || "",
+      inStock: r.inStock || 0,
+      country: r.country || "",
+      weight: r.weight,
     }));
     return Response.json({ preview, total: rows.length });
   }
@@ -149,14 +207,14 @@ export async function POST(request: Request) {
   let imported = 0;
   let updated = 0;
   for (const row of validRows) {
-    const price = Number(row.price) || 0;
-    const oldPrice = row.oldPrice ? Number(row.oldPrice) : null;
-    const inStock = row.inStock ? Number(row.inStock) : 0;
-    const weight = row.weight ? Number(row.weight) : null;
-    const volume = row.volume ? Number(row.volume) : null;
-    const packSize = row.packSize ? Number(row.packSize) : null;
     const name = String(row.name);
-    const brand = String(row.brand || "");
+    const brand = row.brand || "";
+    const price = row.price || 0;
+    const oldPrice = row.oldPrice ?? null;
+    const inStock = row.inStock || 0;
+    const weight = row.weight ?? null;
+    const volume = row.volume ?? null;
+    const packSize = row.packSize ?? null;
 
     let categoryId: string | undefined;
     if (row.category) {
@@ -169,7 +227,6 @@ export async function POST(request: Request) {
     }
     if (!categoryId) continue;
 
-    // Check if product already exists (by name + brand)
     const existing = await prisma.product.findFirst({
       where: { name, brand },
     });
@@ -188,15 +245,15 @@ export async function POST(request: Request) {
           slug,
           price,
           oldPrice,
-          description: String(row.description || ""),
-          image: String(row.image || ""),
+          description: row.description || "",
+          image: row.image || "",
           inStock,
           brand,
-          color: String(row.color || ""),
-          productType: String(row.productType || ""),
-          country: String(row.country || ""),
-          barcode: String(row.barcode || ""),
-          code: String(row.code || ""),
+          color: row.color || "",
+          productType: row.productType || "",
+          country: row.country || "",
+          barcode: row.barcode || "",
+          code: row.code || "",
           weight,
           volume,
           packSize,
