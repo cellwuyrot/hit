@@ -53,6 +53,7 @@ model Product {
   category    Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   cartItems   CartItem[]
   orderItems  OrderItem[]
+  reviews     Review[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 }
@@ -77,6 +78,7 @@ model User {
   address   String   @default("")
   cart      CartItem[]
   orders    Order[]
+  reviews   Review[]
   createdAt DateTime @default(now())
 }
 
@@ -134,4 +136,16 @@ model SitePage {
   title     String   @default("")
   content   String   @default("")
   updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int      @default(5)
+  text      String   @default("")
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
 }

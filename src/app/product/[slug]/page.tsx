@@ -7,6 +7,8 @@ import { notFound } from "next/navigation";
 import AddToCartButton from "@/components/AddToCartButton";
 import CompareButton from "@/components/CompareButton";
 import ProductGallery from "@/components/ProductGallery";
+import ProductReviews from "@/components/ProductReviews";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +16,42 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await prisma.product.findFirst({
+    where: { slug },
+    include: { category: true },
+  });
+  if (!product) return {};
+  const title = `${product.name} — купить в ТОПХИТ`;
+  const description = product.description
+    ? product.description.slice(0, 160)
+    : `${product.name} по цене ${product.price} ₽. ${product.brand ? `Бренд: ${product.brand}.` : ""} Купить в интернет-магазине ТОПХИТ с доставкой.`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      locale: "ru_RU",
+      images: product.image ? [{ url: product.image }] : [],
+    },
+  };
+}
+
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
   const product = await prisma.product.findFirst({
     where: { slug },
-    include: { category: { include: { parent: true } } },
+    include: {
+      category: { include: { parent: true } },
+      reviews: {
+        where: { published: true },
+        orderBy: { createdAt: "desc" },
+        include: { user: { select: { name: true, email: true } } },
+      },
+    },
   });
   if (!product) notFound();
 
@@ -28,9 +61,39 @@ export default async function ProductPage({ params }: PageProps) {
     include: { category: true },
   });
 
+  const avgRating = product.reviews.length > 0
+    ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
+    : 0;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description || product.name,
+    image: product.image || undefined,
+    brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
+    sku: product.code || product.id,
+    gtin13: product.barcode || undefined,
+    offers: {
+      "@type": "Offer",
+      url: `https://tophit.store/product/${product.slug}`,
+      priceCurrency: "RUB",
+      price: product.price,
+      availability: product.inStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    },
+    ...(product.reviews.length > 0 ? {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: avgRating.toFixed(1),
+        reviewCount: product.reviews.length,
+      },
+    } : {}),
+  };
+
   return (
     <>
       <Header />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="flex-1 bg-bg-light">
         <div className="max-w-6xl mx-auto px-4 py-6">
           {/* Breadcrumbs */}
@@ -113,6 +176,19 @@ export default async function ProductPage({ params }: PageProps) {
               )}
             </div>
           </div>
+
+          {/* Reviews */}
+          <ProductReviews
+            productId={product.id}
+            reviews={product.reviews.map((r) => ({
+              id: r.id,
+              rating: r.rating,
+              text: r.text,
+              createdAt: r.createdAt.toISOString(),
+              userName: r.user.name || r.user.email.split("@")[0],
+            }))}
+            avgRating={avgRating}
+          />
 
           {/* Related */}
           {related.length > 0 && (

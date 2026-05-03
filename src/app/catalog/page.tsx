@@ -6,8 +6,20 @@ import Pagination, { PER_PAGE } from "@/components/Pagination";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Suspense } from "react";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Каталог товаров — ТОПХИТ",
+  description: "Полный каталог товаров интернет-магазина ТОПХИТ. Продукты питания, бытовая химия, электроника, товары для дома. Удобная фильтрация по категориям, брендам и цене.",
+  openGraph: {
+    title: "Каталог товаров — ТОПХИТ",
+    description: "Полный каталог товаров интернет-магазина ТОПХИТ",
+    locale: "ru_RU",
+    type: "website",
+  },
+};
 
 interface PageProps {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -54,7 +66,14 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
     prisma.product.count({ where }),
     prisma.product.findMany({ where, orderBy, include: { category: true }, take: PER_PAGE, skip }),
     prisma.product.findMany({ select: { brand: true, productType: true, color: true, price: true } }),
-    prisma.category.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { products: true } } } }),
+    prisma.category.findMany({
+      where: { parentId: null },
+      orderBy: { order: "asc" },
+      include: {
+        _count: { select: { products: true } },
+        children: { orderBy: { order: "asc" }, include: { _count: { select: { products: true } } } },
+      },
+    }),
   ]);
 
   const allBrands = [...new Set(allProducts.map((p) => p.brand).filter(Boolean))].sort();
@@ -79,16 +98,31 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
 
         <div className="mt-4 bg-bg-white rounded-xl border border-border p-5">
           <h3 className="font-bold text-text-dark mb-3">Категории</h3>
-          <ul className="space-y-2">
+          <ul className="space-y-1">
             {categories.map((cat) => (
               <li key={cat.id}>
                 <Link
                   href={`/catalog/${cat.slug}`}
-                  className="text-sm text-text-gray hover:text-primary transition-colors flex justify-between"
+                  className="text-sm font-medium text-text-dark hover:text-primary transition-colors flex justify-between py-1"
                 >
                   <span>{cat.name}</span>
                   <span className="text-text-light">({cat._count.products})</span>
                 </Link>
+                {cat.children && cat.children.length > 0 && (
+                  <ul className="ml-4 mt-1 mb-2 space-y-1 border-l-2 border-border pl-3">
+                    {cat.children.map((sub: { id: string; slug: string; name: string; _count: { products: number } }) => (
+                      <li key={sub.id}>
+                        <Link
+                          href={`/catalog/${sub.slug}`}
+                          className="text-xs text-text-gray hover:text-primary transition-colors flex justify-between py-0.5"
+                        >
+                          <span>{sub.name}</span>
+                          <span className="text-text-light">({sub._count.products})</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
