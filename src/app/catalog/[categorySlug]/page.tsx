@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import CatalogFilters from "@/components/CatalogFilters";
+import Pagination, { PER_PAGE } from "@/components/Pagination";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
@@ -65,8 +66,12 @@ async function CategoryContent({
     default: orderBy = { createdAt: "desc" };
   }
 
-  const [products, catProducts] = await Promise.all([
-    prisma.product.findMany({ where, orderBy, include: { category: true } }),
+  const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
+  const skip = (page - 1) * PER_PAGE;
+
+  const [totalCount, products, catProducts] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({ where, orderBy, include: { category: true }, take: PER_PAGE, skip }),
     prisma.product.findMany({
       where: { categoryId: { in: catIds } },
       select: { brand: true, productType: true, color: true, price: true },
@@ -127,7 +132,9 @@ async function CategoryContent({
         <div className="flex-1">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <p className="text-sm text-text-gray">
-              Подобрано: <strong className="text-text-dark">{products.length} товаров</strong>
+              {"Подобрано: "}
+              <strong className="text-text-dark">{totalCount}{" товаров"}</strong>
+              {Math.ceil(totalCount / PER_PAGE) > 1 ? <span className="text-text-light">{` (стр. ${page} из ${Math.ceil(totalCount / PER_PAGE)})`}</span> : null}
             </p>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-text-gray">Сортировка:</span>
@@ -157,6 +164,8 @@ async function CategoryContent({
               ))}
             </div>
           )}
+
+          <Pagination currentPage={page} totalItems={totalCount} baseParams={searchParams} />
         </div>
       </div>
     </>
