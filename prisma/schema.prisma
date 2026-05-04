@@ -105,6 +105,7 @@ model Order {
   address   String      @default("")
   comment   String      @default("")
   items     OrderItem[]
+  messages  Message[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 }
@@ -150,6 +151,18 @@ model Review {
   text      String   @default("")
   published Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  senderId   String
+  senderRole String   @default("user")
+  text       String
+  createdAt  DateTime @default(now())
+
+  @@index([orderId])
 }
 
 model PageView {
