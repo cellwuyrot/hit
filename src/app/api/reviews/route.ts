@@ -11,6 +11,14 @@ export async function POST(request: Request) {
   if (!productId || !rating) return Response.json({ error: "Укажите товар и оценку" }, { status: 400 });
   if (rating < 1 || rating > 5) return Response.json({ error: "Оценка от 1 до 5" }, { status: 400 });
 
+  const hasPurchase = await prisma.orderItem.findFirst({
+    where: {
+      productId,
+      order: { userId: payload.id, status: "delivered" },
+    },
+  });
+  if (!hasPurchase) return Response.json({ error: "Оставить отзыв можно только после получения товара" }, { status: 403 });
+
   const existing = await prisma.review.findFirst({
     where: { productId, userId: payload.id },
   });

@@ -49,6 +49,7 @@ model Product {
   weight      Float?
   volume      Float?
   packSize    Int?
+  isFeatured  Boolean        @default(false)
   categoryId  String
   category    Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   cartItems   CartItem[]
@@ -104,6 +105,7 @@ model Order {
   address   String      @default("")
   comment   String      @default("")
   items     OrderItem[]
+  messages  Message[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 }
@@ -122,6 +124,7 @@ model News {
   id        String   @id @default(uuid())
   title     String
   slug      String   @unique
+  excerpt   String   @default("")
   content   String   @default("")
   image     String   @default("")
   type      String   @default("article")
@@ -148,6 +151,18 @@ model Review {
   text      String   @default("")
   published Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  senderId   String
+  senderRole String   @default("user")
+  text       String
+  createdAt  DateTime @default(now())
+
+  @@index([orderId])
 }
 
 model PageView {

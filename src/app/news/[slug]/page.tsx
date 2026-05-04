@@ -32,13 +32,19 @@ export default async function NewsDetailPage(props: { params: Promise<{ slug: st
             <p className="text-sm text-text-gray mb-6">
               {new Date(news.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
             </p>
-            <div className="prose prose-sm max-w-none text-text-dark
-              [&_a]:text-primary [&_a]:underline [&_a:hover]:text-primary-dark
-              [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
-              [&_p]:mb-3 [&_li]:mb-1 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-6
-              [&_strong]:font-bold [&_em]:italic"
-              dangerouslySetInnerHTML={{ __html: news.content }}
-            />
+            {news.content.includes("<") ? (
+              <div className="prose prose-sm max-w-none text-text-dark
+                [&_a]:text-primary [&_a]:underline [&_a:hover]:text-primary-dark
+                [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
+                [&_p]:mb-3 [&_li]:mb-1 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-6
+                [&_strong]:font-bold [&_em]:italic"
+                dangerouslySetInnerHTML={{ __html: news.content }}
+              />
+            ) : (
+              <div className="text-text-dark leading-relaxed whitespace-pre-line">
+                {news.content}
+              </div>
+            )}
           </article>
         </div>
       </main>

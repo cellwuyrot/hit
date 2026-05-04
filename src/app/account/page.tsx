@@ -49,6 +49,10 @@ export default function AccountPage() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [openChat, setOpenChat] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<{ id: string; senderRole: string; text: string; createdAt: string }[]>([]);
+  const [chatText, setChatText] = useState("");
+  const [chatSending, setChatSending] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("userToken");
@@ -283,10 +287,55 @@ export default function AccountPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 pt-3 border-t border-border flex justify-between font-medium">
-                    <span>Итого:</span>
-                    <span className="text-primary">{order.total.toLocaleString("ru-RU")} ₽</span>
+                  <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium">Итого: <span className="text-primary">{order.total.toLocaleString("ru-RU")} ₽</span></span>
+                    </div>
+                    <button onClick={() => {
+                      if (openChat === order.id) { setOpenChat(null); return; }
+                      setOpenChat(order.id);
+                      setChatText("");
+                      fetch(`/api/user/messages?orderId=${order.id}`, { headers: { Authorization: `Bearer ${token}` } })
+                        .then(r => r.ok ? r.json() : []).then(d => setChatMessages(d));
+                    }} className={`text-sm px-3 py-1 rounded-lg border ${openChat === order.id ? "bg-primary text-white border-primary" : "border-border text-text-gray hover:text-primary"}`}>
+                      Написать менеджеру
+                    </button>
                   </div>
+                  {openChat === order.id && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <div className="max-h-48 overflow-y-auto space-y-2 mb-3">
+                        {chatMessages.length === 0 && <p className="text-xs text-text-gray italic">Нет сообщений</p>}
+                        {chatMessages.map((msg) => (
+                          <div key={msg.id} className={`text-sm p-2 rounded-lg max-w-[80%] ${msg.senderRole === "user" ? "bg-primary/10 text-primary ml-auto" : "bg-bg-light border border-border"}`}>
+                            <p className="text-xs text-text-gray mb-0.5">{msg.senderRole === "user" ? "Вы" : "Менеджер"} — {new Date(msg.createdAt).toLocaleString("ru-RU")}</p>
+                            <p>{msg.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input type="text" value={chatText} onChange={(e) => setChatText(e.target.value)} placeholder="Ваше сообщение..."
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && chatText.trim()) {
+                              setChatSending(true);
+                              fetch("/api/user/messages", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ orderId: order.id, text: chatText.trim() }) })
+                                .then(() => { setChatText(""); setChatSending(false); return fetch(`/api/user/messages?orderId=${order.id}`, { headers: { Authorization: `Bearer ${token}` } }); })
+                                .then(r => r.ok ? r.json() : []).then(d => setChatMessages(d));
+                            }
+                          }}
+                          className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                        <button onClick={() => {
+                          if (!chatText.trim()) return;
+                          setChatSending(true);
+                          fetch("/api/user/messages", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ orderId: order.id, text: chatText.trim() }) })
+                            .then(() => { setChatText(""); setChatSending(false); return fetch(`/api/user/messages?orderId=${order.id}`, { headers: { Authorization: `Bearer ${token}` } }); })
+                            .then(r => r.ok ? r.json() : []).then(d => setChatMessages(d));
+                        }} disabled={chatSending || !chatText.trim()}
+                          className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark disabled:opacity-50">
+                          {chatSending ? "..." : "Отправить"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

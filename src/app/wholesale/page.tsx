@@ -59,7 +59,7 @@ export default async function WholesalePage() {
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Оплата по безналичному расчёту</li>
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Полный пакет документов (счёт-фактура, накладная, УПД)</li>
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Отсрочка платежа для постоянных клиентов</li>
-                    <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>НДС включён в стоимость</li>
+                    <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Цены указаны без НДС</li>
                   </ul>
                 </div>
                 <div className="bg-bg-white rounded-xl border border-border p-6">
@@ -75,7 +75,49 @@ export default async function WholesalePage() {
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Товарный чек и накладная</li>
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Минимальная сумма заказа от 10 000 &#8381;</li>
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Персональный менеджер</li>
+                    <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Цены указаны без НДС</li>
                   </ul>
+                </div>
+              </div>
+
+              {/* For individuals */}
+              <div className="bg-bg-white rounded-xl border border-border p-6 mb-8">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-text-dark mb-3">Физические лица — программа лояльности</h3>
+                    <p className="text-sm text-text-gray leading-relaxed mb-3">
+                      Мы ценим каждого клиента. Для покупателей — физических лиц действует гибкая система скидок,
+                      которая делает каждую следующую покупку выгоднее предыдущей.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="bg-bg-light rounded-lg p-4 text-center">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                        </div>
+                        <h4 className="font-medium text-text-dark text-sm mb-1">Накопительные скидки</h4>
+                        <p className="text-xs text-text-gray">Чем больше покупок — тем больше ваша персональная скидка. Она растёт автоматически с каждым заказом</p>
+                      </div>
+                      <div className="bg-bg-light rounded-lg p-4 text-center">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
+                        </div>
+                        <h4 className="font-medium text-text-dark text-sm mb-1">Специальные предложения</h4>
+                        <p className="text-xs text-text-gray">Регулярные акции и персональные промокоды для постоянных клиентов. Следите за обновлениями</p>
+                      </div>
+                      <div className="bg-bg-light rounded-lg p-4 text-center">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                        </div>
+                        <h4 className="font-medium text-text-dark text-sm mb-1">Привилегии постоянным</h4>
+                        <p className="text-xs text-text-gray">Приоритетное обслуживание, ранний доступ к новинкам и эксклюзивные условия для лояльных покупателей</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

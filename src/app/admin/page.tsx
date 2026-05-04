@@ -38,6 +38,7 @@ interface Product {
   brand: string;
   color: string;
   productType: string;
+  isFeatured: boolean;
   categoryId: string;
   category?: Category;
 }
@@ -67,6 +68,7 @@ interface NewsItem {
   id: string;
   title: string;
   slug: string;
+  excerpt: string;
   content: string;
   image: string;
   type: string;
@@ -102,13 +104,116 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "slider" | "news" | "orders" | "bulk-orders" | "settings" | "site-editor";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "settings" | "site-editor";
 
 interface AnalyticsData {
   period: string;
   data: { date: string; views: number }[];
   totalViews: number;
   topPages: { path: string; views: number }[];
+}
+
+interface MsgItem { id: string; senderId: string; senderRole: string; text: string; createdAt: string; }
+
+function OrdersPanel({ orders, statusLabels, updateOrderStatus, token }: {
+  orders: Order[]; statusLabels: Record<string, string>;
+  updateOrderStatus: (id: string, status: string) => void; token: string;
+}) {
+  const [openChat, setOpenChat] = useState<string | null>(null);
+  const [messages, setMessages] = useState<MsgItem[]>([]);
+  const [msgText, setMsgText] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const loadMessages = async (orderId: string) => {
+    const res = await fetch(`/api/admin/messages?orderId=${orderId}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) setMessages(await res.json());
+  };
+
+  const toggleChat = (orderId: string) => {
+    if (openChat === orderId) { setOpenChat(null); return; }
+    setOpenChat(orderId);
+    setMsgText("");
+    loadMessages(orderId);
+  };
+
+  const sendMessage = async () => {
+    if (!msgText.trim() || !openChat) return;
+    setSending(true);
+    await fetch("/api/admin/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ orderId: openChat, text: msgText.trim() }),
+    });
+    setMsgText("");
+    setSending(false);
+    loadMessages(openChat);
+  };
+
+  return (
+    <div className="bg-bg-white rounded-xl border border-border p-5">
+      <h2 className="font-bold text-text-dark mb-4">Заказы ({orders.length})</h2>
+      {orders.length === 0 ? <p className="text-text-gray text-sm">Заказов пока нет</p> : (
+        <div className="space-y-4">
+          {orders.map((order) => (
+            <div key={order.id} className="p-4 bg-bg-light rounded-lg">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div>
+                  <span className="font-medium text-text-dark">#{order.id.slice(0, 8)}</span>
+                  <span className="text-sm text-text-gray ml-2">{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
+                  <span className="text-sm text-text-gray ml-2">— {order.user.name} ({order.user.email})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => toggleChat(order.id)} className={`text-sm px-3 py-1 rounded-lg border ${openChat === order.id ? "bg-primary text-white border-primary" : "border-border text-text-gray hover:text-primary"}`}>
+                    💬 Сообщения
+                  </button>
+                  <select value={order.status} onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                    className="border border-border rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-primary">
+                    {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="text-sm space-y-1">
+                {order.items.map((item) => (
+                  <div key={item.id} className="flex justify-between text-text-gray">
+                    <span>{item.product.name} x {item.quantity}</span>
+                    <span>{(item.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 pt-2 border-t border-border/50 flex justify-between text-sm">
+                <span className="text-text-gray">Адрес: {order.address} | Тел: {order.phone}</span>
+                <span className="font-bold text-primary">{order.total.toLocaleString("ru-RU")} ₽</span>
+              </div>
+              {order.comment && <p className="text-xs text-text-gray mt-1">Комментарий: {order.comment}</p>}
+
+              {openChat === order.id && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <div className="max-h-48 overflow-y-auto space-y-2 mb-3">
+                    {messages.length === 0 && <p className="text-xs text-text-gray italic">Нет сообщений</p>}
+                    {messages.map((msg) => (
+                      <div key={msg.id} className={`text-sm p-2 rounded-lg max-w-[80%] ${msg.senderRole === "admin" ? "bg-primary/10 text-primary ml-auto" : "bg-bg-white border border-border"}`}>
+                        <p className="text-xs text-text-gray mb-0.5">{msg.senderRole === "admin" ? "Вы" : "Клиент"} — {new Date(msg.createdAt).toLocaleString("ru-RU")}</p>
+                        <p>{msg.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="text" value={msgText} onChange={(e) => setMsgText(e.target.value)} placeholder="Написать клиенту..."
+                      onKeyDown={(e) => { if (e.key === "Enter") sendMessage(); }}
+                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                    <button onClick={sendMessage} disabled={sending || !msgText.trim()}
+                      className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark disabled:opacity-50">
+                      {sending ? "..." : "Отправить"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminPage() {
@@ -140,7 +245,7 @@ export default function AdminPage() {
 
   const [prodForm, setProdForm] = useState({
     name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "",
-    inStock: "0", brand: "", color: "", productType: "", categoryId: "",
+    inStock: "0", brand: "", color: "", productType: "", categoryId: "", isFeatured: false,
   });
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
@@ -156,7 +261,7 @@ export default function AdminPage() {
   });
   const [editingSlide, setEditingSlide] = useState<SliderImage | null>(null);
 
-  const [newsForm, setNewsForm] = useState({ title: "", content: "", image: "", type: "article", published: false });
+  const [newsForm, setNewsForm] = useState({ title: "", excerpt: "", content: "", image: "", type: "article", published: false });
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
 
   const [importStatus, setImportStatus] = useState("");
@@ -275,7 +380,7 @@ export default function AdminPage() {
     const method = editingProd ? "PUT" : "POST";
     const body = editingProd ? { id: editingProd.id, ...prodForm } : prodForm;
     await fetch("/api/admin/products", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "" });
+    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "", isFeatured: false });
     setEditingProd(null); fetchData();
   };
 
@@ -546,7 +651,7 @@ export default function AdminPage() {
     const method = editingNews ? "PUT" : "POST";
     const body = editingNews ? { id: editingNews.id, ...newsForm } : newsForm;
     await fetch("/api/admin/news", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setNewsForm({ title: "", content: "", image: "", type: "article", published: false });
+    setNewsForm({ title: "", excerpt: "", content: "", image: "", type: "article", published: false });
     setEditingNews(null); fetchData();
   };
 
@@ -591,7 +696,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "bulk-orders": "Оптовые", "site-editor": "Редактирование сайта", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "site-editor": "Редактирование сайта", settings: "Настройки",
   };
 
   return (
@@ -912,9 +1017,14 @@ export default function AdminPage() {
                 </select>
                 <textarea placeholder="Описание" value={prodForm.description} onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
                   className="md:col-span-2 lg:col-span-3 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={2} />
-                <div className="md:col-span-2 lg:col-span-3 flex gap-2">
+                <div className="md:col-span-2 lg:col-span-3 flex items-center gap-4">
                   <button type="submit" className="bg-primary hover:bg-primary-dark text-white text-sm px-6 py-2 rounded-lg">{editingProd ? "Сохранить" : "Добавить"}</button>
-                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "" }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "", isFeatured: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  <label className="flex items-center gap-2 text-sm cursor-pointer ml-auto border border-yellow-300 bg-yellow-50 rounded-lg px-3 py-2">
+                    <input type="checkbox" checked={prodForm.isFeatured} onChange={(e) => setProdForm({ ...prodForm, isFeatured: e.target.checked })} className="accent-yellow-500 w-4 h-4" />
+                    <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <span className="text-yellow-700 font-medium">Популярный товар</span>
+                  </label>
                 </div>
               </form>
             </div>
@@ -971,7 +1081,7 @@ export default function AdminPage() {
                           <td className="py-2 px-2">
                             <input type="checkbox" checked={selectedProducts.has(prod.id)} onChange={() => toggleProductSelection(prod.id)} className="w-4 h-4 rounded border-border cursor-pointer" />
                           </td>
-                          <td className="py-2 px-2 text-text-dark">{prod.name}</td>
+                          <td className="py-2 px-2 text-text-dark">{prod.isFeatured && <svg className="w-4 h-4 text-yellow-500 inline mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>}{prod.name}</td>
                           <td className="py-2 px-2 text-text-gray">{prod.category?.name}</td>
                           <td className="py-2 px-2 text-right font-medium">{prod.price.toLocaleString("ru-RU")} ₽</td>
                           <td className="py-2 px-2 text-right">{prod.inStock}</td>
@@ -979,7 +1089,7 @@ export default function AdminPage() {
                             <button onClick={() => searchProduct(prod.name)} className="text-accent hover:underline mr-2" title="Поиск в интернете">
                               <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </button>
-                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, image2: prod.image2 || "", image3: prod.image3 || "", image4: prod.image4 || "", inStock: String(prod.inStock), brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId }); }} className="text-primary hover:underline mr-2">Изменить</button>
+                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, image2: prod.image2 || "", image3: prod.image3 || "", image4: prod.image4 || "", inStock: String(prod.inStock), brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: prod.isFeatured || false }); }} className="text-primary hover:underline mr-2">Изменить</button>
                             <button onClick={() => deleteProduct(prod.id)} className="text-danger hover:underline">Удалить</button>
                           </td>
                         </tr>
@@ -1003,22 +1113,29 @@ export default function AdminPage() {
                 <div>
                   <div className="flex gap-2">
                     <input type="text" placeholder="URL изображения" value={slideForm.imageUrl} onChange={(e) => setSlideForm({ ...slideForm, imageUrl: e.target.value })} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                    <label className="px-3 py-2 bg-bg-light border border-border rounded-lg text-sm text-text-gray hover:text-primary cursor-pointer transition-colors flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      Файл
-                      <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="hidden" onChange={async (e) => {
+                    <label className={`px-3 py-2 border border-border rounded-lg text-sm cursor-pointer transition-colors flex items-center gap-1 ${uploadingImage === "slider" ? "bg-primary/10 text-primary border-primary" : "bg-bg-light text-text-gray hover:text-primary"}`}>
+                      {uploadingImage === "slider" ? (
+                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Загрузка...</>
+                      ) : (
+                        <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> Файл</>
+                      )}
+                      <input type="file" accept=".jpg,.jpeg,.png,.webp,.svg" className="hidden" disabled={uploadingImage === "slider"} onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const fd = new FormData();
-                        fd.append("file", file);
-                        const res = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
-                        if (res.ok) { const data = await res.json(); setSlideForm({ ...slideForm, imageUrl: data.url }); }
-                        else { const err = await res.json(); alert(err.error || "Ошибка загрузки"); }
-                        e.target.value = "";
+                        if (file.size > 10 * 1024 * 1024) { alert("Максимальный размер файла: 10 МБ"); e.target.value = ""; return; }
+                        setUploadingImage("slider");
+                        try {
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          const res = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+                          if (res.ok) { const data = await res.json(); setSlideForm((prev) => ({ ...prev, imageUrl: data.url })); }
+                          else { const text = await res.text(); try { const err = JSON.parse(text); alert(err.error || "Ошибка загрузки"); } catch { alert("Ошибка загрузки изображения. Попробуйте файл меньшего размера."); } }
+                        } catch { alert("Ошибка соединения с сервером"); }
+                        finally { setUploadingImage(null); e.target.value = ""; }
                       }} />
                     </label>
                   </div>
-                  <p className="text-xs text-text-light mt-1">Рекомендуемый размер: 1920x600px. Форматы: JPG, PNG, WEBP, SVG</p>
+                  <p className="text-xs text-text-light mt-1">Рекомендуемый размер: 1920×600px. Форматы: JPG, PNG, WEBP, SVG. Макс. 10 МБ</p>
                   {slideForm.imageUrl && (
                     <div className="mt-2 rounded-lg overflow-hidden border border-border">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1070,26 +1187,65 @@ export default function AdminPage() {
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <h2 className="font-bold text-text-dark mb-4">{editingNews ? "Редактировать" : "Создать"} новость</h2>
               <form onSubmit={saveNews} className="space-y-3">
-                <input type="text" placeholder="Заголовок *" value={newsForm.title} onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })} required
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                <input type="text" placeholder="URL изображения" value={newsForm.image} onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                <div>
+                  <label className="text-xs text-text-gray mb-1 block">Заголовок *</label>
+                  <input type="text" placeholder="Введите заголовок" value={newsForm.title} onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })} required
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                </div>
+                <div>
+                  <label className="text-xs text-text-gray mb-1 block">Изображение</label>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="URL изображения" value={newsForm.image} onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })}
+                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                    <label className={`px-3 py-2 border border-border rounded-lg text-sm cursor-pointer transition-colors flex items-center gap-1 ${uploadingImage === "news" ? "bg-primary/10 text-primary border-primary" : "bg-bg-light text-text-gray hover:text-primary"}`}>
+                      {uploadingImage === "news" ? (
+                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> ...</>
+                      ) : (
+                        <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> Файл</>
+                      )}
+                      <input type="file" accept=".jpg,.jpeg,.png,.webp,.svg" className="hidden" disabled={uploadingImage === "news"} onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 10 * 1024 * 1024) { alert("Макс. 10 МБ"); e.target.value = ""; return; }
+                        setUploadingImage("news");
+                        try {
+                          const fd = new FormData(); fd.append("file", file);
+                          const res = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+                          if (res.ok) { const data = await res.json(); setNewsForm((prev) => ({ ...prev, image: data.url })); }
+                          else { alert("Ошибка загрузки"); }
+                        } catch { alert("Ошибка соединения"); }
+                        finally { setUploadingImage(null); e.target.value = ""; }
+                      }} />
+                    </label>
+                  </div>
+                  {newsForm.image && (
+                    <div className="mt-2 w-20 h-14 rounded overflow-hidden border border-border">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={newsForm.image} alt="Превью" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
                 <select value={newsForm.type} onChange={(e) => setNewsForm({ ...newsForm, type: e.target.value })}
                   className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
                   <option value="article">Статья</option>
                   <option value="delivery">Поставка</option>
                 </select>
                 <div>
-                  <label className="text-xs text-text-gray mb-1 block">Содержание (поддерживает HTML: &lt;a href=&quot;...&quot;&gt;, &lt;strong&gt;, &lt;ul&gt;, &lt;p&gt;)</label>
-                  <textarea placeholder="Текст новости с HTML-разметкой..." value={newsForm.content} onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono" rows={8} />
+                  <label className="text-xs text-text-gray mb-1 block">Краткое описание</label>
+                  <textarea placeholder="Короткий текст для карточки новости (1-2 предложения)" value={newsForm.excerpt} onChange={(e) => setNewsForm({ ...newsForm, excerpt: e.target.value })}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={2} />
+                </div>
+                <div>
+                  <label className="text-xs text-text-gray mb-1 block">Полный текст</label>
+                  <textarea placeholder="Полный текст новости..." value={newsForm.content} onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={8} />
                 </div>
                 <label className="flex items-center gap-2 text-sm text-text-gray">
                   <input type="checkbox" checked={newsForm.published} onChange={(e) => setNewsForm({ ...newsForm, published: e.target.checked })} className="accent-primary" /> Опубликовать
                 </label>
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-primary hover:bg-primary-dark text-white text-sm py-2 rounded-lg">{editingNews ? "Сохранить" : "Создать"}</button>
-                  {editingNews && <button type="button" onClick={() => { setEditingNews(null); setNewsForm({ title: "", content: "", image: "", type: "article", published: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingNews && <button type="button" onClick={() => { setEditingNews(null); setNewsForm({ title: "", excerpt: "", content: "", image: "", type: "article", published: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
                 </div>
               </form>
             </div>
@@ -1108,7 +1264,7 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex gap-2 flex-shrink-0 ml-4">
-                        <button onClick={() => { setEditingNews(item); setNewsForm({ title: item.title, content: item.content, image: item.image, type: item.type || "article", published: item.published }); }} className="text-primary hover:underline text-sm">Изменить</button>
+                        <button onClick={() => { setEditingNews(item); setNewsForm({ title: item.title, excerpt: item.excerpt || "", content: item.content, image: item.image, type: item.type || "article", published: item.published }); }} className="text-primary hover:underline text-sm">Изменить</button>
                         <button onClick={() => deleteNews(item.id)} className="text-danger hover:underline text-sm">Удалить</button>
                       </div>
                     </div>
@@ -1121,48 +1277,51 @@ export default function AdminPage() {
 
         {/* Orders */}
         {activeTab === "orders" && (
+          <OrdersPanel orders={orders} statusLabels={statusLabels} updateOrderStatus={updateOrderStatus} token={token} />
+        )}
+        {/* Popular Products */}
+        {activeTab === "popular" && (
           <div className="bg-bg-white rounded-xl border border-border p-5">
-            <h2 className="font-bold text-text-dark mb-4">Заказы ({orders.length})</h2>
-            {orders.length === 0 ? <p className="text-text-gray text-sm">Заказов пока нет</p> : (
-              <div className="space-y-4">
-                {orders.map((order) => (
-                  <div key={order.id} className="p-4 bg-bg-light rounded-lg">
-                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                      <div>
-                        <span className="font-medium text-text-dark">#{order.id.slice(0, 8)}</span>
-                        <span className="text-sm text-text-gray ml-2">{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
-                        <span className="text-sm text-text-gray ml-2">— {order.user.name} ({order.user.email})</span>
-                      </div>
-                      <select value={order.status} onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                        className="border border-border rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-primary">
-                        {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                      </select>
-                    </div>
-                    <div className="text-sm space-y-1">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="flex justify-between text-text-gray">
-                          <span>{item.product.name} x {item.quantity}</span>
-                          <span>{(item.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-border/50 flex justify-between text-sm">
-                      <span className="text-text-gray">Адрес: {order.address} | Тел: {order.phone}</span>
-                      <span className="font-bold text-primary">{order.total.toLocaleString("ru-RU")} ₽</span>
-                    </div>
-                    {order.comment && <p className="text-xs text-text-gray mt-1">Комментарий: {order.comment}</p>}
+            <h2 className="font-bold text-text-dark mb-4">Популярные товары (до 8 штук)</h2>
+            <p className="text-text-gray text-sm mb-4">Выберите товары, которые будут отображаться на главной странице в разделе «Популярные товары».</p>
+            <div className="space-y-3 mb-6">
+              {products.filter(p => p.isFeatured).length === 0 && <p className="text-text-gray text-sm italic">Пока не выбрано ни одного популярного товара</p>}
+              {products.filter(p => p.isFeatured).map((prod) => (
+                <div key={prod.id} className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <svg className="w-5 h-5 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  {prod.image && <img src={prod.image} alt="" className="w-10 h-10 rounded object-cover" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-dark truncate">{prod.name}</p>
+                    <p className="text-xs text-text-gray">{prod.price.toLocaleString("ru-RU")} ₽ — {prod.category?.name}</p>
                   </div>
-                ))}
+                  <button onClick={async () => {
+                    await fetch("/api/admin/products", { method: "PUT", headers: hdrs(), body: JSON.stringify({ id: prod.id, name: prod.name, description: prod.description, price: prod.price, oldPrice: prod.oldPrice, image: prod.image, image2: prod.image2, image3: prod.image3, image4: prod.image4, inStock: prod.inStock, brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: false }) });
+                    fetchData();
+                  }} className="text-danger hover:underline text-sm flex-shrink-0">Убрать</button>
+                </div>
+              ))}
+            </div>
+            {products.filter(p => p.isFeatured).length < 8 && (
+              <div>
+                <h3 className="font-medium text-text-dark text-sm mb-2">Добавить товар ({products.filter(p => p.isFeatured).length}/8)</h3>
+                <div className="max-h-64 overflow-y-auto border border-border rounded-lg divide-y divide-border/50">
+                  {products.filter(p => !p.isFeatured).map((prod) => (
+                    <div key={prod.id} className="flex items-center gap-3 p-2.5 hover:bg-bg-light cursor-pointer" onClick={async () => {
+                      if (products.filter(p => p.isFeatured).length >= 8) { alert("Максимум 8 популярных товаров"); return; }
+                      await fetch("/api/admin/products", { method: "PUT", headers: hdrs(), body: JSON.stringify({ id: prod.id, name: prod.name, description: prod.description, price: prod.price, oldPrice: prod.oldPrice, image: prod.image, image2: prod.image2, image3: prod.image3, image4: prod.image4, inStock: prod.inStock, brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: true }) });
+                      fetchData();
+                    }}>
+                      {prod.image && <img src={prod.image} alt="" className="w-8 h-8 rounded object-cover" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-text-dark truncate">{prod.name}</p>
+                        <p className="text-xs text-text-gray">{prod.price.toLocaleString("ru-RU")} ₽</p>
+                      </div>
+                      <span className="text-primary text-sm">+ Добавить</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
-        )}
-        {/* Bulk Orders info */}
-        {activeTab === "bulk-orders" && (
-          <div className="bg-bg-white rounded-xl border border-border p-5">
-            <h2 className="font-bold text-text-dark mb-4">Оптовые заказы</h2>
-            <p className="text-text-gray text-sm mb-4">Раздел оптовых продаж доступен на сайте по адресу <a href="/wholesale" target="_blank" className="text-primary hover:underline">/wholesale</a></p>
-            <p className="text-text-gray text-sm">Оптовые заявки поступают на email <strong>opt@топхит.store</strong> и по телефону <strong>+7 (936) 256-89-50</strong></p>
           </div>
         )}
 
