@@ -1003,22 +1003,29 @@ export default function AdminPage() {
                 <div>
                   <div className="flex gap-2">
                     <input type="text" placeholder="URL изображения" value={slideForm.imageUrl} onChange={(e) => setSlideForm({ ...slideForm, imageUrl: e.target.value })} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                    <label className="px-3 py-2 bg-bg-light border border-border rounded-lg text-sm text-text-gray hover:text-primary cursor-pointer transition-colors flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      Файл
-                      <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="hidden" onChange={async (e) => {
+                    <label className={`px-3 py-2 border border-border rounded-lg text-sm cursor-pointer transition-colors flex items-center gap-1 ${uploadingImage === "slider" ? "bg-primary/10 text-primary border-primary" : "bg-bg-light text-text-gray hover:text-primary"}`}>
+                      {uploadingImage === "slider" ? (
+                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Загрузка...</>
+                      ) : (
+                        <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> Файл</>
+                      )}
+                      <input type="file" accept=".jpg,.jpeg,.png,.webp,.svg" className="hidden" disabled={uploadingImage === "slider"} onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const fd = new FormData();
-                        fd.append("file", file);
-                        const res = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
-                        if (res.ok) { const data = await res.json(); setSlideForm({ ...slideForm, imageUrl: data.url }); }
-                        else { const err = await res.json(); alert(err.error || "Ошибка загрузки"); }
-                        e.target.value = "";
+                        if (file.size > 10 * 1024 * 1024) { alert("Максимальный размер файла: 10 МБ"); e.target.value = ""; return; }
+                        setUploadingImage("slider");
+                        try {
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          const res = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+                          if (res.ok) { const data = await res.json(); setSlideForm((prev) => ({ ...prev, imageUrl: data.url })); }
+                          else { const text = await res.text(); try { const err = JSON.parse(text); alert(err.error || "Ошибка загрузки"); } catch { alert("Ошибка загрузки изображения. Попробуйте файл меньшего размера."); } }
+                        } catch { alert("Ошибка соединения с сервером"); }
+                        finally { setUploadingImage(null); e.target.value = ""; }
                       }} />
                     </label>
                   </div>
-                  <p className="text-xs text-text-light mt-1">Рекомендуемый размер: 1920x600px. Форматы: JPG, PNG, WEBP, SVG</p>
+                  <p className="text-xs text-text-light mt-1">Рекомендуемый размер: 1920×600px. Форматы: JPG, PNG, WEBP, SVG. Макс. 10 МБ</p>
                   {slideForm.imageUrl && (
                     <div className="mt-2 rounded-lg overflow-hidden border border-border">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
