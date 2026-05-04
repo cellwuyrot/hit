@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
 
 interface Slide {
@@ -14,6 +13,13 @@ interface Slide {
 
 interface HeroSliderProps {
   slides: Slide[];
+}
+
+function resolveImageUrl(url: string): string {
+  if (!url) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/api/")) return url;
+  return `/api/static${url.startsWith("/") ? url : `/${url}`}`;
 }
 
 export default function HeroSlider({ slides }: HeroSliderProps) {
@@ -52,12 +58,11 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
             }`}
           >
             <Link href={slide.link || "#"}>
-              <Image
-                src={slide.imageUrl}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={resolveImageUrl(slide.imageUrl)}
                 alt={slide.title}
-                fill
-                className="object-cover"
-                priority={index === 0}
+                className="absolute inset-0 w-full h-full object-cover"
               />
               {(slide.title || slide.subtitle) && (
                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent flex items-center">
