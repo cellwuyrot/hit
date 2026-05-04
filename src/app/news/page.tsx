@@ -63,6 +63,7 @@ export default async function NewsPage(props: { searchParams: Promise<{ type?: s
                       </span>
                     </div>
                     <h2 className="text-base sm:text-lg font-bold text-text-dark mb-1">{item.title}</h2>
+                    {item.excerpt && <p className="text-sm text-text-gray mb-1 line-clamp-2">{item.excerpt}</p>}
                     <p className="text-xs sm:text-sm text-text-gray">{new Date(item.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>
                   </div>
                 </div>

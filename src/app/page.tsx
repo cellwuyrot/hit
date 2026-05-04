@@ -15,7 +15,7 @@ export default async function HomePage() {
       orderBy: { order: "asc" },
       include: { children: { orderBy: { order: "asc" } }, _count: { select: { products: true } } },
     }),
-    prisma.product.findMany({ take: 8, orderBy: { createdAt: "desc" }, include: { category: true } }),
+    prisma.product.findMany({ take: 8, orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }], include: { category: true } }),
   ]);
 
   return (

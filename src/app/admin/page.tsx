@@ -38,6 +38,7 @@ interface Product {
   brand: string;
   color: string;
   productType: string;
+  isFeatured: boolean;
   categoryId: string;
   category?: Category;
 }
@@ -67,6 +68,7 @@ interface NewsItem {
   id: string;
   title: string;
   slug: string;
+  excerpt: string;
   content: string;
   image: string;
   type: string;
@@ -140,7 +142,7 @@ export default function AdminPage() {
 
   const [prodForm, setProdForm] = useState({
     name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "",
-    inStock: "0", brand: "", color: "", productType: "", categoryId: "",
+    inStock: "0", brand: "", color: "", productType: "", categoryId: "", isFeatured: false,
   });
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
@@ -156,7 +158,7 @@ export default function AdminPage() {
   });
   const [editingSlide, setEditingSlide] = useState<SliderImage | null>(null);
 
-  const [newsForm, setNewsForm] = useState({ title: "", content: "", image: "", type: "article", published: false });
+  const [newsForm, setNewsForm] = useState({ title: "", excerpt: "", content: "", image: "", type: "article", published: false });
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
 
   const [importStatus, setImportStatus] = useState("");
@@ -275,7 +277,7 @@ export default function AdminPage() {
     const method = editingProd ? "PUT" : "POST";
     const body = editingProd ? { id: editingProd.id, ...prodForm } : prodForm;
     await fetch("/api/admin/products", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "" });
+    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "", isFeatured: false });
     setEditingProd(null); fetchData();
   };
 
@@ -546,7 +548,7 @@ export default function AdminPage() {
     const method = editingNews ? "PUT" : "POST";
     const body = editingNews ? { id: editingNews.id, ...newsForm } : newsForm;
     await fetch("/api/admin/news", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setNewsForm({ title: "", content: "", image: "", type: "article", published: false });
+    setNewsForm({ title: "", excerpt: "", content: "", image: "", type: "article", published: false });
     setEditingNews(null); fetchData();
   };
 
@@ -910,11 +912,15 @@ export default function AdminPage() {
                   <option value="">Выберите категорию *</option>
                   {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.parentId ? `  └ ${cat.name}` : cat.name}</option>)}
                 </select>
+                <label className="flex items-center gap-2 text-sm text-text-gray">
+                  <input type="checkbox" checked={prodForm.isFeatured} onChange={(e) => setProdForm({ ...prodForm, isFeatured: e.target.checked })} className="accent-primary" />
+                  <span className="flex items-center gap-1"><svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Популярный товар</span>
+                </label>
                 <textarea placeholder="Описание" value={prodForm.description} onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
                   className="md:col-span-2 lg:col-span-3 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={2} />
                 <div className="md:col-span-2 lg:col-span-3 flex gap-2">
                   <button type="submit" className="bg-primary hover:bg-primary-dark text-white text-sm px-6 py-2 rounded-lg">{editingProd ? "Сохранить" : "Добавить"}</button>
-                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "" }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "", isFeatured: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
                 </div>
               </form>
             </div>
@@ -971,7 +977,7 @@ export default function AdminPage() {
                           <td className="py-2 px-2">
                             <input type="checkbox" checked={selectedProducts.has(prod.id)} onChange={() => toggleProductSelection(prod.id)} className="w-4 h-4 rounded border-border cursor-pointer" />
                           </td>
-                          <td className="py-2 px-2 text-text-dark">{prod.name}</td>
+                          <td className="py-2 px-2 text-text-dark">{prod.isFeatured && <svg className="w-4 h-4 text-yellow-500 inline mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>}{prod.name}</td>
                           <td className="py-2 px-2 text-text-gray">{prod.category?.name}</td>
                           <td className="py-2 px-2 text-right font-medium">{prod.price.toLocaleString("ru-RU")} ₽</td>
                           <td className="py-2 px-2 text-right">{prod.inStock}</td>
@@ -979,7 +985,7 @@ export default function AdminPage() {
                             <button onClick={() => searchProduct(prod.name)} className="text-accent hover:underline mr-2" title="Поиск в интернете">
                               <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </button>
-                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, image2: prod.image2 || "", image3: prod.image3 || "", image4: prod.image4 || "", inStock: String(prod.inStock), brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId }); }} className="text-primary hover:underline mr-2">Изменить</button>
+                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, image2: prod.image2 || "", image3: prod.image3 || "", image4: prod.image4 || "", inStock: String(prod.inStock), brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: prod.isFeatured || false }); }} className="text-primary hover:underline mr-2">Изменить</button>
                             <button onClick={() => deleteProduct(prod.id)} className="text-danger hover:underline">Удалить</button>
                           </td>
                         </tr>
@@ -1077,26 +1083,65 @@ export default function AdminPage() {
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <h2 className="font-bold text-text-dark mb-4">{editingNews ? "Редактировать" : "Создать"} новость</h2>
               <form onSubmit={saveNews} className="space-y-3">
-                <input type="text" placeholder="Заголовок *" value={newsForm.title} onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })} required
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                <input type="text" placeholder="URL изображения" value={newsForm.image} onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                <div>
+                  <label className="text-xs text-text-gray mb-1 block">Заголовок *</label>
+                  <input type="text" placeholder="Введите заголовок" value={newsForm.title} onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })} required
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                </div>
+                <div>
+                  <label className="text-xs text-text-gray mb-1 block">Изображение</label>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="URL изображения" value={newsForm.image} onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })}
+                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                    <label className={`px-3 py-2 border border-border rounded-lg text-sm cursor-pointer transition-colors flex items-center gap-1 ${uploadingImage === "news" ? "bg-primary/10 text-primary border-primary" : "bg-bg-light text-text-gray hover:text-primary"}`}>
+                      {uploadingImage === "news" ? (
+                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> ...</>
+                      ) : (
+                        <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> Файл</>
+                      )}
+                      <input type="file" accept=".jpg,.jpeg,.png,.webp,.svg" className="hidden" disabled={uploadingImage === "news"} onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 10 * 1024 * 1024) { alert("Макс. 10 МБ"); e.target.value = ""; return; }
+                        setUploadingImage("news");
+                        try {
+                          const fd = new FormData(); fd.append("file", file);
+                          const res = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+                          if (res.ok) { const data = await res.json(); setNewsForm((prev) => ({ ...prev, image: data.url })); }
+                          else { alert("Ошибка загрузки"); }
+                        } catch { alert("Ошибка соединения"); }
+                        finally { setUploadingImage(null); e.target.value = ""; }
+                      }} />
+                    </label>
+                  </div>
+                  {newsForm.image && (
+                    <div className="mt-2 w-20 h-14 rounded overflow-hidden border border-border">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={newsForm.image} alt="Превью" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
                 <select value={newsForm.type} onChange={(e) => setNewsForm({ ...newsForm, type: e.target.value })}
                   className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
                   <option value="article">Статья</option>
                   <option value="delivery">Поставка</option>
                 </select>
                 <div>
-                  <label className="text-xs text-text-gray mb-1 block">Содержание (поддерживает HTML: &lt;a href=&quot;...&quot;&gt;, &lt;strong&gt;, &lt;ul&gt;, &lt;p&gt;)</label>
-                  <textarea placeholder="Текст новости с HTML-разметкой..." value={newsForm.content} onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono" rows={8} />
+                  <label className="text-xs text-text-gray mb-1 block">Краткое описание</label>
+                  <textarea placeholder="Короткий текст для карточки новости (1-2 предложения)" value={newsForm.excerpt} onChange={(e) => setNewsForm({ ...newsForm, excerpt: e.target.value })}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={2} />
+                </div>
+                <div>
+                  <label className="text-xs text-text-gray mb-1 block">Полный текст</label>
+                  <textarea placeholder="Полный текст новости..." value={newsForm.content} onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={8} />
                 </div>
                 <label className="flex items-center gap-2 text-sm text-text-gray">
                   <input type="checkbox" checked={newsForm.published} onChange={(e) => setNewsForm({ ...newsForm, published: e.target.checked })} className="accent-primary" /> Опубликовать
                 </label>
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-primary hover:bg-primary-dark text-white text-sm py-2 rounded-lg">{editingNews ? "Сохранить" : "Создать"}</button>
-                  {editingNews && <button type="button" onClick={() => { setEditingNews(null); setNewsForm({ title: "", content: "", image: "", type: "article", published: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingNews && <button type="button" onClick={() => { setEditingNews(null); setNewsForm({ title: "", excerpt: "", content: "", image: "", type: "article", published: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
                 </div>
               </form>
             </div>
@@ -1115,7 +1160,7 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex gap-2 flex-shrink-0 ml-4">
-                        <button onClick={() => { setEditingNews(item); setNewsForm({ title: item.title, content: item.content, image: item.image, type: item.type || "article", published: item.published }); }} className="text-primary hover:underline text-sm">Изменить</button>
+                        <button onClick={() => { setEditingNews(item); setNewsForm({ title: item.title, excerpt: item.excerpt || "", content: item.content, image: item.image, type: item.type || "article", published: item.published }); }} className="text-primary hover:underline text-sm">Изменить</button>
                         <button onClick={() => deleteNews(item.id)} className="text-danger hover:underline text-sm">Удалить</button>
                       </div>
                     </div>
