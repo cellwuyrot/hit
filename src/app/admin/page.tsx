@@ -912,15 +912,16 @@ export default function AdminPage() {
                   <option value="">Выберите категорию *</option>
                   {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.parentId ? `  └ ${cat.name}` : cat.name}</option>)}
                 </select>
-                <label className="flex items-center gap-2 text-sm text-text-gray">
-                  <input type="checkbox" checked={prodForm.isFeatured} onChange={(e) => setProdForm({ ...prodForm, isFeatured: e.target.checked })} className="accent-primary" />
-                  <span className="flex items-center gap-1"><svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Популярный товар</span>
-                </label>
                 <textarea placeholder="Описание" value={prodForm.description} onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
                   className="md:col-span-2 lg:col-span-3 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={2} />
-                <div className="md:col-span-2 lg:col-span-3 flex gap-2">
+                <div className="md:col-span-2 lg:col-span-3 flex items-center gap-4">
                   <button type="submit" className="bg-primary hover:bg-primary-dark text-white text-sm px-6 py-2 rounded-lg">{editingProd ? "Сохранить" : "Добавить"}</button>
                   {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", brand: "", color: "", productType: "", categoryId: "", isFeatured: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  <label className="flex items-center gap-2 text-sm cursor-pointer ml-auto border border-yellow-300 bg-yellow-50 rounded-lg px-3 py-2">
+                    <input type="checkbox" checked={prodForm.isFeatured} onChange={(e) => setProdForm({ ...prodForm, isFeatured: e.target.checked })} className="accent-yellow-500 w-4 h-4" />
+                    <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <span className="text-yellow-700 font-medium">Популярный товар</span>
+                  </label>
                 </div>
               </form>
             </div>
