@@ -149,3 +149,13 @@ model Review {
   published Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+model PageView {
+  id        String   @id @default(uuid())
+  path      String
+  date      String
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([path])
+}

@@ -102,7 +102,14 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "categories" | "products" | "slider" | "news" | "orders" | "bulk-orders" | "settings" | "site-editor";
+type TabType = "analytics" | "categories" | "products" | "slider" | "news" | "orders" | "bulk-orders" | "settings" | "site-editor";
+
+interface AnalyticsData {
+  period: string;
+  data: { date: string; views: number }[];
+  totalViews: number;
+  topPages: { path: string; views: number }[];
+}
 
 export default function AdminPage() {
   const [token, setToken] = useState("");
@@ -584,7 +591,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    categories: "Категории", products: "Товары", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "bulk-orders": "Оптовые", "site-editor": "Редактирование сайта", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "bulk-orders": "Оптовые", "site-editor": "Редактирование сайта", settings: "Настройки",
   };
 
   return (
@@ -613,6 +620,9 @@ export default function AdminPage() {
             </button>
           ))}
         </div>
+
+        {/* Analytics */}
+        {activeTab === "analytics" && <AnalyticsPanel token={token} />}
 
         {/* Categories */}
         {activeTab === "categories" && (
@@ -990,7 +1000,32 @@ export default function AdminPage() {
               <form onSubmit={saveSlide} className="space-y-3">
                 <input type="text" placeholder="Заголовок" value={slideForm.title} onChange={(e) => setSlideForm({ ...slideForm, title: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <input type="text" placeholder="Подзаголовок" value={slideForm.subtitle} onChange={(e) => setSlideForm({ ...slideForm, subtitle: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                <input type="text" placeholder="URL изображения *" value={slideForm.imageUrl} onChange={(e) => setSlideForm({ ...slideForm, imageUrl: e.target.value })} required className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                <div>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="URL изображения" value={slideForm.imageUrl} onChange={(e) => setSlideForm({ ...slideForm, imageUrl: e.target.value })} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                    <label className="px-3 py-2 bg-bg-light border border-border rounded-lg text-sm text-text-gray hover:text-primary cursor-pointer transition-colors flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      Файл
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const fd = new FormData();
+                        fd.append("file", file);
+                        const res = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+                        if (res.ok) { const data = await res.json(); setSlideForm({ ...slideForm, imageUrl: data.url }); }
+                        else { const err = await res.json(); alert(err.error || "Ошибка загрузки"); }
+                        e.target.value = "";
+                      }} />
+                    </label>
+                  </div>
+                  <p className="text-xs text-text-light mt-1">Рекомендуемый размер: 1920x600px. Форматы: JPG, PNG, WEBP, SVG</p>
+                  {slideForm.imageUrl && (
+                    <div className="mt-2 rounded-lg overflow-hidden border border-border">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={slideForm.imageUrl} alt="Превью" className="w-full h-24 object-cover" />
+                    </div>
+                  )}
+                </div>
                 <input type="text" placeholder="Ссылка" value={slideForm.link} onChange={(e) => setSlideForm({ ...slideForm, link: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <input type="number" placeholder="Порядок" value={slideForm.order} onChange={(e) => setSlideForm({ ...slideForm, order: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <label className="flex items-center gap-2 text-sm text-text-gray">
@@ -1226,6 +1261,142 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function AnalyticsPanel({ token }: { token: string }) {
+  const [period, setPeriod] = useState<"day" | "week" | "month">("week");
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/admin/analytics?period=${period}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [period, token]);
+
+  const maxViews = data ? Math.max(...data.data.map((d) => d.views), 1) : 1;
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + "T00:00:00");
+    if (period === "day") return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+  };
+
+  const periodLabels = { day: "Сегодня", week: "Неделя", month: "Месяц" };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-xl font-bold text-text-dark">Статистика посещений</h2>
+        <div className="flex gap-2">
+          {(["day", "week", "month"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                period === p ? "bg-primary text-white" : "bg-bg-white border border-border text-text-gray hover:text-primary"
+              }`}
+            >
+              {periodLabels[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12 text-text-gray">Загрузка...</div>
+      ) : data ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-bg-white rounded-xl border border-border p-5">
+              <p className="text-sm text-text-gray mb-1">Всего просмотров</p>
+              <p className="text-3xl font-bold text-text-dark">{data.totalViews.toLocaleString("ru-RU")}</p>
+              <p className="text-xs text-text-light mt-1">за {periodLabels[period].toLowerCase()}</p>
+            </div>
+            <div className="bg-bg-white rounded-xl border border-border p-5">
+              <p className="text-sm text-text-gray mb-1">Среднее в день</p>
+              <p className="text-3xl font-bold text-text-dark">
+                {data.data.length > 0 ? Math.round(data.totalViews / data.data.length).toLocaleString("ru-RU") : 0}
+              </p>
+              <p className="text-xs text-text-light mt-1">просмотров/день</p>
+            </div>
+            <div className="bg-bg-white rounded-xl border border-border p-5">
+              <p className="text-sm text-text-gray mb-1">Популярных страниц</p>
+              <p className="text-3xl font-bold text-text-dark">{data.topPages.length}</p>
+              <p className="text-xs text-text-light mt-1">уникальных страниц</p>
+            </div>
+          </div>
+
+          <div className="bg-bg-white rounded-xl border border-border p-5">
+            <h3 className="font-bold text-text-dark mb-4">График посещений</h3>
+            <div className="flex items-end gap-1 h-48">
+              {data.data.map((d, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                  <span className="text-[10px] text-text-gray font-medium">{d.views || ""}</span>
+                  <div
+                    className="w-full bg-primary/80 hover:bg-primary rounded-t transition-colors min-h-[2px]"
+                    style={{ height: `${Math.max((d.views / maxViews) * 100, 2)}%` }}
+                    title={`${formatDate(d.date)}: ${d.views} просмотров`}
+                  />
+                  <span className="text-[9px] text-text-light truncate w-full text-center">{formatDate(d.date)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {data.topPages.length > 0 && (
+            <div className="bg-bg-white rounded-xl border border-border p-5">
+              <h3 className="font-bold text-text-dark mb-4">Популярные страницы</h3>
+              <div className="space-y-2">
+                {data.topPages.map((page, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-sm text-text-light w-6 text-right">{i + 1}.</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-text-dark truncate">{page.path}</span>
+                        <span className="text-sm text-text-gray flex-shrink-0">{page.views}</span>
+                      </div>
+                      <div className="mt-1 h-1.5 bg-bg-light rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary/60 rounded-full"
+                          style={{ width: `${(page.views / data.topPages[0].views) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-bg-white rounded-xl border border-border p-5">
+            <h3 className="font-bold text-text-dark mb-2">Яндекс.Метрика и Google Analytics</h3>
+            <p className="text-sm text-text-gray mb-3">
+              Для детальной аналитики используйте внешние сервисы:
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <a href="https://metrika.yandex.ru/dashboard?id=109025489" target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-bg-light border border-border rounded-lg text-sm text-text-dark hover:text-primary hover:border-primary transition-colors">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+                Яндекс.Метрика
+              </a>
+              <a href="https://analytics.google.com/analytics/web/#/report-home/a0p0" target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-bg-light border border-border rounded-lg text-sm text-text-dark hover:text-primary hover:border-primary transition-colors">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10 10-4.48 10-10z"/></svg>
+                Google Analytics
+              </a>
+            </div>
+          </div>
+        </>
+      ) : (
+        <p className="text-text-gray">Не удалось загрузить данные</p>
+      )}
     </div>
   );
 }
