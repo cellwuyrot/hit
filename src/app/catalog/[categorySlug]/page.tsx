@@ -17,9 +17,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { categorySlug } = await params;
   const category = await prisma.category.findUnique({ where: { slug: categorySlug } });
   if (!category) return {};
+  const title = category.metaTitle || `${category.name} — купить в ТОПХИТ`;
+  const description = category.metaDescription || `Купить ${category.name} в магазине ТОПХИТ. Широкий ассортимент, выгодные цены, доставка по Москве и МО.`;
   return {
-    title: category.metaTitle || `${category.name} — ТОПХИТ`,
-    description: category.metaDescription || `Купить ${category.name} в магазине ТОПХИТ. Широкий ассортимент, выгодные цены.`,
+    title,
+    description,
+    openGraph: { title, description, locale: "ru_RU", type: "website", url: `https://tophit.store/catalog/${categorySlug}` },
+    alternates: { canonical: `https://tophit.store/catalog/${categorySlug}` },
   };
 }
 
@@ -87,8 +91,28 @@ async function CategoryContent({
   const minPrice = Math.min(...prices, 0);
   const maxPrice = Math.max(...prices, 10000);
 
+  const collectionLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: category.name,
+    description: category.metaDescription || `Купить ${category.name} в магазине ТОПХИТ`,
+    url: `https://tophit.store/catalog/${category.slug}`,
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: totalCount,
+      itemListElement: products.map((p, i) => ({
+        "@type": "ListItem",
+        position: skip + i + 1,
+        url: `https://tophit.store/product/${p.slug}`,
+        name: p.name,
+        image: p.image || undefined,
+      })),
+    },
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }} />
       <Breadcrumbs items={[
         { label: "Каталог", href: "/catalog" },
         ...(category.parent ? [{ label: category.parent.name, href: `/catalog/${category.parent.slug}` }] : []),

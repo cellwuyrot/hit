@@ -35,8 +35,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       type: "website",
       locale: "ru_RU",
+      url: `https://tophit.store/product/${slug}`,
       images: product.image ? [{ url: product.image }] : [],
     },
+    alternates: { canonical: `https://tophit.store/product/${slug}` },
   };
 }
 
@@ -65,35 +67,70 @@ export default async function ProductPage({ params }: PageProps) {
     ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
     : 0;
 
+  const images = [product.image, product.image2, product.image3, product.image4].filter(Boolean);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     description: product.description || product.name,
-    image: product.image || undefined,
+    image: images.length > 0 ? images : undefined,
     brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
     sku: product.code || product.id,
     gtin13: product.barcode || undefined,
+    color: product.color || undefined,
+    weight: product.weight ? { "@type": "QuantitativeValue", value: product.weight, unitCode: "KGM" } : undefined,
+    category: product.category.name,
     offers: {
       "@type": "Offer",
       url: `https://tophit.store/product/${product.slug}`,
       priceCurrency: "RUB",
       price: product.price,
       availability: product.inStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      seller: { "@type": "Organization", name: "ТОПХИТ" },
     },
     ...(product.reviews.length > 0 ? {
       aggregateRating: {
         "@type": "AggregateRating",
         ratingValue: avgRating.toFixed(1),
         reviewCount: product.reviews.length,
+        bestRating: 5,
+        worstRating: 1,
       },
+      review: product.reviews.slice(0, 5).map((r) => ({
+        "@type": "Review",
+        author: { "@type": "Person", name: r.user.name || r.user.email.split("@")[0] },
+        datePublished: r.createdAt.toISOString().split("T")[0],
+        reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5, worstRating: 1 },
+        reviewBody: r.text || undefined,
+      })),
     } : {}),
+  };
+
+  const breadcrumbItems = [
+    { name: "Главная", url: "https://tophit.store/" },
+    { name: "Каталог", url: "https://tophit.store/catalog" },
+    ...(product.category.parent ? [{ name: product.category.parent.name, url: `https://tophit.store/catalog/${product.category.parent.slug}` }] : []),
+    { name: product.category.name, url: `https://tophit.store/catalog/${product.category.slug}` },
+    { name: product.name },
+  ];
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: breadcrumbItems.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      ...("url" in item ? { item: item.url } : {}),
+    })),
   };
 
   return (
     <>
       <Header />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <main className="flex-1 bg-bg-light">
         <div className="max-w-6xl mx-auto px-4 py-6">
           {/* Breadcrumbs */}

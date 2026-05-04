@@ -18,9 +18,43 @@ export default async function HomePage() {
     prisma.product.findMany({ take: 8, orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }], include: { category: true } }),
   ]);
 
+  const organizationLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "ТОПХИТ",
+    url: "https://tophit.store",
+    logo: "https://tophit.store/favicon-32x32.png",
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "+7-936-256-89-50",
+      contactType: "customer service",
+      areaServed: "RU",
+      availableLanguage: "Russian",
+    },
+    sameAs: [
+      "https://t.me/tophit_store",
+      "https://vk.com/tophit_market",
+      "https://www.ozon.ru/seller/tophit/",
+    ],
+  };
+
+  const websiteLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "ТОПХИТ",
+    url: "https://tophit.store",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://tophit.store/catalog?search={search_term_string}",
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <>
       <Header />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
       <main className="flex-1">
         <section className="max-w-7xl mx-auto px-4 py-6">
           <HeroSlider slides={slides} />
