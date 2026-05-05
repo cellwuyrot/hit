@@ -251,6 +251,9 @@ export default function AdminPage() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [filterCategory, setFilterCategory] = useState("");
   const [hideOutOfStock, setHideOutOfStock] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+  const [prodPage, setProdPage] = useState(1);
+  const PROD_PER_PAGE = 10;
   const [bulkCategoryId, setBulkCategoryId] = useState("");
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   const [adminSettings, setAdminSettings] = useState({ newUsername: "", currentPassword: "", newPassword: "" });
@@ -401,11 +404,16 @@ export default function AdminPage() {
   };
 
   const toggleAllProducts = () => {
-    const visible = filteredProducts;
-    if (selectedProducts.size === visible.length && visible.length > 0) {
-      setSelectedProducts(new Set());
+    const visible = paginatedProducts;
+    const allSelected = visible.every((p) => selectedProducts.has(p.id));
+    if (allSelected && visible.length > 0) {
+      const next = new Set(selectedProducts);
+      visible.forEach((p) => next.delete(p.id));
+      setSelectedProducts(next);
     } else {
-      setSelectedProducts(new Set(visible.map((p) => p.id)));
+      const next = new Set(selectedProducts);
+      visible.forEach((p) => next.add(p.id));
+      setSelectedProducts(next);
     }
   };
 
@@ -473,8 +481,11 @@ export default function AdminPage() {
   const filteredProducts = products.filter((p) => {
     if (filterCategory && p.categoryId !== filterCategory) return false;
     if (hideOutOfStock && p.inStock <= 0) return false;
+    if (productSearch && !p.name.toLowerCase().includes(productSearch.toLowerCase()) && !p.brand.toLowerCase().includes(productSearch.toLowerCase())) return false;
     return true;
   });
+  const prodTotalPages = Math.ceil(filteredProducts.length / PROD_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice((prodPage - 1) * PROD_PER_PAGE, prodPage * PROD_PER_PAGE);
 
   // Slider CRUD
   const saveSlide = async (e: React.FormEvent) => {
@@ -1030,7 +1041,7 @@ export default function AdminPage() {
             </div>
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                <h2 className="font-bold text-text-dark">Все товары ({filteredProducts.length}{filterCategory || hideOutOfStock ? ` из ${products.length}` : ""})</h2>
+                <h2 className="font-bold text-text-dark">Все товары ({filteredProducts.length}{filterCategory || hideOutOfStock || productSearch ? ` из ${products.length}` : ""})</h2>
                 <div className="flex items-center gap-2 flex-wrap">
                   {selectedProducts.size > 0 && (
                     <>
@@ -1052,13 +1063,20 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3 mb-3 flex-wrap">
-                <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setSelectedProducts(new Set()); }}
+                <div className="relative">
+                  <svg className="w-4 h-4 text-text-gray absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <input type="text" value={productSearch} onChange={(e) => { setProductSearch(e.target.value); setProdPage(1); setSelectedProducts(new Set()); }}
+                    placeholder="Поиск по названию или бренду..."
+                    className="border border-border rounded-lg pl-9 pr-8 py-1.5 text-sm w-64 focus:outline-none focus:border-primary" />
+                  {productSearch && <button onClick={() => { setProductSearch(""); setProdPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-gray hover:text-text-dark text-lg">&times;</button>}
+                </div>
+                <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setProdPage(1); setSelectedProducts(new Set()); }}
                   className="border border-border rounded-lg px-3 py-1.5 text-sm">
                   <option value="">Все категории</option>
                   {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                 </select>
                 <label className="flex items-center gap-1.5 text-sm text-text-gray cursor-pointer">
-                  <input type="checkbox" checked={hideOutOfStock} onChange={(e) => { setHideOutOfStock(e.target.checked); setSelectedProducts(new Set()); }} className="w-4 h-4 rounded" />
+                  <input type="checkbox" checked={hideOutOfStock} onChange={(e) => { setHideOutOfStock(e.target.checked); setProdPage(1); setSelectedProducts(new Set()); }} className="w-4 h-4 rounded" />
                   Скрыть отсутствующие (0 шт)
                 </label>
               </div>
@@ -1067,8 +1085,9 @@ export default function AdminPage() {
                   <table className="w-full text-sm">
                     <thead><tr className="border-b border-border">
                       <th className="py-2 px-2 w-8">
-                        <input type="checkbox" checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0} onChange={toggleAllProducts} className="w-4 h-4 rounded border-border cursor-pointer" />
+                        <input type="checkbox" checked={selectedProducts.size === paginatedProducts.length && paginatedProducts.length > 0} onChange={toggleAllProducts} className="w-4 h-4 rounded border-border cursor-pointer" />
                       </th>
+                      <th className="text-left py-2 px-2 text-text-gray font-medium w-12">Фото</th>
                       <th className="text-left py-2 px-2 text-text-gray font-medium">Название</th>
                       <th className="text-left py-2 px-2 text-text-gray font-medium">Категория</th>
                       <th className="text-right py-2 px-2 text-text-gray font-medium">Цена</th>
@@ -1076,10 +1095,17 @@ export default function AdminPage() {
                       <th className="text-right py-2 px-2 text-text-gray font-medium">Действия</th>
                     </tr></thead>
                     <tbody>
-                      {filteredProducts.map((prod) => (
+                      {paginatedProducts.map((prod) => (
                         <tr key={prod.id} className={`border-b border-border/50 hover:bg-bg-light ${selectedProducts.has(prod.id) ? "bg-blue-50" : ""}`}>
                           <td className="py-2 px-2">
                             <input type="checkbox" checked={selectedProducts.has(prod.id)} onChange={() => toggleProductSelection(prod.id)} className="w-4 h-4 rounded border-border cursor-pointer" />
+                          </td>
+                          <td className="py-2 px-2">
+                            {prod.image ? (
+                              <img src={prod.image} alt="" className="w-10 h-10 rounded object-cover border border-border" />
+                            ) : (
+                              <div className="w-10 h-10 rounded bg-bg-light border border-border flex items-center justify-center text-text-gray text-xs">—</div>
+                            )}
                           </td>
                           <td className="py-2 px-2 text-text-dark">{prod.isFeatured && <svg className="w-4 h-4 text-yellow-500 inline mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>}{prod.name}</td>
                           <td className="py-2 px-2 text-text-gray">{prod.category?.name}</td>
@@ -1096,6 +1122,18 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+              {prodTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-border">
+                  <button onClick={() => setProdPage(p => Math.max(1, p - 1))} disabled={prodPage === 1}
+                    className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-bg-light disabled:opacity-40 disabled:cursor-not-allowed">← Назад</button>
+                  {Array.from({ length: prodTotalPages }, (_, i) => i + 1).map(p => (
+                    <button key={p} onClick={() => setProdPage(p)}
+                      className={`w-8 h-8 text-sm rounded-lg ${p === prodPage ? "bg-primary text-white" : "border border-border hover:bg-bg-light text-text-gray"}`}>{p}</button>
+                  ))}
+                  <button onClick={() => setProdPage(p => Math.min(prodTotalPages, p + 1))} disabled={prodPage === prodTotalPages}
+                    className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-bg-light disabled:opacity-40 disabled:cursor-not-allowed">Вперёд →</button>
                 </div>
               )}
             </div>
