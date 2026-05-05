@@ -103,35 +103,36 @@ export default function CheckoutPage() {
     <>
       <Header />
       <main className="flex-1 bg-bg-light">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold text-text-dark mb-6">Оформление заказа</h1>
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+          <h1 className="text-xl sm:text-2xl font-bold text-text-dark mb-4 sm:mb-6">Оформление заказа</h1>
 
           {/* Steps indicator */}
-          <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center mb-6 sm:mb-8">
             {steps.map((s, i) => (
               <div key={s.id} className="flex items-center">
                 <button onClick={() => { if (s.id < step) setStep(s.id); }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
                     step === s.id ? "bg-primary text-white" : step > s.id ? "bg-success/10 text-success cursor-pointer" : "bg-bg-white text-text-gray border border-border"
                   }`}>
                   {step > s.id ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                   ) : (
-                    <span className="w-5 h-5 rounded-full bg-current/20 flex items-center justify-center text-xs">{s.id}</span>
+                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-current/20 flex items-center justify-center text-[10px] sm:text-xs">{s.id}</span>
                   )}
-                  {s.label}
+                  <span className="hidden sm:inline">{s.label}</span>
+                  <span className="sm:hidden">{s.id}</span>
                 </button>
-                {i < steps.length - 1 && <div className={`w-8 h-0.5 mx-1 ${step > s.id ? "bg-success" : "bg-border"}`} />}
+                {i < steps.length - 1 && <div className={`w-4 sm:w-8 h-0.5 mx-0.5 sm:mx-1 ${step > s.id ? "bg-success" : "bg-border"}`} />}
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <div className="md:col-span-2">
               {/* Step 1: Cart review */}
               {step === 1 && (
-                <div className="bg-bg-white rounded-xl border border-border p-6">
-                  <h2 className="text-lg font-bold text-text-dark mb-4">Проверьте состав заказа</h2>
+                <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6">
+                  <h2 className="text-base sm:text-lg font-bold text-text-dark mb-3 sm:mb-4">Проверьте состав заказа</h2>
                   {items.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-text-gray mb-4">Корзина пуста</p>
@@ -161,8 +162,8 @@ export default function CheckoutPage() {
 
               {/* Step 2: Delivery info */}
               {step === 2 && (
-                <div className="bg-bg-white rounded-xl border border-border p-6">
-                  <h2 className="text-lg font-bold text-text-dark mb-4">Данные для доставки</h2>
+                <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6">
+                  <h2 className="text-base sm:text-lg font-bold text-text-dark mb-3 sm:mb-4">Данные для доставки</h2>
                   {error && <p className="text-danger text-sm mb-4">{error}</p>}
                   <div className="space-y-3">
                     <div>
@@ -202,8 +203,8 @@ export default function CheckoutPage() {
 
               {/* Step 3: Confirmation */}
               {step === 3 && (
-                <div className="bg-bg-white rounded-xl border border-border p-6">
-                  <h2 className="text-lg font-bold text-text-dark mb-4">Подтверждение заказа</h2>
+                <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6">
+                  <h2 className="text-base sm:text-lg font-bold text-text-dark mb-3 sm:mb-4">Подтверждение заказа</h2>
                   {error && <p className="text-danger text-sm mb-4">{error}</p>}
                   <div className="space-y-4">
                     <div className="p-4 bg-bg-light rounded-lg">

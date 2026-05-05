@@ -104,8 +104,8 @@ export default function CartPage() {
     <>
       <Header />
       <main className="flex-1 bg-bg-light">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold text-text-dark mb-6">Корзина</h1>
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+          <h1 className="text-xl sm:text-2xl font-bold text-text-dark mb-4 sm:mb-6">Корзина</h1>
 
           {!token && (
             <div className="bg-bg-white rounded-xl border border-border p-8 text-center">
@@ -165,9 +165,9 @@ export default function CartPage() {
                 </Link>
               </div>
               {recommendations.length > 0 && (
-                <div className="mt-8">
-                  <h2 className="text-lg font-bold text-text-dark mb-4">Вам также может понравиться</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="mt-6 sm:mt-8">
+                  <h2 className="text-base sm:text-lg font-bold text-text-dark mb-3 sm:mb-4">Вам также может понравиться</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
                     {recommendations.map((rec) => (
                       <Link key={rec.id} href={`/product/${rec.slug}`} className="bg-bg-white rounded-xl border border-border p-3 hover:shadow-lg transition-shadow group">
                         <div className="relative aspect-square mb-2 bg-bg-light rounded-lg flex items-center justify-center overflow-hidden">

@@ -134,9 +134,9 @@ export default async function ProductPage({ params }: PageProps) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <main className="flex-1 bg-bg-light">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-sm text-text-gray mb-6 flex-wrap">
+          <nav className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-text-gray mb-4 sm:mb-6 flex-wrap">
             <Link href="/" className="hover:text-primary">Главная</Link>
             <span>/</span>
             <Link href="/catalog" className="hover:text-primary">Каталог</Link>
@@ -152,7 +152,7 @@ export default async function ProductPage({ params }: PageProps) {
             <span className="text-text-dark">{product.name}</span>
           </nav>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
             {/* Image Gallery */}
             <ProductGallery
               images={[product.image, product.image2, product.image3, product.image4].filter(Boolean)}
@@ -162,7 +162,7 @@ export default async function ProductPage({ params }: PageProps) {
 
             {/* Info */}
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-text-dark mb-4">{product.name}</h1>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-dark mb-3 sm:mb-4">{product.name}</h1>
 
               {/* Availability */}
               <div className="flex items-center gap-2 mb-4">
@@ -174,21 +174,21 @@ export default async function ProductPage({ params }: PageProps) {
               </div>
 
               {/* Price */}
-              <div className="mb-6">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-primary">{product.price.toLocaleString("ru-RU")} ₽</span>
+              <div className="mb-4 sm:mb-6">
+                <div className="flex items-baseline gap-2 sm:gap-3">
+                  <span className="text-2xl sm:text-3xl font-bold text-primary">{product.price.toLocaleString("ru-RU")} ₽</span>
                   {product.oldPrice && (
-                    <span className="text-lg text-text-light line-through">{product.oldPrice.toLocaleString("ru-RU")} ₽</span>
+                    <span className="text-sm sm:text-lg text-text-light line-through">{product.oldPrice.toLocaleString("ru-RU")} ₽</span>
                   )}
                 </div>
               </div>
 
               {/* Details */}
-              <div className="space-y-2 mb-6 text-sm">
-                {product.brand && <div className="flex gap-2"><span className="text-text-gray w-28">Бренд:</span><span className="text-text-dark font-medium">{product.brand}</span></div>}
-                {product.productType && <div className="flex gap-2"><span className="text-text-gray w-28">Тип:</span><span className="text-text-dark font-medium">{product.productType}</span></div>}
-                {product.color && <div className="flex gap-2"><span className="text-text-gray w-28">Цвет:</span><span className="text-text-dark font-medium">{product.color}</span></div>}
-                <div className="flex gap-2"><span className="text-text-gray w-28">Категория:</span><Link href={`/catalog/${product.category.slug}`} className="text-primary hover:underline">{product.category.name}</Link></div>
+              <div className="space-y-2 mb-4 sm:mb-6 text-xs sm:text-sm">
+                {product.brand && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Бренд:</span><span className="text-text-dark font-medium">{product.brand}</span></div>}
+                {product.productType && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Тип:</span><span className="text-text-dark font-medium">{product.productType}</span></div>}
+                {product.color && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Цвет:</span><span className="text-text-dark font-medium">{product.color}</span></div>}
+                <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Категория:</span><Link href={`/catalog/${product.category.slug}`} className="text-primary hover:underline">{product.category.name}</Link></div>
               </div>
 
               {/* Actions */}

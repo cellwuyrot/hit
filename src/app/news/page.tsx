@@ -38,9 +38,9 @@ export default async function NewsPage(props: { searchParams: Promise<{ type?: s
     <>
       <Header />
       <main className="flex-1 bg-bg-light">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
           <Breadcrumbs items={[{ label: "Новости" }]} />
-          <h1 className="text-2xl font-bold text-text-dark mb-6">Новости</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-text-dark mb-4 sm:mb-6">Новости</h1>
 
           <NewsFilter activeType={typeFilter || "all"} />
 

@@ -42,7 +42,7 @@ export default function Header() {
     <header className="bg-bg-white shadow-sm">
       {/* Top bar */}
       <div className="bg-primary text-white">
-        <div className="max-w-7xl mx-auto px-4 py-1.5 sm:py-2 flex items-center justify-between text-xs sm:text-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-[11px] sm:text-sm">
           <div className="flex items-center gap-2 sm:gap-4">
             <span>ПН-ПТ 09:00–18:00</span>
             <span className="hidden sm:inline">СБ-ВС: Выходной</span>
@@ -57,7 +57,7 @@ export default function Header() {
       </div>
 
       {/* Main header */}
-      <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-4">
         <div className="flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
@@ -142,26 +142,34 @@ export default function Header() {
 
         {/* Mobile search + menu */}
         {menuOpen && (
-          <div className="md:hidden mt-3 pb-2">
-            <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
+          <div className="md:hidden mt-3 pb-2 border-t border-border pt-3">
+            <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="relative">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск товаров..."
-                className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
+                className="w-full border border-border rounded-lg px-4 py-2.5 pr-10 focus:outline-none focus:border-primary"
               />
+              <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-primary">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
             </form>
-            <nav className="mt-3 flex flex-col gap-2">
-              <Link href="/catalog" className="text-text-dark hover:text-primary py-1 font-medium" onClick={() => setMenuOpen(false)}>Каталог</Link>
-              <Link href="/wholesale" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Оптовые продажи</Link>
-              <Link href="/news" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Новости</Link>
-              <Link href="/about#delivery" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Доставка</Link>
-              <Link href="/about" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>О компании</Link>
-              <Link href="/about#contacts" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Контакты</Link>
-              <Link href="/compare" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Сравнение</Link>
-              <Link href="/cart" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Корзина</Link>
-              <Link href="/account" className="text-text-dark hover:text-primary py-1" onClick={() => setMenuOpen(false)}>Вход / Кабинет</Link>
+            <nav className="mt-3 flex flex-col">
+              <Link href="/catalog" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg font-medium transition-colors" onClick={() => setMenuOpen(false)}>Каталог</Link>
+              <Link href="/wholesale" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Оптовые продажи</Link>
+              <Link href="/news" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Новости</Link>
+              <Link href="/about#delivery" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Доставка</Link>
+              <Link href="/about" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>О компании</Link>
+              <Link href="/about#contacts" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Контакты</Link>
+              <div className="border-t border-border my-2" />
+              <Link href="/compare" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Сравнение</Link>
+              <Link href="/cart" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Корзина</Link>
+              <Link href="/account" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Вход / Кабинет</Link>
+              <div className="border-t border-border my-2" />
+              <a href="tel:+79362568950" className="text-primary font-bold py-2.5 px-3">+7 (936) 256-89-50</a>
             </nav>
           </div>
         )}

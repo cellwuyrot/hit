@@ -26,9 +26,9 @@ export default async function WholesalePage() {
     <>
       <Header />
       <main className="flex-1 bg-bg-light">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
           <Breadcrumbs items={[{ label: "Оптовые продажи" }]} />
-          <h1 className="text-2xl md:text-3xl font-bold text-text-dark mb-6">{wholesalePage?.title || "Оптовые продажи"}</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-dark mb-4 sm:mb-6">{wholesalePage?.title || "Оптовые продажи"}</h1>
 
           {wholesalePage?.content ? (
             <div className="bg-bg-white rounded-xl border border-border p-6 md:p-8 mb-8">
