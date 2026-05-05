@@ -4,8 +4,8 @@ import Image from "next/image";
 export default function Footer() {
   return (
     <footer className="bg-text-dark text-white mt-auto">
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-8 sm:py-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {/* Company info */}
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -19,8 +19,8 @@ export default function Footer() {
 
           {/* Catalog */}
           <div>
-            <h3 className="font-bold mb-4">Каталог</h3>
-            <ul className="space-y-2 text-sm text-white/75">
+            <h3 className="font-bold mb-3 sm:mb-4 text-sm sm:text-base">Каталог</h3>
+            <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/75">
               <li><Link href="/catalog" className="hover:text-white transition-colors">Все категории</Link></li>
               <li><Link href="/catalog/produkty-pitaniya" className="hover:text-white transition-colors">Продукты питания</Link></li>
               <li><Link href="/catalog/bytovaya-himiya" className="hover:text-white transition-colors">Бытовая химия</Link></li>
@@ -31,8 +31,8 @@ export default function Footer() {
 
           {/* Info */}
           <div>
-            <h3 className="font-bold mb-4">Информация</h3>
-            <ul className="space-y-2 text-sm text-white/75">
+            <h3 className="font-bold mb-3 sm:mb-4 text-sm sm:text-base">Информация</h3>
+            <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/75">
               <li><Link href="/about" className="hover:text-white transition-colors">О компании</Link></li>
               <li><Link href="/wholesale" className="hover:text-white transition-colors">Оптовые продажи</Link></li>
               <li><Link href="/news" className="hover:text-white transition-colors">Новости</Link></li>
@@ -42,13 +42,13 @@ export default function Footer() {
           </div>
 
           {/* Contacts */}
-          <div>
-            <h3 className="font-bold mb-4">Контакты</h3>
-            <div className="space-y-2 text-sm text-white/75">
+          <div className="col-span-2 md:col-span-1">
+            <h3 className="font-bold mb-3 sm:mb-4 text-sm sm:text-base">Контакты</h3>
+            <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/75">
               <p><a href="tel:+79362568950" className="hover:text-white transition-colors">📞 +7 (936) 256-89-50</a></p>
-              <p><a href="mailto:zakaz@топхит.store" className="hover:text-white transition-colors">📧 zakaz@топхит.store</a></p>
-              <p><a href="mailto:opt@топхит.store" className="hover:text-white transition-colors">📧 opt@топхит.store (опт)</a></p>
-              <p><a href="mailto:info@топхит.store" className="hover:text-white transition-colors">📧 info@топхит.store (поставщики)</a></p>
+              <p><a href="mailto:zakaz@топхит.store" className="hover:text-white transition-colors break-all">📧 zakaz@топхит.store</a></p>
+              <p><a href="mailto:opt@топхит.store" className="hover:text-white transition-colors break-all">📧 opt@топхит.store (опт)</a></p>
+              <p><a href="mailto:info@топхит.store" className="hover:text-white transition-colors break-all">📧 info@топхит.store (поставщики)</a></p>
               <p>📍 127018, г. Москва, ул. Складочная д. 1 стр. 18</p>
               <p>🕒 ПН-ПТ с 09:00 до 18:00</p>
             </div>
@@ -57,8 +57,8 @@ export default function Footer() {
 
         {/* Social networks */}
         <div className="border-t border-white/10 mt-8 pt-6">
-          <h3 className="font-bold mb-4 text-center">Наши соцсети</h3>
-          <div className="flex items-center justify-center gap-4">
+          <h3 className="font-bold mb-3 sm:mb-4 text-center text-sm sm:text-base">Наши соцсети</h3>
+          <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
             <a href="https://t.me/tophit_store" target="_blank" rel="noopener noreferrer"
               className="w-10 h-10 bg-white/10 hover:bg-primary rounded-lg flex items-center justify-center transition-colors" title="Telegram">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

@@ -36,20 +36,20 @@ export default function Pagination({ currentPage, totalItems, baseParams }: Pagi
   }
 
   return (
-    <nav className="flex items-center justify-center gap-1 mt-8">
+    <nav className="flex items-center justify-center gap-0.5 sm:gap-1 mt-6 sm:mt-8 flex-wrap">
       {currentPage > 1 && (
-        <Link href={makeHref(currentPage - 1)} className="px-3 py-2 rounded-lg text-sm text-text-gray hover:bg-bg-light transition-colors">
-          &larr; Назад
+        <Link href={makeHref(currentPage - 1)} className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm text-text-gray hover:bg-bg-light transition-colors">
+          &larr; <span className="hidden sm:inline">Назад</span>
         </Link>
       )}
       {pages.map((p, i) =>
         p === "..." ? (
-          <span key={`dots-${i}`} className="px-2 py-2 text-text-light text-sm">...</span>
+          <span key={`dots-${i}`} className="px-1 sm:px-2 py-1.5 sm:py-2 text-text-light text-xs sm:text-sm">...</span>
         ) : (
           <Link
             key={p}
             href={makeHref(p)}
-            className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+            className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm transition-colors ${
               p === currentPage
                 ? "bg-primary text-white font-medium"
                 : "text-text-gray hover:bg-bg-light"
@@ -60,8 +60,8 @@ export default function Pagination({ currentPage, totalItems, baseParams }: Pagi
         )
       )}
       {currentPage < totalPages && (
-        <Link href={makeHref(currentPage + 1)} className="px-3 py-2 rounded-lg text-sm text-text-gray hover:bg-bg-light transition-colors">
-          Вперёд &rarr;
+        <Link href={makeHref(currentPage + 1)} className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm text-text-gray hover:bg-bg-light transition-colors">
+          <span className="hidden sm:inline">Вперёд</span> &rarr;
         </Link>
       )}
     </nav>

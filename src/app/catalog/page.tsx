@@ -88,7 +88,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
   const totalPages = Math.ceil(totalCount / PER_PAGE);
 
   return (
-    <div className="flex gap-6">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
       <div className="hidden lg:block w-72 flex-shrink-0">
         <CatalogFilters
           brands={allBrands}
@@ -131,31 +131,31 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
         </div>
       </div>
 
-      <div className="flex-1">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <p className="text-sm text-text-gray">
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-3">
+          <p className="text-xs sm:text-sm text-text-gray">
             {search ? <span>{"Поиск: \u00AB"}{search}{"\u00BB \u2014 "}</span> : null}
             {"Подобрано: "}
             <strong className="text-text-dark">{totalCount}{" товаров"}</strong>
             {totalPages > 1 ? <span className="text-text-light">{` (стр. ${page} из ${totalPages})`}</span> : null}
           </p>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-text-gray">Сортировка:</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+            <span className="text-text-gray hidden sm:inline">Сортировка:</span>
             <SortLinks current={sort} />
           </div>
         </div>
 
         {products.length === 0 ? (
-          <div className="bg-bg-white rounded-xl border border-border p-12 text-center">
-            <svg className="w-16 h-16 text-text-light mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-bg-white rounded-xl border border-border p-8 sm:p-12 text-center">
+            <svg className="w-12 h-12 sm:w-16 sm:h-16 text-text-light mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <p className="text-text-gray text-lg font-medium">Товары не найдены</p>
-            <p className="text-text-light text-sm mt-2 mb-4">Попробуйте изменить параметры фильтра или посмотреть все товары</p>
+            <p className="text-text-gray text-base sm:text-lg font-medium">Товары не найдены</p>
+            <p className="text-text-light text-xs sm:text-sm mt-2 mb-4">Попробуйте изменить параметры фильтра или посмотреть все товары</p>
             <Link href="/catalog" className="inline-block px-6 py-2.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-dark transition-colors">Все товары</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
             {products.map((product) => (
               <ProductCard
                 key={product.id}
@@ -186,12 +186,12 @@ function SortLinks({ current }: { current: string }) {
     { key: "price_desc", label: "По цене ↓" },
   ];
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className="flex gap-1.5 sm:gap-2 flex-wrap">
       {sorts.map((s) => (
         <Link
           key={s.key}
           href={`?sort=${s.key}`}
-          className={`px-3 py-1 rounded-md transition-colors ${
+          className={`px-2 sm:px-3 py-1 rounded-md transition-colors text-xs sm:text-sm ${
             current === s.key
               ? "bg-primary text-white"
               : "bg-bg-light text-text-gray hover:text-text-dark"
@@ -210,10 +210,10 @@ export default async function CatalogPage({ searchParams }: PageProps) {
     <>
       <Header />
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <Breadcrumbs items={[{ label: "Каталог" }]} />
 
-          <h1 className="text-2xl font-bold text-text-dark mb-6">Каталог товаров</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-text-dark mb-4 sm:mb-6">Каталог товаров</h1>
 
           <Suspense fallback={<div className="text-center py-12 text-text-gray">Загрузка...</div>}>
             <CatalogContent searchParams={resolvedParams} />

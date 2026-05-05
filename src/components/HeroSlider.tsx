@@ -49,7 +49,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
 
   return (
     <div className="relative rounded-xl overflow-hidden group">
-      <div className="relative h-48 md:h-80 lg:h-96">
+      <div className="relative h-40 sm:h-48 md:h-80 lg:h-96">
         {slides.map((slide, index) => (
           <div
             key={slide.id}
@@ -66,12 +66,12 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
               />
               {(slide.title || slide.subtitle) && (
                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent flex items-center">
-                  <div className="px-8 md:px-16">
+                  <div className="px-4 sm:px-8 md:px-16">
                     {slide.title && (
-                      <h2 className="text-white text-2xl md:text-4xl font-bold mb-2">{slide.title}</h2>
+                      <h2 className="text-white text-lg sm:text-2xl md:text-4xl font-bold mb-1 sm:mb-2">{slide.title}</h2>
                     )}
                     {slide.subtitle && (
-                      <p className="text-white/80 text-lg md:text-xl">{slide.subtitle}</p>
+                      <p className="text-white/80 text-sm sm:text-lg md:text-xl">{slide.subtitle}</p>
                     )}
                   </div>
                 </div>
@@ -85,7 +85,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
         <>
           <button
             onClick={prev}
-            className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1.5 sm:p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <svg className="w-5 h-5 text-text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -93,18 +93,18 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
           </button>
           <button
             onClick={next}
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1.5 sm:p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <svg className="w-5 h-5 text-text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrent(index)}
-                className={`w-3 h-3 rounded-full transition-colors ${
+                className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-colors ${
                   index === current ? "bg-white" : "bg-white/50"
                 }`}
               />
