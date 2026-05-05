@@ -27,6 +27,10 @@ interface Order {
   total: number;
   createdAt: string;
   items: OrderItem[];
+  trackNumber?: string;
+  trackUrl?: string;
+  promoCode?: string;
+  discount?: number;
 }
 
 const statusLabels: Record<string, string> = {
@@ -49,6 +53,11 @@ export default function AccountPage() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [resetMode, setResetMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resetStep, setResetStep] = useState<"email" | "code">("email");
   const [openChat, setOpenChat] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<{ id: string; senderRole: string; text: string; createdAt: string }[]>([]);
   const [chatText, setChatText] = useState("");
@@ -152,6 +161,45 @@ export default function AccountPage() {
     }
   };
 
+  const handleResetRequest = async () => {
+    setError(""); setSuccess("");
+    if (!resetEmail) { setError("Укажите email"); return; }
+    const res = await fetch("/api/user/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "request", email: resetEmail }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setResetStep("code");
+      if (data.resetToken) setResetToken(data.resetToken);
+      setSuccess("Код восстановления сгенерирован");
+    } else {
+      setError(data.error || "Ошибка");
+    }
+  };
+
+  const handleResetPassword = async () => {
+    setError(""); setSuccess("");
+    if (!resetToken || !resetNewPassword) { setError("Заполните все поля"); return; }
+    const res = await fetch("/api/user/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reset", token: resetToken, newPassword: resetNewPassword }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setSuccess("Пароль успешно изменён! Войдите с новым паролем.");
+      setResetMode(false);
+      setResetStep("email");
+      setResetEmail("");
+      setResetToken("");
+      setResetNewPassword("");
+    } else {
+      setError(data.error || "Ошибка");
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("userToken");
     setToken(null);
@@ -165,25 +213,68 @@ export default function AccountPage() {
         <Header />
         <main className="flex-1 bg-bg-light">
           <div className="max-w-md mx-auto px-4 py-10">
-            <h1 className="text-2xl font-bold text-text-dark mb-6 text-center">Вход в систему</h1>
+            <h1 className="font-heading text-2xl font-bold text-text-dark mb-6 text-center">
+              {resetMode ? "Восстановление пароля" : "Вход в систему"}
+            </h1>
             <div className="bg-bg-white rounded-xl border border-border p-6">
-              <div className="flex mb-6">
-                <button onClick={() => setTab("login")} className={`flex-1 py-2 text-center font-medium border-b-2 ${tab === "login" ? "border-primary text-primary" : "border-transparent text-text-gray"}`}>Вход</button>
-                <button onClick={() => setTab("register")} className={`flex-1 py-2 text-center font-medium border-b-2 ${tab === "register" ? "border-primary text-primary" : "border-transparent text-text-gray"}`}>Регистрация</button>
-              </div>
-              {error && <p className="text-danger text-sm mb-4">{error}</p>}
-              <input type="text" placeholder={tab === "login" ? "Email или Логин" : "Email"} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary" />
-              <input type="password" placeholder="Пароль" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary" />
-              <button onClick={handleAuth} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
-                {tab === "login" ? "Войти" : "Зарегистрироваться"}
-              </button>
-              {tab === "login" && (
-                <p className="text-xs text-text-gray text-center mt-3">Используйте email для клиентов или логин для администраторов</p>
-              )}
-              {tab === "register" && (
-                <p className="text-xs text-text-gray text-center mt-3">После регистрации вы сможете заполнить данные профиля в личном кабинете</p>
+              {resetMode ? (
+                <>
+                  {error && <p className="text-danger text-sm mb-4">{error}</p>}
+                  {success && <p className="text-success text-sm mb-4">{success}</p>}
+                  {resetStep === "email" ? (
+                    <>
+                      <p className="text-sm text-text-gray mb-4">Введите email, указанный при регистрации</p>
+                      <input type="email" placeholder="Email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)}
+                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                      <button onClick={handleResetRequest} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
+                        Получить код
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-text-gray mb-4">Введите код восстановления и новый пароль</p>
+                      <input type="text" placeholder="Код восстановления" value={resetToken} onChange={(e) => setResetToken(e.target.value)}
+                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                      <input type="password" placeholder="Новый пароль (мин. 6 символов)" value={resetNewPassword} onChange={(e) => setResetNewPassword(e.target.value)}
+                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                      <button onClick={handleResetPassword} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
+                        Сменить пароль
+                      </button>
+                    </>
+                  )}
+                  <button onClick={() => { setResetMode(false); setError(""); setSuccess(""); setResetStep("email"); }}
+                    className="w-full text-sm text-primary hover:underline mt-3 text-center">
+                    Вернуться ко входу
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex mb-6">
+                    <button onClick={() => setTab("login")} className={`flex-1 py-2 text-center font-medium border-b-2 ${tab === "login" ? "border-primary text-primary" : "border-transparent text-text-gray"}`}>Вход</button>
+                    <button onClick={() => setTab("register")} className={`flex-1 py-2 text-center font-medium border-b-2 ${tab === "register" ? "border-primary text-primary" : "border-transparent text-text-gray"}`}>Регистрация</button>
+                  </div>
+                  {error && <p className="text-danger text-sm mb-4">{error}</p>}
+                  {success && <p className="text-success text-sm mb-4">{success}</p>}
+                  <input type="text" placeholder={tab === "login" ? "Email или Логин" : "Email"} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                  <input type="password" placeholder="Пароль" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                  <button onClick={handleAuth} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
+                    {tab === "login" ? "Войти" : "Зарегистрироваться"}
+                  </button>
+                  {tab === "login" && (
+                    <>
+                      <button onClick={() => { setResetMode(true); setError(""); setSuccess(""); }}
+                        className="w-full text-sm text-primary hover:underline mt-3 text-center">
+                        Забыли пароль?
+                      </button>
+                      <p className="text-xs text-text-gray text-center mt-2">Используйте email для клиентов или логин для администраторов</p>
+                    </>
+                  )}
+                  {tab === "register" && (
+                    <p className="text-xs text-text-gray text-center mt-3">После регистрации вы сможете заполнить данные профиля в личном кабинете</p>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -287,6 +378,32 @@ export default function AccountPage() {
                       </div>
                     ))}
                   </div>
+                  {/* Tracking info */}
+                  {order.trackNumber && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <span className="text-text-gray">Трек-номер:</span>
+                        {order.trackUrl ? (
+                          <a href={order.trackUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
+                            {order.trackNumber}
+                          </a>
+                        ) : (
+                          <span className="text-text-dark font-medium">{order.trackNumber}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Promo/discount info */}
+                  {order.promoCode && order.discount && order.discount > 0 && (
+                    <div className="mt-2 text-xs text-success">
+                      Промокод «{order.promoCode}» — скидка {order.discount.toLocaleString("ru-RU")} ₽
+                    </div>
+                  )}
+
                   <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="font-medium">Итого: <span className="text-primary">{order.total.toLocaleString("ru-RU")} ₽</span></span>

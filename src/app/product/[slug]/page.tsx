@@ -9,6 +9,11 @@ import CompareButton from "@/components/CompareButton";
 import ProductGallery from "@/components/ProductGallery";
 import CategoryTracker from "@/components/CategoryTracker";
 import ProductReviews from "@/components/ProductReviews";
+import QuickOrderButton from "@/components/QuickOrderButton";
+import StockAlertButton from "@/components/StockAlertButton";
+import ScrollReveal from "@/components/ScrollReveal";
+import ProductViewTracker from "@/components/ProductViewTracker";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -133,6 +138,7 @@ export default async function ProductPage({ params }: PageProps) {
       <CategoryTracker categoryId={product.categoryId} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <ProductViewTracker id={product.id} name={product.name} slug={product.slug} price={product.price} image={product.image} />
       <main className="flex-1 bg-bg-light">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           {/* Breadcrumbs */}
@@ -169,7 +175,10 @@ export default async function ProductPage({ params }: PageProps) {
                 {product.inStock > 0 ? (
                   <span className="text-success text-sm font-medium">В наличии ({product.inStock} шт.)</span>
                 ) : (
-                  <span className="text-danger text-sm font-medium">Нет в наличии</span>
+                  <div className="space-y-2">
+                    <span className="text-danger text-sm font-medium block">Нет в наличии</span>
+                    <StockAlertButton productId={product.id} />
+                  </div>
                 )}
               </div>
 
@@ -192,10 +201,17 @@ export default async function ProductPage({ params }: PageProps) {
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="flex flex-col sm:flex-row gap-3 mb-3">
                 <AddToCartButton productId={product.id} inStock={product.inStock} />
                 <CompareButton productId={product.id} productName={product.name} />
               </div>
+
+              {/* Quick order */}
+              {product.inStock > 0 && (
+                <div className="mb-4">
+                  <QuickOrderButton productId={product.id} productName={product.name} />
+                </div>
+              )}
 
               {/* Wholesale */}
               <Link href={`/wholesale?product=${encodeURIComponent(product.name)}`}
@@ -252,6 +268,8 @@ export default async function ProductPage({ params }: PageProps) {
             </div>
           )}
         </div>
+
+        <RecentlyViewed />
       </main>
       <Footer />
     </>
