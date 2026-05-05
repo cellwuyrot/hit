@@ -1124,18 +1124,30 @@ export default function AdminPage() {
                   </table>
                 </div>
               )}
-              {prodTotalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-border">
-                  <button onClick={() => setProdPage(p => Math.max(1, p - 1))} disabled={prodPage === 1}
-                    className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-bg-light disabled:opacity-40 disabled:cursor-not-allowed">← Назад</button>
-                  {Array.from({ length: prodTotalPages }, (_, i) => i + 1).map(p => (
-                    <button key={p} onClick={() => setProdPage(p)}
-                      className={`w-8 h-8 text-sm rounded-lg ${p === prodPage ? "bg-primary text-white" : "border border-border hover:bg-bg-light text-text-gray"}`}>{p}</button>
-                  ))}
-                  <button onClick={() => setProdPage(p => Math.min(prodTotalPages, p + 1))} disabled={prodPage === prodTotalPages}
-                    className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-bg-light disabled:opacity-40 disabled:cursor-not-allowed">Вперёд →</button>
-                </div>
-              )}
+              {prodTotalPages > 1 && (() => {
+                const pages: (number | "...")[] = [];
+                for (let i = 1; i <= prodTotalPages; i++) {
+                  if (i === 1 || i === prodTotalPages || (i >= prodPage - 1 && i <= prodPage + 1)) {
+                    pages.push(i);
+                  } else if (pages[pages.length - 1] !== "...") {
+                    pages.push("...");
+                  }
+                }
+                return (
+                  <div className="flex items-center justify-center gap-1 mt-4 pt-3 border-t border-border">
+                    <button onClick={() => setProdPage(p => Math.max(1, p - 1))} disabled={prodPage === 1}
+                      className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-bg-light disabled:opacity-40 disabled:cursor-not-allowed">← Назад</button>
+                    {pages.map((p, idx) => p === "..." ? (
+                      <span key={`dots-${idx}`} className="px-2 py-1.5 text-text-gray text-sm">...</span>
+                    ) : (
+                      <button key={p} onClick={() => setProdPage(p as number)}
+                        className={`w-8 h-8 text-sm rounded-lg ${p === prodPage ? "bg-primary text-white" : "border border-border hover:bg-bg-light text-text-gray"}`}>{p}</button>
+                    ))}
+                    <button onClick={() => setProdPage(p => Math.min(prodTotalPages, p + 1))} disabled={prodPage === prodTotalPages}
+                      className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-bg-light disabled:opacity-40 disabled:cursor-not-allowed">Вперёд →</button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

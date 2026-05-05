@@ -3,13 +3,17 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, startTransition } from "react";
+import { showToast } from "@/components/Toast";
 
 interface CartProduct {
   id: string;
   name: string;
   price: number;
   image: string;
+  categoryId?: string;
+  brand?: string;
 }
 
 interface CartItem {
@@ -19,10 +23,22 @@ interface CartItem {
   product: CartProduct;
 }
 
+interface RecommendedProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  oldPrice?: number | null;
+  image: string;
+  inStock: number;
+  category: { slug: string; name: string };
+}
+
 export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("userToken");
@@ -36,6 +52,22 @@ export default function CartPage() {
       .then((data) => startTransition(() => { setItems(data); setLoading(false); }))
       .catch(() => startTransition(() => setLoading(false)));
   }, [token]);
+
+  useEffect(() => {
+    if (items.length === 0) { setRecommendations([]); return; }
+    const categoryIds = [...new Set(items.map((i) => i.product.categoryId).filter(Boolean))];
+    const excludeIds = items.map((i) => i.productId);
+    const params = new URLSearchParams();
+    params.set("recommend", "cart");
+    if (categoryIds.length > 0) params.set("categories", categoryIds.join(","));
+    params.set("exclude", excludeIds.join(","));
+    params.set("limit", "4");
+
+    fetch(`/api/products/recommend?${params}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => startTransition(() => setRecommendations(Array.isArray(data) ? data : data ? [data] : [])))
+      .catch(() => {});
+  }, [items]);
 
   const updateQty = async (productId: string, quantity: number) => {
     if (!token) return;
@@ -132,6 +164,32 @@ export default function CartPage() {
                   Оформить заказ
                 </Link>
               </div>
+              {recommendations.length > 0 && (
+                <div className="mt-8">
+                  <h2 className="text-lg font-bold text-text-dark mb-4">Вам также может понравиться</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {recommendations.map((rec) => (
+                      <Link key={rec.id} href={`/product/${rec.slug}`} className="bg-bg-white rounded-xl border border-border p-3 hover:shadow-lg transition-shadow group">
+                        <div className="relative aspect-square mb-2 bg-bg-light rounded-lg flex items-center justify-center overflow-hidden">
+                          {rec.image ? (
+                            <Image src={rec.image} alt={rec.name} fill className="object-contain p-2 group-hover:scale-105 transition-transform" />
+                          ) : (
+                            <div className="text-text-light text-2xl">📦</div>
+                          )}
+                          {rec.oldPrice && (
+                            <span className="absolute top-1 left-1 bg-danger text-white text-xs font-bold px-1.5 py-0.5 rounded">
+                              -{Math.round(((rec.oldPrice - rec.price) / rec.oldPrice) * 100)}%
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-xs font-medium text-text-dark line-clamp-2 mb-1 group-hover:text-primary transition-colors">{rec.name}</h3>
+                        <p className="text-sm font-bold text-text-dark">{rec.price.toLocaleString("ru-RU")} ₽</p>
+                        <p className="text-xs text-text-gray">{rec.category.name}</p>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

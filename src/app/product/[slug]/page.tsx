@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import AddToCartButton from "@/components/AddToCartButton";
 import CompareButton from "@/components/CompareButton";
 import ProductGallery from "@/components/ProductGallery";
+import CategoryTracker from "@/components/CategoryTracker";
 import ProductReviews from "@/components/ProductReviews";
 import type { Metadata } from "next";
 
@@ -129,6 +130,7 @@ export default async function ProductPage({ params }: PageProps) {
   return (
     <>
       <Header />
+      <CategoryTracker categoryId={product.categoryId} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <main className="flex-1 bg-bg-light">
