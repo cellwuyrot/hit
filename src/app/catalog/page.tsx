@@ -2,12 +2,14 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import CatalogFilters from "@/components/CatalogFilters";
+import MobileFilterDrawer from "@/components/MobileFilterDrawer";
 import Pagination, { PER_PAGE } from "@/components/Pagination";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { SkeletonProductGrid } from "@/components/Skeleton";
 
 
 export const dynamic = "force-dynamic";
@@ -133,6 +135,15 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
 
       <div className="flex-1 min-w-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-3">
+          <MobileFilterDrawer
+            brands={allBrands}
+            productTypes={allTypes}
+            colors={allColors}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+          />
+        </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-3">
           <p className="text-xs sm:text-sm text-text-gray">
             {search ? <span>{"Поиск: \u00AB"}{search}{"\u00BB \u2014 "}</span> : null}
             {"Подобрано: "}
@@ -215,7 +226,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
 
           <h1 className="text-xl sm:text-2xl font-bold text-text-dark mb-4 sm:mb-6">Каталог товаров</h1>
 
-          <Suspense fallback={<div className="text-center py-12 text-text-gray">Загрузка...</div>}>
+          <Suspense fallback={<SkeletonProductGrid count={8} />}>
             <CatalogContent searchParams={resolvedParams} />
           </Suspense>
         </div>

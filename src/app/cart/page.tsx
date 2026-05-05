@@ -39,6 +39,9 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoDiscount, setPromoDiscount] = useState<{ code: string; discountType: string; discountValue: number } | null>(null);
+  const [promoError, setPromoError] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem("userToken");
@@ -98,7 +101,35 @@ export default function CartPage() {
     setItems((prev) => prev.filter((i) => i.productId !== productId));
   };
 
-  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const discountAmount = promoDiscount
+    ? promoDiscount.discountType === "percent"
+      ? Math.round(subtotal * promoDiscount.discountValue / 100)
+      : promoDiscount.discountValue
+    : 0;
+  const total = Math.max(0, subtotal - discountAmount);
+
+  const applyPromo = async () => {
+    setPromoError("");
+    if (!promoCode.trim()) return;
+    try {
+      const res = await fetch("/api/promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setPromoDiscount({ code: data.code, discountType: data.discountType, discountValue: data.discountValue });
+        showToast("Промокод применён!");
+      } else {
+        setPromoError(data.error || "Недействительный промокод");
+        setPromoDiscount(null);
+      }
+    } catch {
+      setPromoError("Ошибка проверки промокода");
+    }
+  };
 
   return (
     <>
@@ -155,12 +186,48 @@ export default function CartPage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-6 bg-bg-white rounded-xl border border-border p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-center sm:text-left">
-                  <p className="text-text-gray text-sm">Товаров: {items.reduce((s, i) => s + i.quantity, 0)}</p>
-                  <p className="text-xl font-bold text-text-dark">Итого: {total.toLocaleString("ru-RU")} ₽</p>
+              {/* Promo code */}
+              <div className="mt-4 bg-bg-white rounded-xl border border-border p-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value)}
+                    placeholder="Промокод"
+                    className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                  <button onClick={applyPromo} className="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 transition-colors">
+                    Применить
+                  </button>
                 </div>
-                <Link href="/checkout" className="w-full sm:w-auto bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium text-lg text-center">
+                {promoError && <p className="text-danger text-xs mt-2">{promoError}</p>}
+                {promoDiscount && (
+                  <div className="flex items-center justify-between mt-2 text-sm">
+                    <span className="text-success">Промокод «{promoDiscount.code}» применён</span>
+                    <button onClick={() => { setPromoDiscount(null); setPromoCode(""); }} className="text-text-gray hover:text-danger text-xs">Убрать</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Summary */}
+              <div className="mt-4 bg-bg-white rounded-xl border border-border p-4 sm:p-6">
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-sm text-text-gray">
+                    <span>Товаров: {items.reduce((s, i) => s + i.quantity, 0)}</span>
+                    <span>{subtotal.toLocaleString("ru-RU")} ₽</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-success">
+                      <span>Скидка по промокоду</span>
+                      <span>-{discountAmount.toLocaleString("ru-RU")} ₽</span>
+                    </div>
+                  )}
+                  <div className="border-t border-border pt-2 flex justify-between">
+                    <span className="text-lg font-bold text-text-dark">Итого</span>
+                    <span className="text-lg font-bold text-text-dark">{total.toLocaleString("ru-RU")} ₽</span>
+                  </div>
+                </div>
+                <Link href="/checkout" className="block w-full bg-accent hover:bg-accent-dark text-white px-8 py-3 rounded-lg transition-colors font-medium text-lg text-center">
                   Оформить заказ
                 </Link>
               </div>

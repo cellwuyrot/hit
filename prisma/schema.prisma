@@ -70,17 +70,21 @@ model SliderImage {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String   @default("")
-  lastName  String   @default("")
-  phone     String   @default("")
-  address   String   @default("")
-  cart      CartItem[]
-  orders    Order[]
-  reviews   Review[]
-  createdAt DateTime @default(now())
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  name         String        @default("")
+  lastName     String        @default("")
+  phone        String        @default("")
+  address      String        @default("")
+  resetToken   String?
+  resetExpires DateTime?
+  cart         CartItem[]
+  orders       Order[]
+  reviews      Review[]
+  wishlist     WishlistItem[]
+  stockAlerts  StockAlert[]
+  createdAt    DateTime      @default(now())
 }
 
 model CartItem {
@@ -95,19 +99,23 @@ model CartItem {
 }
 
 model Order {
-  id        String      @id @default(uuid())
-  userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status    String      @default("new")
-  total     Float
-  name      String      @default("")
-  phone     String      @default("")
-  address   String      @default("")
-  comment   String      @default("")
-  items     OrderItem[]
-  messages  Message[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id           String      @id @default(uuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       String      @default("new")
+  total        Float
+  name         String      @default("")
+  phone        String      @default("")
+  address      String      @default("")
+  comment      String      @default("")
+  trackNumber  String      @default("")
+  trackUrl     String      @default("")
+  promoCode    String      @default("")
+  discount     Float       @default(0)
+  items        OrderItem[]
+  messages     Message[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model OrderItem {
@@ -173,4 +181,51 @@ model PageView {
 
   @@index([date])
   @@index([path])
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model PromoCode {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  discountType  String   @default("percent")
+  discountValue Float    @default(0)
+  minOrder      Float    @default(0)
+  maxUses       Int      @default(0)
+  usedCount     Int      @default(0)
+  active        Boolean  @default(true)
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model StockAlert {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
+model QuickOrder {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  productId String
+  productName String @default("")
+  quantity  Int      @default(1)
+  status    String   @default("new")
+  createdAt DateTime @default(now())
 }
