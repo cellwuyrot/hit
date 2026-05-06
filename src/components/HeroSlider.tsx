@@ -49,7 +49,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
 
   return (
     <div className="relative rounded-xl overflow-hidden group">
-      <div className="relative h-40 sm:h-48 md:h-80 lg:h-96">
+      <div className="relative aspect-[2.5/1] sm:aspect-[3/1] md:h-80 lg:h-96">
         {slides.map((slide, index) => (
           <div
             key={slide.id}
