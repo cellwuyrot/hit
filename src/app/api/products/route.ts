@@ -74,11 +74,15 @@ export async function GET(request: NextRequest) {
       orderBy = { createdAt: "desc" };
   }
 
-  const products = await prisma.product.findMany({
+  const rawProducts = await prisma.product.findMany({
     where,
     orderBy,
     include: { category: true },
   });
+
+  const products = sort === "name"
+    ? [...rawProducts].sort((a, b) => a.name.localeCompare(b.name, "ru"))
+    : rawProducts;
 
   return Response.json(products);
 }

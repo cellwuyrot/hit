@@ -51,6 +51,7 @@ export default function AccountPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [editForm, setEditForm] = useState({ name: "", lastName: "", phone: "", address: "", email: "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
+  const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [resetMode, setResetMode] = useState(false);
@@ -142,9 +143,12 @@ export default function AccountPage() {
   };
 
   const handleChangePassword = async () => {
-    setSuccess(""); setError("");
+    setPasswordMsg(null);
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      setError("Заполните оба поля пароля"); return;
+      setPasswordMsg({ type: "error", text: "Заполните оба поля пароля" }); return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordMsg({ type: "error", text: "Новый пароль должен быть минимум 6 символов" }); return;
     }
     const res = await fetch("/api/user/profile", {
       method: "PUT",
@@ -154,10 +158,10 @@ export default function AccountPage() {
     const data = await res.json();
     if (res.ok) {
       setPasswordForm({ currentPassword: "", newPassword: "" });
-      setSuccess("Пароль изменён");
-      setTimeout(() => setSuccess(""), 3000);
+      setPasswordMsg({ type: "success", text: "Пароль успешно изменён!" });
+      setTimeout(() => setPasswordMsg(null), 5000);
     } else {
-      setError(data.error || "Ошибка");
+      setPasswordMsg({ type: "error", text: data.error || "Ошибка смены пароля" });
     }
   };
 
@@ -337,6 +341,11 @@ export default function AccountPage() {
 
               <div className="bg-bg-white rounded-xl border border-border p-5 sm:p-6">
                 <h2 className="text-lg font-bold text-text-dark mb-4">Сменить пароль</h2>
+                {passwordMsg && (
+                  <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${passwordMsg.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+                    {passwordMsg.text}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-sm text-text-gray mb-1 block">Текущий пароль</label>

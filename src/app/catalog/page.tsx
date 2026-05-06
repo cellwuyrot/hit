@@ -66,7 +66,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
   const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
   const skip = (page - 1) * PER_PAGE;
 
-  const [totalCount, products, allProducts, categories] = await Promise.all([
+  const [totalCount, rawProducts, allProducts, categories] = await Promise.all([
     prisma.product.count({ where }),
     prisma.product.findMany({ where, orderBy, include: { category: true }, take: PER_PAGE, skip }),
     prisma.product.findMany({ select: { brand: true, productType: true, color: true, price: true } }),
@@ -80,9 +80,13 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
     }),
   ]);
 
-  const allBrands = [...new Set(allProducts.map((p) => p.brand).filter(Boolean))].sort();
-  const allTypes = [...new Set(allProducts.map((p) => p.productType).filter(Boolean))].sort();
-  const allColors = [...new Set(allProducts.map((p) => p.color).filter(Boolean))].sort();
+  const products = sort === "name"
+    ? [...rawProducts].sort((a, b) => a.name.localeCompare(b.name, "ru"))
+    : rawProducts;
+
+  const allBrands = [...new Set(allProducts.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
+  const allTypes = [...new Set(allProducts.map((p) => p.productType).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
+  const allColors = [...new Set(allProducts.map((p) => p.color).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
   const prices = allProducts.map((p) => p.price);
   const minPrice = Math.min(...prices, 0);
   const maxPrice = Math.max(...prices, 10000);
