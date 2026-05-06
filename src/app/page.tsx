@@ -6,7 +6,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function HomePage() {
   const now = new Date();
