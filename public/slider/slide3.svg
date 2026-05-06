@@ -1,5 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400">
-  <rect width="1200" height="400" fill="#3D7FC2"/>
-  <text x="600" y="180" font-family="Arial" font-size="48" fill="white" text-anchor="middle" font-weight="bold">Бесплатная доставка</text>
-  <text x="600" y="240" font-family="Arial" font-size="28" fill="rgba(255,255,255,0.8)" text-anchor="middle">При заказе от 5 000 руб.</text>
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3D7FC2"/>
+      <stop offset="100%" stop-color="#5BA3E6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#bg3)"/>
+  <circle cx="600" cy="200" r="300" fill="rgba(255,255,255,0.04)"/>
+  <circle cx="100" cy="50" r="120" fill="rgba(255,255,255,0.03)"/>
 </svg>

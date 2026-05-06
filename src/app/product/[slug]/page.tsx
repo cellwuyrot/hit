@@ -16,7 +16,7 @@ import ProductViewTracker from "@/components/ProductViewTracker";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface PageProps {
   params: Promise<{ slug: string }>;

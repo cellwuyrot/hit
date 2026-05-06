@@ -12,7 +12,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import { SkeletonProductGrid } from "@/components/Skeleton";
 
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Каталог товаров — ТОПХИТ",
