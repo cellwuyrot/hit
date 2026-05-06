@@ -56,6 +56,24 @@ export async function PUT(request: Request) {
   return Response.json(slide);
 }
 
+export async function PATCH(request: Request) {
+  if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
+
+  const { orderedIds } = await request.json();
+  if (!Array.isArray(orderedIds)) {
+    return Response.json({ error: "orderedIds обязателен" }, { status: 400 });
+  }
+
+  await Promise.all(
+    orderedIds.map((id: string, index: number) =>
+      prisma.sliderImage.update({ where: { id }, data: { order: index } })
+    )
+  );
+
+  const slides = await prisma.sliderImage.findMany({ orderBy: { order: "asc" } });
+  return Response.json(slides);
+}
+
 export async function DELETE(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 

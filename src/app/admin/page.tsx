@@ -498,7 +498,10 @@ export default function AdminPage() {
   const saveSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingSlide ? "PUT" : "POST";
-    const body = editingSlide ? { id: editingSlide.id, ...slideForm, order: Number(slideForm.order) } : { ...slideForm, order: Number(slideForm.order) };
+    const newOrder = editingSlide ? editingSlide.order : (slides.length > 0 ? Math.max(...slides.map((s) => s.order)) + 1 : 0);
+    const body = editingSlide
+      ? { id: editingSlide.id, ...slideForm, order: editingSlide.order }
+      : { ...slideForm, order: newOrder };
     await fetch("/api/admin/slider", { method, headers: hdrs(), body: JSON.stringify(body) });
     setSlideForm({ title: "", subtitle: "", imageUrl: "", link: "", order: "0", active: true });
     setEditingSlide(null); fetchData();
@@ -508,6 +511,16 @@ export default function AdminPage() {
     if (!confirm("Удалить слайд?")) return;
     await fetch("/api/admin/slider", { method: "DELETE", headers: hdrs(), body: JSON.stringify({ id }) });
     fetchData();
+  };
+
+  const moveSlide = async (index: number, direction: "up" | "down") => {
+    const sorted = [...slides].sort((a, b) => a.order - b.order);
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sorted.length) return;
+    const ids = sorted.map((s) => s.id);
+    [ids[index], ids[targetIndex]] = [ids[targetIndex], ids[index]];
+    const res = await fetch("/api/admin/slider", { method: "PATCH", headers: hdrs(), body: JSON.stringify({ orderedIds: ids }) });
+    if (res.ok) setSlides(await res.json());
   };
 
   // Target fields for column mapping
@@ -1211,7 +1224,6 @@ export default function AdminPage() {
                   )}
                 </div>
                 <input type="text" placeholder="Ссылка" value={slideForm.link} onChange={(e) => setSlideForm({ ...slideForm, link: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                <input type="number" placeholder="Порядок" value={slideForm.order} onChange={(e) => setSlideForm({ ...slideForm, order: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <label className="flex items-center gap-2 text-sm text-text-gray">
                   <input type="checkbox" checked={slideForm.active} onChange={(e) => setSlideForm({ ...slideForm, active: e.target.checked })} className="accent-primary" /> Активен
                 </label>
@@ -1222,18 +1234,38 @@ export default function AdminPage() {
               </form>
             </div>
             <div className="lg:col-span-2 bg-bg-white rounded-xl border border-border p-5">
-              <h2 className="font-bold text-text-dark mb-4">Все слайды ({slides.length})</h2>
+              <h2 className="font-bold text-text-dark mb-4">Порядок слайдов ({slides.length})</h2>
+              <p className="text-xs text-text-gray mb-3">Используйте стрелки для изменения порядка отображения</p>
               {slides.length === 0 ? <p className="text-text-gray text-sm">Слайдов пока нет</p> : (
-                <div className="space-y-3">
-                  {slides.map((slide) => (
-                    <div key={slide.id} className="flex items-center gap-4 p-3 bg-bg-light rounded-lg">
-                      <div className="w-24 h-16 bg-border rounded overflow-hidden flex-shrink-0">
+                <div className="space-y-2">
+                  {[...slides].sort((a, b) => a.order - b.order).map((slide, idx) => (
+                    <div key={slide.id} className={`flex items-center gap-3 p-3 rounded-lg border ${slide.active ? "bg-bg-light border-border" : "bg-red-50/50 border-red-200/50"}`}>
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => moveSlide(idx, "up")}
+                          disabled={idx === 0}
+                          className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${idx === 0 ? "text-border cursor-not-allowed" : "text-text-gray hover:bg-primary hover:text-white"}`}
+                          title="Вверх"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                        </button>
+                        <button
+                          onClick={() => moveSlide(idx, "down")}
+                          disabled={idx === slides.length - 1}
+                          className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${idx === slides.length - 1 ? "text-border cursor-not-allowed" : "text-text-gray hover:bg-primary hover:text-white"}`}
+                          title="Вниз"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                      </div>
+                      <span className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">{idx + 1}</span>
+                      <div className="w-20 h-14 bg-border rounded overflow-hidden flex-shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={slide.imageUrl} alt={slide.title || "слайд"} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-text-dark truncate">{slide.title || "Без названия"}</p>
-                        <p className="text-xs text-text-gray">{slide.subtitle}</p>
+                        <p className="font-medium text-text-dark text-sm truncate">{slide.title || "Без названия"}</p>
+                        <p className="text-xs text-text-gray truncate">{slide.subtitle}</p>
                         <span className={`text-xs ${slide.active ? "text-success" : "text-danger"}`}>{slide.active ? "Активен" : "Скрыт"}</span>
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
