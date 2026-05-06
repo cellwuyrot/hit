@@ -232,3 +232,19 @@ model QuickOrder {
   status    String   @default("new")
   createdAt DateTime @default(now())
 }
+
+model CallbackRequest {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
