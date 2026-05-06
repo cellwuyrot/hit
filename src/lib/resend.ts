@@ -28,9 +28,6 @@ export async function sendVerificationCode(email: string, code: string) {
 
   if (error) {
     console.error("Resend error:", error);
-    if (typeof error === "object" && "message" in error && typeof error.message === "string" && error.message.includes("verify a domain")) {
-      throw new Error("Для отправки писем необходимо верифицировать домен в Resend. Перейдите на resend.com/domains и добавьте ваш домен.");
-    }
-    throw new Error("Не удалось отправить код подтверждения. Проверьте настройки RESEND_API_KEY.");
+    throw new Error("Сервис отправки email временно недоступен. Попробуйте позже или обратитесь в поддержку.");
   }
 }

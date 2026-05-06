@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import CallbackModal from "@/components/CallbackModal";
 
 interface SearchResult {
   id: string;
@@ -178,11 +177,6 @@ export default function Header() {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Callback */}
-          <div className="hidden lg:flex items-center">
-            <CallbackModal />
           </div>
 
           {/* Action icons */}
