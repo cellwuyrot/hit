@@ -1,10 +1,11 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "ТОПХИТ <onboarding@resend.dev>";
 
 export async function sendVerificationCode(email: string, code: string) {
   const { error } = await resend.emails.send({
-    from: "ТОПХИТ <onboarding@resend.dev>",
+    from: FROM_EMAIL,
     to: email,
     subject: `Код подтверждения: ${code}`,
     html: `
@@ -27,6 +28,9 @@ export async function sendVerificationCode(email: string, code: string) {
 
   if (error) {
     console.error("Resend error:", error);
-    throw new Error("Не удалось отправить код подтверждения");
+    if (typeof error === "object" && "message" in error && typeof error.message === "string" && error.message.includes("verify a domain")) {
+      throw new Error("Для отправки писем необходимо верифицировать домен в Resend. Перейдите на resend.com/domains и добавьте ваш домен.");
+    }
+    throw new Error("Не удалось отправить код подтверждения. Проверьте настройки RESEND_API_KEY.");
   }
 }
