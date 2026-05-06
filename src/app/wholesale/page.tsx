@@ -37,23 +37,23 @@ export default async function WholesalePage() {
           ) : (
             <>
               {/* Hero banner */}
-              <div className="bg-primary rounded-xl p-6 md:p-8 text-white mb-8">
-                <h2 className="text-xl md:text-2xl font-bold mb-3">Выгодные условия для бизнеса</h2>
-                <p className="text-white/80 text-sm md:text-base">
+              <div className="bg-primary rounded-xl p-4 sm:p-6 md:p-8 text-white mb-6 sm:mb-8">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 sm:mb-3">Выгодные условия для бизнеса</h2>
+                <p className="text-white/80 text-xs sm:text-sm md:text-base">
                   ТОПХИТ предлагает специальные условия для юридических лиц и индивидуальных предпринимателей.
                   Широкий ассортимент товаров по оптовым ценам с доставкой по Москве и МО.
                 </p>
               </div>
 
               {/* For whom */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-bg-white rounded-xl border border-border p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                     <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-text-dark mb-2">Юридические лица (ООО, АО)</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-text-dark mb-2">Юридические лица (ООО, АО)</h3>
                   <ul className="space-y-2 text-sm text-text-gray">
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Работа по договору поставки</li>
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Оплата по безналичному расчёту</li>
@@ -62,13 +62,13 @@ export default async function WholesalePage() {
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Цены указаны без НДС</li>
                   </ul>
                 </div>
-                <div className="bg-bg-white rounded-xl border border-border p-6">
+                <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                     <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-text-dark mb-2">Индивидуальные предприниматели (ИП)</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-text-dark mb-2">Индивидуальные предприниматели (ИП)</h3>
                   <ul className="space-y-2 text-sm text-text-gray">
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Упрощённый документооборот</li>
                     <li className="flex items-start gap-2"><span className="text-success mt-0.5">&#8226;</span>Оплата наличными или по расчётному счёту</li>
@@ -81,20 +81,20 @@ export default async function WholesalePage() {
               </div>
 
               {/* For individuals */}
-              <div className="bg-bg-white rounded-xl border border-border p-6 mb-8">
-                <div className="flex items-start gap-4">
+              <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6 mb-6 sm:mb-8">
+                <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
                   <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg className="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-text-dark mb-3">Физические лица — программа лояльности</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-text-dark mb-2 sm:mb-3">Физические лица — программа лояльности</h3>
                     <p className="text-sm text-text-gray leading-relaxed mb-3">
                       Мы ценим каждого клиента. Для покупателей — физических лиц действует гибкая система скидок,
                       которая делает каждую следующую покупку выгоднее предыдущей.
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                       <div className="bg-bg-light rounded-lg p-4 text-center">
                         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
                           <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
@@ -122,8 +122,8 @@ export default async function WholesalePage() {
               </div>
 
               {/* Pricing tiers */}
-              <div className="bg-bg-white rounded-xl border border-border p-6 mb-8">
-                <h2 className="text-xl font-bold text-text-dark mb-4">Оптовые скидки</h2>
+              <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6 mb-6 sm:mb-8">
+                <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-3 sm:mb-4">Оптовые скидки</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -160,9 +160,9 @@ export default async function WholesalePage() {
               </div>
 
               {/* How to order */}
-              <div className="bg-bg-white rounded-xl border border-border p-6 mb-8">
-                <h2 className="text-xl font-bold text-text-dark mb-4">Как оформить оптовый заказ</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6 mb-6 sm:mb-8">
+                <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-3 sm:mb-4">Как оформить оптовый заказ</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                   {[
                     { step: "1", title: "Заявка", desc: "Отправьте заявку по email или телефону с перечнем товаров" },
                     { step: "2", title: "Расчёт", desc: "Менеджер подготовит коммерческое предложение с оптовыми ценами" },
@@ -179,9 +179,9 @@ export default async function WholesalePage() {
               </div>
 
               {/* Required docs */}
-              <div className="bg-bg-white rounded-xl border border-border p-6 mb-8">
-                <h2 className="text-xl font-bold text-text-dark mb-4">Необходимые документы</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6 mb-6 sm:mb-8">
+                <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-3 sm:mb-4">Необходимые документы</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <h3 className="font-medium text-text-dark mb-2">Для ООО / АО:</h3>
                     <ul className="text-sm text-text-gray space-y-1">
@@ -207,9 +207,9 @@ export default async function WholesalePage() {
           )}
 
           {/* Contact */}
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-center">
-            <h2 className="text-xl font-bold text-text-dark mb-2">Свяжитесь с нами</h2>
-            <p className="text-text-gray text-sm mb-4">Оставьте заявку и наш менеджер свяжется с вами в течение рабочего дня</p>
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 sm:p-6 text-center">
+            <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-2">Свяжитесь с нами</h2>
+            <p className="text-text-gray text-xs sm:text-sm mb-3 sm:mb-4">Оставьте заявку и наш менеджер свяжется с вами в течение рабочего дня</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a href="tel:+79362568950" className="flex items-center gap-2 text-primary font-bold text-lg hover:underline">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
