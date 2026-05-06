@@ -109,8 +109,9 @@ type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | 
 
 interface AnalyticsData {
   period: string;
-  data: { date: string; views: number }[];
+  data: { date: string; views: number; unique: number }[];
   totalViews: number;
+  totalUniqueVisitors: number;
   topPages: { path: string; views: number }[];
 }
 
@@ -1538,10 +1539,15 @@ function AnalyticsPanel({ token }: { token: string }) {
         <div className="text-center py-12 text-text-gray">Загрузка...</div>
       ) : data ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <p className="text-sm text-text-gray mb-1">Всего просмотров</p>
               <p className="text-3xl font-bold text-text-dark">{data.totalViews.toLocaleString("ru-RU")}</p>
+              <p className="text-xs text-text-light mt-1">за {periodLabels[period].toLowerCase()}</p>
+            </div>
+            <div className="bg-bg-white rounded-xl border border-border p-5">
+              <p className="text-sm text-text-gray mb-1">Уникальные посетители</p>
+              <p className="text-3xl font-bold text-accent">{data.totalUniqueVisitors.toLocaleString("ru-RU")}</p>
               <p className="text-xs text-text-light mt-1">за {periodLabels[period].toLowerCase()}</p>
             </div>
             <div className="bg-bg-white rounded-xl border border-border p-5">
@@ -1559,16 +1565,28 @@ function AnalyticsPanel({ token }: { token: string }) {
           </div>
 
           <div className="bg-bg-white rounded-xl border border-border p-5">
-            <h3 className="font-bold text-text-dark mb-4">График посещений</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-text-dark">График посещений</h3>
+              <div className="flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-primary/80 inline-block"></span> Просмотры</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-accent/80 inline-block"></span> Уникальные</span>
+              </div>
+            </div>
             <div className="flex items-end gap-1 h-48">
               {data.data.map((d, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
                   <span className="text-[10px] text-text-gray font-medium">{d.views || ""}</span>
-                  <div
-                    className="w-full bg-primary/80 hover:bg-primary rounded-t transition-colors min-h-[2px]"
-                    style={{ height: `${Math.max((d.views / maxViews) * 100, 2)}%` }}
-                    title={`${formatDate(d.date)}: ${d.views} просмотров`}
-                  />
+                  <div className="w-full flex gap-px justify-center" style={{ height: `${Math.max((d.views / maxViews) * 100, 2)}%` }}>
+                    <div
+                      className="flex-1 bg-primary/80 hover:bg-primary rounded-t transition-colors min-h-[2px]"
+                      title={`${formatDate(d.date)}: ${d.views} просмотров`}
+                    />
+                    <div
+                      className="flex-1 bg-accent/80 hover:bg-accent rounded-t transition-colors min-h-[2px]"
+                      style={{ height: d.views > 0 ? `${Math.max((d.unique / d.views) * 100, 5)}%` : "2px" }}
+                      title={`${formatDate(d.date)}: ${d.unique} уникальных`}
+                    />
+                  </div>
                   <span className="text-[9px] text-text-light truncate w-full text-center">{formatDate(d.date)}</span>
                 </div>
               ))}
