@@ -88,14 +88,14 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Yandex Map */}
+        {/* Yandex Map — Moscow, Skladochnaya 1/18 */}
         <div className="mt-6 rounded-lg overflow-hidden border border-white/10">
           <iframe
-            src="https://yandex.ru/map-widget/v1/?um=constructor%3A44c2e09e3f4f4a3b8f1b2c3d4e5f6a7b&amp;source=constructor"
+            src="https://yandex.ru/map-widget/v1/?ll=37.5937%2C55.8025&z=16&l=map&pt=37.5937%2C55.8025%2Cpm2rdm"
             width="100%"
             height="200"
             style={{ border: 0 }}
-            title="Карта — ТОПХИТ"
+            title="Карта — ТОПХИТ, Москва"
             loading="lazy"
           />
         </div>

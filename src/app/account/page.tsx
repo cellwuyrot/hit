@@ -86,6 +86,13 @@ export default function AccountPage() {
 
   const handleAuth = async () => {
     setError("");
+    if (!form.email || !form.password) { setError("Заполните все поля"); return; }
+    if (tab === "register" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError("Некорректный email — нужен символ @"); return;
+    }
+    if (tab === "register" && form.password.length < 6) {
+      setError("Пароль должен быть минимум 6 символов"); return;
+    }
     if (tab === "login") {
       // Try admin auth first
       const adminRes = await fetch("/api/admin/auth", {
@@ -127,6 +134,18 @@ export default function AccountPage() {
 
   const handleUpdateProfile = async () => {
     setSuccess(""); setError("");
+    if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
+      setError("Некорректный формат email (нужен символ @)"); return;
+    }
+    if (editForm.phone && !/^[\d\s\+\-\(\)]+$/.test(editForm.phone)) {
+      setError("Телефон должен содержать только цифры"); return;
+    }
+    if (editForm.phone && editForm.phone.replace(/\D/g, "").length < 10) {
+      setError("Телефон должен содержать минимум 10 цифр"); return;
+    }
+    if (editForm.address && editForm.address.trim().length < 10) {
+      setError("Укажите полный адрес (город, улица, дом)"); return;
+    }
     const res = await fetch("/api/user/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

@@ -23,8 +23,6 @@ export async function POST(req: NextRequest) {
     });
 
     // In production, send email with reset link
-    // For now, return the token (in production this would be sent via email)
-    console.log(`Password reset token for ${email}: ${resetToken}`);
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 
 interface Slide {
@@ -24,6 +24,8 @@ function resolveImageUrl(url: string): string {
 
 export default function HeroSlider({ slides }: HeroSliderProps) {
   const [current, setCurrent] = useState(0);
+  const touchStart = useRef<number | null>(null);
+  const touchEnd = useRef<number | null>(null);
 
   const next = useCallback(() => {
     setCurrent((prev) => (prev + 1) % slides.length);
@@ -39,6 +41,26 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
     return () => clearInterval(timer);
   }, [next, slides.length]);
 
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchEnd.current = null;
+    touchStart.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart.current || !touchEnd.current) return;
+    const distance = touchStart.current - touchEnd.current;
+    if (Math.abs(distance) > 50) {
+      if (distance > 0) next();
+      else prev();
+    }
+    touchStart.current = null;
+    touchEnd.current = null;
+  };
+
   if (slides.length === 0) {
     return (
       <div className="bg-primary/10 rounded-xl h-48 md:h-80 flex items-center justify-center">
@@ -48,7 +70,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
   }
 
   return (
-    <div className="relative rounded-xl overflow-hidden group">
+    <div className="relative rounded-xl overflow-hidden group" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       <div className="relative aspect-[2/1] sm:aspect-[2.5/1] md:aspect-[3/1] lg:aspect-[3.5/1]">
         {slides.map((slide, index) => (
           <div
@@ -104,8 +126,8 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
               <button
                 key={index}
                 onClick={() => setCurrent(index)}
-                className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-colors ${
-                  index === current ? "bg-white" : "bg-white/50"
+                className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-colors shadow-sm ${
+                  index === current ? "bg-white border-2 border-gray-700" : "bg-gray-800/70 border border-gray-600"
                 }`}
               />
             ))}

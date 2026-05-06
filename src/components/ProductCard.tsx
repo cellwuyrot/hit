@@ -153,7 +153,7 @@ export default function ProductCard({
       </div>
 
       <Link href={`/product/${slug}`} className="block">
-        <h3 className="text-xs sm:text-sm font-medium text-text-dark leading-tight mb-1 sm:mb-1.5 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] hover:text-primary transition-colors">{name}</h3>
+        <h3 className="text-xs sm:text-sm font-medium text-text-dark leading-tight mb-1 sm:mb-1.5 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] hover:text-primary transition-colors overflow-hidden">{name}</h3>
       </Link>
 
       {/* Star rating */}

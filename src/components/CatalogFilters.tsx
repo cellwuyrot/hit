@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface FiltersProps {
@@ -27,6 +27,14 @@ export default function CatalogFilters({
   const [priceTo, setPriceTo] = useState(
     Number(searchParams.get("priceTo")) || maxPrice
   );
+  const [displayPriceTo, setDisplayPriceTo] = useState(priceTo);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleRangeChange = useCallback((value: number) => {
+    setDisplayPriceTo(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setPriceTo(value), 150);
+  }, []);
   const [selectedBrands, setSelectedBrands] = useState<string[]>(
     searchParams.get("brands")?.split(",").filter(Boolean) || []
   );
@@ -97,8 +105,8 @@ export default function CatalogFilters({
           type="range"
           min={minPrice}
           max={maxPrice}
-          value={priceTo}
-          onChange={(e) => setPriceTo(Number(e.target.value))}
+          value={displayPriceTo}
+          onChange={(e) => handleRangeChange(Number(e.target.value))}
           className="w-full accent-primary"
         />
         <div className="flex justify-between text-xs text-text-light">

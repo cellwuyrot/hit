@@ -45,6 +45,12 @@ export default function CheckoutPage() {
   const handleSubmit = async () => {
     setError("");
     if (!form.name || !form.phone || !form.address) { setError("Заполните все обязательные поля"); setStep(2); return; }
+    if (!/^[\d\s\+\-\(\)]+$/.test(form.phone) || form.phone.replace(/\D/g, "").length < 10) {
+      setError("Телефон должен содержать минимум 10 цифр"); setStep(2); return;
+    }
+    if (form.address.trim().length < 10) {
+      setError("Укажите полный адрес (город, улица, дом)"); setStep(2); return;
+    }
     setLoading(true);
     const res = await fetch("/api/user/orders", {
       method: "POST",
@@ -193,6 +199,8 @@ export default function CheckoutPage() {
                     <button onClick={() => {
                       setError("");
                       if (!form.name || !form.phone || !form.address) { setError("Заполните все обязательные поля"); return; }
+                      if (!/^[\d\s\+\-\(\)]+$/.test(form.phone) || form.phone.replace(/\D/g, "").length < 10) { setError("Телефон должен содержать минимум 10 цифр"); return; }
+                      if (form.address.trim().length < 10) { setError("Укажите полный адрес (город, улица, дом)"); return; }
                       setStep(3);
                     }} className="flex-1 bg-primary text-white py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium">
                       Далее — Подтверждение

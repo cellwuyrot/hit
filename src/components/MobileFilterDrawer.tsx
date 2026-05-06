@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface MobileFilterDrawerProps {
@@ -24,6 +24,14 @@ export default function MobileFilterDrawer({
 
   const [priceFrom, setPriceFrom] = useState(Number(searchParams.get("priceFrom")) || minPrice);
   const [priceTo, setPriceTo] = useState(Number(searchParams.get("priceTo")) || maxPrice);
+  const [displayPriceTo, setDisplayPriceTo] = useState(Number(searchParams.get("priceTo")) || maxPrice);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleRangeChange = useCallback((value: number) => {
+    setDisplayPriceTo(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setPriceTo(value), 150);
+  }, []);
   const [selectedBrands, setSelectedBrands] = useState<string[]>(searchParams.get("brands")?.split(",").filter(Boolean) || []);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(searchParams.get("types")?.split(",").filter(Boolean) || []);
   const [selectedColors, setSelectedColors] = useState<string[]>(searchParams.get("colors")?.split(",").filter(Boolean) || []);
@@ -96,8 +104,8 @@ export default function MobileFilterDrawer({
                   <input type="number" value={priceTo} onChange={(e) => setPriceTo(Number(e.target.value))}
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" placeholder="До" />
                 </div>
-                <input type="range" min={minPrice} max={maxPrice} value={priceTo}
-                  onChange={(e) => setPriceTo(Number(e.target.value))} className="w-full accent-primary" />
+                <input type="range" min={minPrice} max={maxPrice} value={displayPriceTo}
+                  onChange={(e) => handleRangeChange(Number(e.target.value))} className="w-full accent-primary" />
               </div>
 
               {/* Product types */}
