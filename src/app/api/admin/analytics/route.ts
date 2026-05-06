@@ -52,10 +52,33 @@ export async function GET(request: Request) {
     take: 10,
   });
 
+  // Unique visitors per day
+  const uniqueByDay = await prisma.pageView.groupBy({
+    by: ["date", "visitorId"],
+    where: { date: { gte: startDate, lte: endDate }, visitorId: { not: "" } },
+  });
+  const uniqueMap = new Map<string, Set<string>>();
+  for (const row of uniqueByDay) {
+    if (!uniqueMap.has(row.date)) uniqueMap.set(row.date, new Set());
+    uniqueMap.get(row.date)!.add(row.visitorId);
+  }
+  const uniqueData = dates.map((date) => ({
+    date,
+    unique: uniqueMap.get(date)?.size || 0,
+  }));
+
+  // Total unique visitors for the period
+  const allVisitorIds = new Set<string>();
+  for (const s of uniqueMap.values()) {
+    for (const v of s) allVisitorIds.add(v);
+  }
+  const totalUniqueVisitors = allVisitorIds.size;
+
   return Response.json({
     period,
-    data,
+    data: data.map((d, i) => ({ ...d, unique: uniqueData[i]?.unique || 0 })),
     totalViews,
+    totalUniqueVisitors,
     topPages: topPages.map((p) => ({ path: p.path, views: p._count.id })),
   });
 }

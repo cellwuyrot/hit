@@ -178,10 +178,12 @@ model PageView {
   id        String   @id @default(uuid())
   path      String
   date      String
+  visitorId String   @default("")
   createdAt DateTime @default(now())
 
   @@index([date])
   @@index([path])
+  @@index([visitorId])
 }
 
 model WishlistItem {
