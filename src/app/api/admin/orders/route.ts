@@ -24,3 +24,16 @@ export async function PUT(request: Request) {
   const order = await prisma.order.update({ where: { id }, data: { status } });
   return Response.json(order);
 }
+
+export async function DELETE(request: Request) {
+  if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
+  const { id } = await request.json();
+  if (!id) return Response.json({ error: "Укажите id" }, { status: 400 });
+  const order = await prisma.order.findUnique({ where: { id } });
+  if (!order) return Response.json({ error: "Заказ не найден" }, { status: 404 });
+  if (order.status !== "cancelled" && order.status !== "delivered") {
+    return Response.json({ error: "Удалять можно только отменённые или завершённые заказы" }, { status: 400 });
+  }
+  await prisma.order.delete({ where: { id } });
+  return Response.json({ success: true });
+}

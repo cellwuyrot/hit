@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import HeroSlider from "@/components/HeroSlider";
 import ProductCard from "@/components/ProductCard";
 import ScrollReveal from "@/components/ScrollReveal";
+import CategoryGrid from "@/components/CategoryGrid";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
@@ -121,24 +122,7 @@ export default async function HomePage() {
               <h2 className="font-heading text-lg sm:text-2xl font-bold text-text-dark">Категории товаров</h2>
               <Link href="/catalog" className="text-primary hover:underline text-xs sm:text-sm">Все категории →</Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-              {categories.map((cat) => (
-                <Link key={cat.id} href={`/catalog/${cat.slug}`}
-                  className="bg-bg-white rounded-xl border border-border p-3 sm:p-6 hover:shadow-lg hover:border-primary/30 transition-all group">
-                  <div className="mb-2 sm:mb-3 flex justify-center">
-                    {cat.icon && (cat.icon.startsWith("/") || cat.icon.startsWith("http")) ? (
-                      <img src={cat.icon} alt={cat.name} className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg" style={{ maxWidth: 256, maxHeight: 256 }} />
-                    ) : (
-                      <span className="text-2xl sm:text-3xl">{cat.icon || "📦"}</span>
-                    )}
-                  </div>
-                  <h3 className="font-medium text-text-dark text-center text-sm sm:text-base group-hover:text-primary transition-colors">{cat.name}</h3>
-                  {cat.children.length > 0 && (
-                    <p className="text-[10px] sm:text-xs text-text-gray text-center mt-0.5 sm:mt-1">{cat.children.length} подкатегорий</p>
-                  )}
-                </Link>
-              ))}
-            </div>
+            <CategoryGrid categories={categories.map(c => ({ id: c.id, name: c.name, slug: c.slug, icon: c.icon, children: c.children.map(ch => ({ id: ch.id, name: ch.name, slug: ch.slug, icon: ch.icon })), _count: c._count }))} />
           </section>
         </ScrollReveal>
 
