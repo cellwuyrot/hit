@@ -105,7 +105,15 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "settings" | "site-editor";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "callbacks" | "settings" | "site-editor";
+
+interface CallbackItem {
+  id: string;
+  name: string;
+  phone: string;
+  status: string;
+  createdAt: string;
+}
 
 interface AnalyticsData {
   period: string;
@@ -733,7 +741,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "site-editor": "Редактирование сайта", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, callbacks: `Заявки на звонок`, "site-editor": "Редактирование сайта", settings: "Настройки",
   };
 
   return (
@@ -1484,6 +1492,9 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Callbacks */}
+        {activeTab === "callbacks" && <CallbacksPanel token={token} />}
+
         {/* Settings */}
         {activeTab === "settings" && (
           <div className="max-w-lg">
@@ -1671,6 +1682,77 @@ function AnalyticsPanel({ token }: { token: string }) {
         </>
       ) : (
         <p className="text-text-gray">Не удалось загрузить данные</p>
+      )}
+    </div>
+  );
+}
+
+function CallbacksPanel({ token }: { token: string }) {
+  const [callbacks, setCallbacks] = useState<CallbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadCallbacks = async () => {
+    const res = await fetch("/api/admin/callbacks", { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) setCallbacks(await res.json());
+    setLoading(false);
+  };
+
+  useEffect(() => { loadCallbacks(); }, []);
+
+  const updateStatus = async (id: string, status: string) => {
+    await fetch("/api/admin/callbacks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id, status }),
+    });
+    loadCallbacks();
+  };
+
+  const deleteCallback = async (id: string) => {
+    if (!confirm("Удалить заявку?")) return;
+    await fetch("/api/admin/callbacks", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id }),
+    });
+    loadCallbacks();
+  };
+
+  const statusLabels: Record<string, string> = { new: "Новая", processing: "В работе", done: "Выполнена" };
+  const statusColors: Record<string, string> = { new: "bg-accent text-white", processing: "bg-primary text-white", done: "bg-success text-white" };
+
+  if (loading) return <p className="text-text-gray">Загрузка...</p>;
+
+  return (
+    <div className="bg-bg-white rounded-xl border border-border p-5">
+      <h2 className="font-bold text-text-dark mb-4">Заявки на звонок ({callbacks.length})</h2>
+      {callbacks.length === 0 ? <p className="text-text-gray text-sm">Заявок пока нет</p> : (
+        <div className="space-y-3">
+          {callbacks.map((cb) => (
+            <div key={cb.id} className="p-4 bg-bg-light rounded-lg flex items-center justify-between flex-wrap gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[cb.status] || "bg-gray-200"}`}>
+                    {statusLabels[cb.status] || cb.status}
+                  </span>
+                  <span className="text-xs text-text-gray">{new Date(cb.createdAt).toLocaleString("ru-RU")}</span>
+                </div>
+                <p className="font-medium text-text-dark">{cb.name}</p>
+                <a href={`tel:${cb.phone}`} className="text-sm text-primary hover:underline">{cb.phone}</a>
+              </div>
+              <div className="flex items-center gap-2">
+                <select value={cb.status} onChange={(e) => updateStatus(cb.id, e.target.value)}
+                  className="border border-border rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-primary">
+                  {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+                <button onClick={() => deleteCallback(cb.id)}
+                  className="text-sm px-3 py-1 rounded-lg border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
+                  Удалить
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

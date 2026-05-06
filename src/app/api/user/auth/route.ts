@@ -3,7 +3,7 @@ import { signToken } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
-  const { action, email, password } = await request.json();
+  const { action, email, password, verified } = await request.json();
 
   if (action === "register") {
     if (!email || !password) {
@@ -11,6 +11,9 @@ export async function POST(request: Request) {
     }
     if (password.length < 6) {
       return Response.json({ error: "Пароль должен быть минимум 6 символов" }, { status: 400 });
+    }
+    if (!verified) {
+      return Response.json({ error: "Подтвердите email" }, { status: 400 });
     }
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {

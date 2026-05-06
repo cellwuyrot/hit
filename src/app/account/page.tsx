@@ -59,6 +59,9 @@ export default function AccountPage() {
   const [resetToken, setResetToken] = useState("");
   const [resetNewPassword, setResetNewPassword] = useState("");
   const [resetStep, setResetStep] = useState<"email" | "code">("email");
+  const [verifyStep, setVerifyStep] = useState<"form" | "code">("form");
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
   const [openChat, setOpenChat] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<{ id: string; senderRole: string; text: string; createdAt: string }[]>([]);
   const [chatText, setChatText] = useState("");
@@ -118,18 +121,45 @@ export default function AccountPage() {
       setToken(data.token);
       setForm({ email: "", password: "" });
     } else {
-      // Register — user only
-      const res = await fetch("/api/user/auth", {
+      // Register — send verification code first
+      setVerifyLoading(true);
+      const res = await fetch("/api/user/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "register", email: form.email, password: form.password }),
+        body: JSON.stringify({ action: "send-code", email: form.email }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error); return; }
-      localStorage.setItem("userToken", data.token);
-      setToken(data.token);
-      setForm({ email: "", password: "" });
+      setVerifyLoading(false);
+      if (!res.ok) { setError(data.error || "Ошибка отправки кода"); return; }
+      setVerifyStep("code");
+      setSuccess("Код подтверждения отправлен на " + form.email);
     }
+  };
+
+  const handleVerifyAndRegister = async () => {
+    setError(""); setSuccess("");
+    if (!verifyCode || verifyCode.length !== 6) { setError("Введите 6-значный код"); return; }
+
+    const verifyRes = await fetch("/api/user/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "verify-code", email: form.email, code: verifyCode, password: form.password }),
+    });
+    const verifyData = await verifyRes.json();
+    if (!verifyRes.ok) { setError(verifyData.error); return; }
+
+    const res = await fetch("/api/user/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "register", email: form.email, password: form.password, verified: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setError(data.error); return; }
+    localStorage.setItem("userToken", data.token);
+    setToken(data.token);
+    setForm({ email: "", password: "" });
+    setVerifyCode("");
+    setVerifyStep("form");
   };
 
   const handleUpdateProfile = async () => {
@@ -278,24 +308,46 @@ export default function AccountPage() {
                   </div>
                   {error && <p className="text-danger text-sm mb-4">{error}</p>}
                   {success && <p className="text-success text-sm mb-4">{success}</p>}
-                  <input type="text" placeholder={tab === "login" ? "Email или Логин" : "Email"} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
-                  <input type="password" placeholder="Пароль" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
-                  <button onClick={handleAuth} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
-                    {tab === "login" ? "Войти" : "Зарегистрироваться"}
-                  </button>
-                  {tab === "login" && (
+
+                  {tab === "register" && verifyStep === "code" ? (
                     <>
-                      <button onClick={() => { setResetMode(true); setError(""); setSuccess(""); }}
-                        className="w-full text-sm text-primary hover:underline mt-3 text-center">
-                        Забыли пароль?
+                      <p className="text-sm text-text-dark mb-3">Введите код подтверждения, отправленный на <span className="font-medium">{form.email}</span></p>
+                      <input type="text" placeholder="6-значный код" value={verifyCode}
+                        onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-center text-2xl tracking-[0.5em] font-mono" />
+                      <button onClick={handleVerifyAndRegister} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
+                        Подтвердить и зарегистрироваться
                       </button>
-                      <p className="text-xs text-text-gray text-center mt-2">Используйте email для клиентов или логин для администраторов</p>
+                      <button onClick={() => { setVerifyStep("form"); setVerifyCode(""); setError(""); setSuccess(""); }}
+                        className="w-full text-sm text-primary hover:underline mt-3 text-center">
+                        Изменить email
+                      </button>
+                      <button onClick={handleAuth} className="w-full text-sm text-text-gray hover:underline mt-2 text-center">
+                        Отправить код повторно
+                      </button>
                     </>
-                  )}
-                  {tab === "register" && (
-                    <p className="text-xs text-text-gray text-center mt-3">После регистрации вы сможете заполнить данные профиля в личном кабинете</p>
+                  ) : (
+                    <>
+                      <input type="text" placeholder={tab === "login" ? "Email или Логин" : "Email"} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                      <input type="password" placeholder="Пароль" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                      <button onClick={handleAuth} disabled={verifyLoading} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium disabled:opacity-50">
+                        {verifyLoading ? "Отправка кода..." : tab === "login" ? "Войти" : "Зарегистрироваться"}
+                      </button>
+                      {tab === "login" && (
+                        <>
+                          <button onClick={() => { setResetMode(true); setError(""); setSuccess(""); }}
+                            className="w-full text-sm text-primary hover:underline mt-3 text-center">
+                            Забыли пароль?
+                          </button>
+                          <p className="text-xs text-text-gray text-center mt-2">Используйте email для клиентов или логин для администраторов</p>
+                        </>
+                      )}
+                      {tab === "register" && (
+                        <p className="text-xs text-text-gray text-center mt-3">На ваш email будет отправлен код подтверждения</p>
+                      )}
+                    </>
                   )}
                 </>
               )}

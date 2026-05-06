@@ -108,10 +108,7 @@ export default function Header() {
             <span className="hidden sm:inline">СБ-ВС: Выходной</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
-            <span className="hidden md:inline">Москва и МО</span>
-            <a href="tel:+79362568950" className="font-bold hover:underline">
-              +7 (936) 256-89-50
-            </a>
+            <span>Москва и МО</span>
           </div>
         </div>
       </div>
@@ -183,11 +180,8 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Contact info */}
-          <div className="hidden lg:flex flex-col items-end">
-            <a href="tel:+79362568950" className="text-lg font-bold text-text-dark hover:text-primary transition-colors">
-              +7 (936) 256-89-50
-            </a>
+          {/* Callback */}
+          <div className="hidden lg:flex items-center">
             <CallbackModal />
           </div>
 
@@ -290,7 +284,6 @@ export default function Header() {
               <Link href="/cart" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Корзина</Link>
               <Link href="/account" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Вход / Кабинет</Link>
               <div className="border-t border-border my-2" />
-              <a href="tel:+79362568950" className="text-primary font-bold py-2.5 px-3">+7 (936) 256-89-50</a>
             </nav>
           </div>
         )}
