@@ -22,8 +22,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
-    openGraph: { title, description, locale: "ru_RU", type: "website", url: `https://tophit.store/catalog/${categorySlug}` },
-    alternates: { canonical: `https://tophit.store/catalog/${categorySlug}` },
+    openGraph: { title, description, locale: "ru_RU", type: "website", url: `https://tophitt.ru/catalog/${categorySlug}` },
+    alternates: { canonical: `https://tophitt.ru/catalog/${categorySlug}` },
   };
 }
 
@@ -100,14 +100,14 @@ async function CategoryContent({
     "@type": "CollectionPage",
     name: category.name,
     description: category.metaDescription || `Купить ${category.name} в магазине ТОПХИТ`,
-    url: `https://tophit.store/catalog/${category.slug}`,
+    url: `https://tophitt.ru/catalog/${category.slug}`,
     mainEntity: {
       "@type": "ItemList",
       numberOfItems: totalCount,
       itemListElement: products.map((p, i) => ({
         "@type": "ListItem",
         position: skip + i + 1,
-        url: `https://tophit.store/product/${p.slug}`,
+        url: `https://tophitt.ru/product/${p.slug}`,
         name: p.name,
         image: p.image || undefined,
       })),

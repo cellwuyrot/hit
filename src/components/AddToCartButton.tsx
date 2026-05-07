@@ -26,3 +26,32 @@ export default function AddToCartButton({ productId, inStock }: { productId: str
     </button>
   );
 }
+
+export function AddPackButton({ productId, inStock, packSize, price }: { productId: string; inStock: number; packSize: number; price: number }) {
+  const [addedPack, setAddedPack] = useState(false);
+
+  const addPack = async () => {
+    const token = localStorage.getItem("userToken");
+    if (!token) { window.location.href = "/account"; return; }
+    await fetch("/api/user/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ productId, quantity: packSize, isPack: true }),
+    });
+    setAddedPack(true);
+    setTimeout(() => setAddedPack(false), 2000);
+  };
+
+  const packTotal = Math.round(price * packSize * 0.9);
+
+  if (!packSize || packSize <= 1 || inStock === 0) return null;
+
+  return (
+    <button onClick={addPack}
+      className={`w-full px-6 py-3 rounded-lg font-medium transition-colors text-sm ${
+        addedPack ? "bg-success text-white" : "bg-green-600 hover:bg-green-700 text-white"
+      }`}>
+      {addedPack ? "Упаковка добавлена!" : `1 упаковка (${packSize} шт.) — ${packTotal.toLocaleString("ru-RU")} ₽ (скидка 10%)`}
+    </button>
+  );
+}

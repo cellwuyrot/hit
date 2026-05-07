@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import AddToCartButton from "@/components/AddToCartButton";
+import AddToCartButton, { AddPackButton } from "@/components/AddToCartButton";
 import CompareButton from "@/components/CompareButton";
 import ProductGallery from "@/components/ProductGallery";
 import CategoryTracker from "@/components/CategoryTracker";
@@ -41,10 +41,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       type: "website",
       locale: "ru_RU",
-      url: `https://tophit.store/product/${slug}`,
+      url: `https://tophitt.ru/product/${slug}`,
       images: product.image ? [{ url: product.image }] : [],
     },
-    alternates: { canonical: `https://tophit.store/product/${slug}` },
+    alternates: { canonical: `https://tophitt.ru/product/${slug}` },
   };
 }
 
@@ -89,7 +89,7 @@ export default async function ProductPage({ params }: PageProps) {
     category: product.category.name,
     offers: {
       "@type": "Offer",
-      url: `https://tophit.store/product/${product.slug}`,
+      url: `https://tophitt.ru/product/${product.slug}`,
       priceCurrency: "RUB",
       price: product.price,
       availability: product.inStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
@@ -114,10 +114,10 @@ export default async function ProductPage({ params }: PageProps) {
   };
 
   const breadcrumbItems = [
-    { name: "Главная", url: "https://tophit.store/" },
-    { name: "Каталог", url: "https://tophit.store/catalog" },
-    ...(product.category.parent ? [{ name: product.category.parent.name, url: `https://tophit.store/catalog/${product.category.parent.slug}` }] : []),
-    { name: product.category.name, url: `https://tophit.store/catalog/${product.category.slug}` },
+    { name: "Главная", url: "https://tophitt.ru/" },
+    { name: "Каталог", url: "https://tophitt.ru/catalog" },
+    ...(product.category.parent ? [{ name: product.category.parent.name, url: `https://tophitt.ru/catalog/${product.category.parent.slug}` }] : []),
+    { name: product.category.name, url: `https://tophitt.ru/catalog/${product.category.slug}` },
     { name: product.name },
   ];
 
@@ -197,13 +197,20 @@ export default async function ProductPage({ params }: PageProps) {
                 {product.brand && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Бренд:</span><span className="text-text-dark font-medium">{product.brand}</span></div>}
                 {product.productType && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Тип:</span><span className="text-text-dark font-medium">{product.productType}</span></div>}
                 {product.color && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Цвет:</span><span className="text-text-dark font-medium">{product.color}</span></div>}
+                {product.packSize && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">В упаковке:</span><span className="text-text-dark font-medium">{product.packSize} шт.</span></div>}
+                {product.expirationDate && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Годен до:</span><span className="text-text-dark font-medium">{product.expirationDate}</span></div>}
                 <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Категория:</span><Link href={`/catalog/${product.category.slug}`} className="text-primary hover:underline">{product.category.name}</Link></div>
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 mb-3">
-                <AddToCartButton productId={product.id} inStock={product.inStock} />
-                <CompareButton productId={product.id} productName={product.name} />
+              <div className="space-y-2 mb-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <AddToCartButton productId={product.id} inStock={product.inStock} />
+                  <CompareButton productId={product.id} productName={product.name} />
+                </div>
+                {product.packSize && product.packSize > 1 && (
+                  <AddPackButton productId={product.id} inStock={product.inStock} packSize={product.packSize} price={product.price} />
+                )}
               </div>
 
               {/* Quick order */}

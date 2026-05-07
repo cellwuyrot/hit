@@ -38,18 +38,23 @@ export async function POST(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 
   const body = await request.json();
-  const { name, description, price, oldPrice, image, inStock, expirationDate, brand, color, productType, categoryId, isFeatured } = body;
+  const { name, description, price, oldPrice, image, inStock, packSize, expirationDate, brand, color, productType, categoryId, isFeatured } = body;
 
   if (!name || !price || !categoryId) {
     return Response.json({ error: "Название, цена и категория обязательны" }, { status: 400 });
   }
 
-  const slug = slugify(name) + "-" + Date.now();
+  let slug = slugify(name);
+  const existing = await prisma.product.findFirst({ where: { slug } });
+  if (existing) {
+    slug = slug + "-" + Math.random().toString(36).slice(2, 6);
+  }
   const product = await prisma.product.create({
     data: {
       name, slug, description: description || "", price: Number(price),
       oldPrice: oldPrice ? Number(oldPrice) : null, image: image || "",
-      inStock: Number(inStock) || 0, expirationDate: expirationDate || "", brand: brand || "", color: color || "",
+      inStock: Number(inStock) || 0, packSize: packSize ? Number(packSize) : null,
+      expirationDate: expirationDate || "", brand: brand || "", color: color || "",
       productType: productType || "", categoryId, isFeatured: !!isFeatured,
     },
   });
@@ -70,7 +75,7 @@ export async function PUT(request: Request) {
     return Response.json({ success: true, updated: result.count });
   }
 
-  const { id, name, description, price, oldPrice, image, image2, image3, image4, inStock, expirationDate, brand, color, productType, categoryId, isFeatured } = body;
+  const { id, name, description, price, oldPrice, image, image2, image3, image4, inStock, packSize, expirationDate, brand, color, productType, categoryId, isFeatured } = body;
 
   if (!id || !name || !price || !categoryId) {
     return Response.json({ error: "Обязательные поля не заполнены" }, { status: 400 });
@@ -82,7 +87,8 @@ export async function PUT(request: Request) {
       name, description: description || "", price: Number(price),
       oldPrice: oldPrice ? Number(oldPrice) : null, image: image || "",
       image2: image2 || "", image3: image3 || "", image4: image4 || "",
-      inStock: Number(inStock) || 0, expirationDate: expirationDate || "", brand: brand || "", color: color || "",
+      inStock: Number(inStock) || 0, packSize: packSize ? Number(packSize) : null,
+      expirationDate: expirationDate || "", brand: brand || "", color: color || "",
       productType: productType || "", categoryId, isFeatured: !!isFeatured,
     },
   });

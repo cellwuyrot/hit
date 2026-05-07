@@ -45,34 +45,14 @@ export default async function HomePage() {
     }),
   ]);
 
-  const organizationLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "ТОПХИТ",
-    url: "https://tophit.store",
-    logo: "https://tophit.store/favicon-32x32.png",
-    contactPoint: {
-      "@type": "ContactPoint",
-      telephone: "+7-936-256-89-50",
-      contactType: "customer service",
-      areaServed: "RU",
-      availableLanguage: "Russian",
-    },
-    sameAs: [
-      "https://t.me/tophit_store",
-      "https://vk.com/tophit_market",
-      "https://www.ozon.ru/seller/tophit/",
-    ],
-  };
-
   const websiteLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "ТОПХИТ",
-    url: "https://tophit.store",
+    url: "https://tophitt.ru",
     potentialAction: {
       "@type": "SearchAction",
-      target: "https://tophit.store/catalog?search={search_term_string}",
+      target: "https://tophitt.ru/catalog?search={search_term_string}",
       "query-input": "required name=search_term_string",
     },
   };
@@ -85,7 +65,6 @@ export default async function HomePage() {
   return (
     <>
       <Header />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
       <main className="flex-1">
         {/* Hero Slider */}

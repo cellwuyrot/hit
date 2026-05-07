@@ -14,12 +14,14 @@ interface CartProduct {
   image: string;
   categoryId?: string;
   brand?: string;
+  packSize?: number | null;
 }
 
 interface CartItem {
   id: string;
   productId: string;
   quantity: number;
+  isPack: boolean;
   product: CartProduct;
 }
 
@@ -72,36 +74,43 @@ export default function CartPage() {
       .catch(() => {});
   }, [items]);
 
-  const updateQty = async (productId: string, quantity: number) => {
+  const updateQty = async (productId: string, quantity: number, isPack: boolean) => {
     if (!token) return;
     if (quantity < 1) {
       await fetch("/api/user/cart", {
         method: "DELETE",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ productId }),
+        body: JSON.stringify({ productId, isPack }),
       });
-      setItems((prev) => prev.filter((i) => i.productId !== productId));
+      setItems((prev) => prev.filter((i) => !(i.productId === productId && i.isPack === isPack)));
     } else {
       await fetch("/api/user/cart", {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ productId, quantity }),
+        body: JSON.stringify({ productId, quantity, isPack }),
       });
-      setItems((prev) => prev.map((i) => i.productId === productId ? { ...i, quantity } : i));
+      setItems((prev) => prev.map((i) => (i.productId === productId && i.isPack === isPack) ? { ...i, quantity } : i));
     }
   };
 
-  const removeItem = async (productId: string) => {
+  const removeItem = async (productId: string, isPack: boolean) => {
     if (!token) return;
     await fetch("/api/user/cart", {
       method: "DELETE",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ productId }),
+      body: JSON.stringify({ productId, isPack }),
     });
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+    setItems((prev) => prev.filter((i) => !(i.productId === productId && i.isPack === isPack)));
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const getItemPrice = (item: CartItem) => {
+    const unitPrice = item.product.price;
+    if (item.isPack) return Math.round(unitPrice * item.quantity * 0.9);
+    return unitPrice * item.quantity;
+  };
+
+  const subtotal = items.reduce((sum, item) => sum + getItemPrice(item), 0);
+  const packDiscount = items.filter(i => i.isPack).reduce((sum, item) => sum + Math.round(item.product.price * item.quantity * 0.1), 0);
   const discountAmount = promoDiscount
     ? promoDiscount.discountType === "percent"
       ? Math.round(subtotal * promoDiscount.discountValue / 100)
@@ -162,26 +171,46 @@ export default function CartPage() {
             <>
               <div className="space-y-3">
                 {items.map((item) => (
-                  <div key={item.id} className="bg-bg-white rounded-xl border border-border p-3 sm:p-4">
+                  <div key={item.id} className={`bg-bg-white rounded-xl border ${item.isPack ? "border-green-300" : "border-border"} p-3 sm:p-4`}>
                     <div className="flex items-center gap-3 sm:gap-4">
                       <div className="w-12 h-12 sm:w-16 sm:h-16 bg-bg-light rounded-lg flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">📦</div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-text-dark text-sm sm:text-base truncate">{item.product.name}</h3>
-                        <p className="text-xs sm:text-sm text-text-gray">{item.product.price.toLocaleString("ru-RU")} ₽ за шт.</p>
+                        <p className="text-xs sm:text-sm text-text-gray">
+                          {item.isPack
+                            ? `🟢 ${item.product.packSize ? Math.round(item.quantity / item.product.packSize) : 1} уп. × ${item.product.packSize || item.quantity} шт. = ${item.quantity} шт. — скидка 10%`
+                            : `${item.product.price.toLocaleString("ru-RU")} ₽ за шт.`}
+                        </p>
                       </div>
-                      <button onClick={() => removeItem(item.productId)} className="text-text-gray hover:text-danger transition-colors flex-shrink-0">
+                      <button onClick={() => removeItem(item.productId, item.isPack)} className="text-text-gray hover:text-danger transition-colors flex-shrink-0">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
                     </div>
                     <div className="flex items-center justify-between mt-3 pl-[3.75rem] sm:pl-[5rem]">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => updateQty(item.productId, item.quantity - 1)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light text-sm">−</button>
-                        <span className="w-6 sm:w-8 text-center font-medium text-sm">{item.quantity}</span>
-                        <button onClick={() => updateQty(item.productId, item.quantity + 1)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light text-sm">+</button>
-                      </div>
-                      <p className="font-bold text-primary text-sm sm:text-base">{(item.product.price * item.quantity).toLocaleString("ru-RU")} ₽</p>
+                      {item.isPack ? (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => {
+                            const ps = item.product.packSize || item.quantity;
+                            updateQty(item.productId, item.quantity - ps, true);
+                          }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-green-300 flex items-center justify-center hover:bg-green-50 text-sm text-green-600">−</button>
+                          <span className="w-8 sm:w-10 text-center font-medium text-sm text-green-700">
+                            {item.product.packSize ? Math.round(item.quantity / item.product.packSize) : 1} уп.
+                          </span>
+                          <button onClick={() => {
+                            const ps = item.product.packSize || item.quantity;
+                            updateQty(item.productId, item.quantity + ps, true);
+                          }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-green-300 flex items-center justify-center hover:bg-green-50 text-sm text-green-600">+</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => updateQty(item.productId, item.quantity - 1, false)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light text-sm">−</button>
+                          <span className="w-6 sm:w-8 text-center font-medium text-sm">{item.quantity}</span>
+                          <button onClick={() => updateQty(item.productId, item.quantity + 1, false)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light text-sm">+</button>
+                        </div>
+                      )}
+                      <p className={`font-bold text-sm sm:text-base ${item.isPack ? "text-green-600" : "text-primary"}`}>{getItemPrice(item).toLocaleString("ru-RU")} ₽</p>
                     </div>
                   </div>
                 ))}
@@ -214,8 +243,14 @@ export default function CartPage() {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm text-text-gray">
                     <span>Товаров: {items.reduce((s, i) => s + i.quantity, 0)}</span>
-                    <span>{subtotal.toLocaleString("ru-RU")} ₽</span>
+                    <span>{(subtotal + packDiscount).toLocaleString("ru-RU")} ₽</span>
                   </div>
+                  {packDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Скидка за упаковку (−10%)</span>
+                      <span>−{packDiscount.toLocaleString("ru-RU")} ₽</span>
+                    </div>
+                  )}
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-sm text-success">
                       <span>Скидка по промокоду</span>

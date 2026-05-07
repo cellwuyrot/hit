@@ -42,6 +42,7 @@ interface Product {
   isFeatured: boolean;
   categoryId: string;
   category?: Category;
+  packSize: number | null;
 }
 
 interface ImportRow {
@@ -105,7 +106,15 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "settings" | "site-editor";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "callbacks" | "clients" | "settings" | "site-editor";
+
+interface CallbackItem {
+  id: string;
+  name: string;
+  phone: string;
+  status: string;
+  createdAt: string;
+}
 
 interface AnalyticsData {
   period: string;
@@ -252,7 +261,7 @@ export default function AdminPage() {
 
   const [prodForm, setProdForm] = useState({
     name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "",
-    inStock: "0", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false,
+    inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false,
   });
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
@@ -390,7 +399,7 @@ export default function AdminPage() {
     const method = editingProd ? "PUT" : "POST";
     const body = editingProd ? { id: editingProd.id, ...prodForm } : prodForm;
     await fetch("/api/admin/products", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false });
+    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false });
     setEditingProd(null); fetchData();
   };
 
@@ -538,6 +547,7 @@ export default function AdminPage() {
     { value: "image", label: "Изображение" },
     { value: "volume", label: "Объём" },
     { value: "packSize", label: "Кол-во в упаковке" },
+    { value: "expirationDate", label: "Годен до" },
     { value: "description", label: "Описание" },
     { value: "oldPrice", label: "Старая цена" },
     { value: "color", label: "Цвет" },
@@ -561,7 +571,16 @@ export default function AdminPage() {
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setImportStatus("Ошибка: файл слишком большой или сервер не ответил. Попробуйте файл поменьше.");
+        setImportLoading(false);
+        e.target.value = "";
+        return;
+      }
       if (!res.ok || !data.headers) {
         setImportStatus(`Ошибка: ${data.error || "Не удалось обработать файл"}`);
         setImportLoading(false);
@@ -632,7 +651,15 @@ export default function AdminPage() {
       headers: { ...hdrs() },
       body: JSON.stringify({ products }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      setImportStatus("Ошибка: слишком много товаров для одной загрузки. Разбейте файл на части.");
+      setImportLoading(false);
+      return;
+    }
     setImportLoading(false);
     if (res.ok) {
       setImportStatus(`Новых: ${data.imported}, обновлено: ${data.updated || 0} из ${data.total}`);
@@ -733,7 +760,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, "site-editor": "Редактирование сайта", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, callbacks: `Заявки на звонок`, clients: "Клиенты", "site-editor": "Редактирование сайта", settings: "Настройки",
   };
 
   return (
@@ -1041,6 +1068,8 @@ export default function AdminPage() {
                 </div>
                 <input type="number" placeholder="В наличии" value={prodForm.inStock} onChange={(e) => setProdForm({ ...prodForm, inStock: e.target.value })}
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                <input type="number" placeholder="Кол-во в упаковке" value={prodForm.packSize} onChange={(e) => setProdForm({ ...prodForm, packSize: e.target.value })}
+                  className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <input type="text" placeholder="Срок годности" value={prodForm.expirationDate} onChange={(e) => setProdForm({ ...prodForm, expirationDate: e.target.value })}
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <input type="text" placeholder="Бренд" value={prodForm.brand} onChange={(e) => setProdForm({ ...prodForm, brand: e.target.value })}
@@ -1058,7 +1087,7 @@ export default function AdminPage() {
                   className="md:col-span-2 lg:col-span-3 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={2} />
                 <div className="md:col-span-2 lg:col-span-3 flex items-center gap-4">
                   <button type="submit" className="bg-primary hover:bg-primary-dark text-white text-sm px-6 py-2 rounded-lg">{editingProd ? "Сохранить" : "Добавить"}</button>
-                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
                   <label className="flex items-center gap-2 text-sm cursor-pointer ml-auto border border-yellow-300 bg-yellow-50 rounded-lg px-3 py-2">
                     <input type="checkbox" checked={prodForm.isFeatured} onChange={(e) => setProdForm({ ...prodForm, isFeatured: e.target.checked })} className="accent-yellow-500 w-4 h-4" />
                     <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -1120,7 +1149,8 @@ export default function AdminPage() {
                       <th className="text-left py-2 px-2 text-text-gray font-medium">Категория</th>
                       <th className="text-right py-2 px-2 text-text-gray font-medium">Цена</th>
                       <th className="text-right py-2 px-2 text-text-gray font-medium">В наличии</th>
-                      <th className="text-left py-2 px-2 text-text-gray font-medium">Срок годности</th>
+                      <th className="text-right py-2 px-2 text-text-gray font-medium">В упак.</th>
+                      <th className="text-left py-2 px-2 text-text-gray font-medium">Годен до</th>
                       <th className="text-right py-2 px-2 text-text-gray font-medium">Действия</th>
                     </tr></thead>
                     <tbody>
@@ -1140,12 +1170,13 @@ export default function AdminPage() {
                           <td className="py-2 px-2 text-text-gray">{prod.category?.name}</td>
                           <td className="py-2 px-2 text-right font-medium">{prod.price.toLocaleString("ru-RU")} ₽</td>
                           <td className="py-2 px-2 text-right">{prod.inStock}</td>
+                          <td className="py-2 px-2 text-right">{prod.packSize || "—"}</td>
                           <td className="py-2 px-2 text-text-gray text-sm">{prod.expirationDate || "—"}</td>
                           <td className="py-2 px-2 text-right whitespace-nowrap">
                             <button onClick={() => searchProduct(prod.name)} className="text-accent hover:underline mr-2" title="Поиск в интернете">
                               <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </button>
-                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, image2: prod.image2 || "", image3: prod.image3 || "", image4: prod.image4 || "", inStock: String(prod.inStock), expirationDate: prod.expirationDate || "", brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: prod.isFeatured || false }); }} className="text-primary hover:underline mr-2">Изменить</button>
+                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, image2: prod.image2 || "", image3: prod.image3 || "", image4: prod.image4 || "", inStock: String(prod.inStock), packSize: prod.packSize ? String(prod.packSize) : "", expirationDate: prod.expirationDate || "", brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: prod.isFeatured || false }); }} className="text-primary hover:underline mr-2">Изменить</button>
                             <button onClick={() => deleteProduct(prod.id)} className="text-danger hover:underline">Удалить</button>
                           </td>
                         </tr>
@@ -1484,6 +1515,12 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Callbacks */}
+        {activeTab === "callbacks" && <CallbacksPanel token={token} />}
+
+        {/* Clients */}
+        {activeTab === "clients" && <ClientsPanel token={token} />}
+
         {/* Settings */}
         {activeTab === "settings" && (
           <div className="max-w-lg">
@@ -1671,6 +1708,313 @@ function AnalyticsPanel({ token }: { token: string }) {
         </>
       ) : (
         <p className="text-text-gray">Не удалось загрузить данные</p>
+      )}
+    </div>
+  );
+}
+
+function CallbacksPanel({ token }: { token: string }) {
+  const [callbacks, setCallbacks] = useState<CallbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadCallbacks = async () => {
+    const res = await fetch("/api/admin/callbacks", { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) setCallbacks(await res.json());
+    setLoading(false);
+  };
+
+  useEffect(() => { loadCallbacks(); }, []);
+
+  const updateStatus = async (id: string, status: string) => {
+    await fetch("/api/admin/callbacks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id, status }),
+    });
+    loadCallbacks();
+  };
+
+  const deleteCallback = async (id: string) => {
+    if (!confirm("Удалить заявку?")) return;
+    await fetch("/api/admin/callbacks", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id }),
+    });
+    loadCallbacks();
+  };
+
+  const statusLabels: Record<string, string> = { new: "Новая", processing: "В работе", done: "Выполнена" };
+  const statusColors: Record<string, string> = { new: "bg-accent text-white", processing: "bg-primary text-white", done: "bg-success text-white" };
+
+  if (loading) return <p className="text-text-gray">Загрузка...</p>;
+
+  return (
+    <div className="bg-bg-white rounded-xl border border-border p-5">
+      <h2 className="font-bold text-text-dark mb-4">Заявки на звонок ({callbacks.length})</h2>
+      {callbacks.length === 0 ? <p className="text-text-gray text-sm">Заявок пока нет</p> : (
+        <div className="space-y-3">
+          {callbacks.map((cb) => (
+            <div key={cb.id} className="p-4 bg-bg-light rounded-lg flex items-center justify-between flex-wrap gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[cb.status] || "bg-gray-200"}`}>
+                    {statusLabels[cb.status] || cb.status}
+                  </span>
+                  <span className="text-xs text-text-gray">{new Date(cb.createdAt).toLocaleString("ru-RU")}</span>
+                </div>
+                <p className="font-medium text-text-dark">{cb.name}</p>
+                <a href={`tel:${cb.phone}`} className="text-sm text-primary hover:underline">{cb.phone}</a>
+              </div>
+              <div className="flex items-center gap-2">
+                <select value={cb.status} onChange={(e) => updateStatus(cb.id, e.target.value)}
+                  className="border border-border rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-primary">
+                  {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+                <button onClick={() => deleteCallback(cb.id)}
+                  className="text-sm px-3 py-1 rounded-lg border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
+                  Удалить
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ClientItem {
+  id: string;
+  email: string;
+  name: string;
+  lastName: string;
+  phone: string;
+  city: string;
+  createdAt: string;
+  ordersCount: number;
+  reviewsCount: number;
+}
+
+interface ClientDetails {
+  id: string;
+  email: string;
+  name: string;
+  lastName: string;
+  phone: string;
+  zipCode: string;
+  region: string;
+  city: string;
+  street: string;
+  building: string;
+  apartment: string;
+  createdAt: string;
+  orders: { id: string; status: string; total: number; createdAt: string }[];
+  reviews: { id: string; rating: number; text: string; createdAt: string; product: { name: string } }[];
+}
+
+function ClientsPanel({ token }: { token: string }) {
+  const [clients, setClients] = useState<ClientItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedClient, setSelectedClient] = useState<ClientDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  const loadClients = async () => {
+    const res = await fetch("/api/admin/clients", { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) setClients(await res.json());
+    setLoading(false);
+  };
+
+  useEffect(() => { loadClients(); }, []);
+
+  const deleteClient = async (id: string, email: string) => {
+    if (!confirm(`Удалить аккаунт клиента ${email}? Это действие необратимо — будут удалены все данные, заказы и отзывы.`)) return;
+    await fetch("/api/admin/clients", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id }),
+    });
+    setSelectedClient(null);
+    loadClients();
+  };
+
+  const viewDetails = async (id: string) => {
+    setDetailsLoading(true);
+    const res = await fetch("/api/admin/clients", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id, action: "get-details" }),
+    });
+    if (res.ok) setSelectedClient(await res.json());
+    setDetailsLoading(false);
+  };
+
+  const filtered = clients.filter((c) => {
+    const q = search.toLowerCase();
+    return !q || c.email.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.lastName.toLowerCase().includes(q) || c.phone.includes(q);
+  });
+
+  const totalOrders = clients.reduce((s, c) => s + c.ordersCount, 0);
+  const totalReviews = clients.reduce((s, c) => s + c.reviewsCount, 0);
+
+  if (loading) return <p className="text-text-gray">Загрузка...</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-bg-white rounded-xl border border-border p-4 text-center">
+          <p className="text-2xl font-bold text-primary">{clients.length}</p>
+          <p className="text-xs text-text-gray">Всего клиентов</p>
+        </div>
+        <div className="bg-bg-white rounded-xl border border-border p-4 text-center">
+          <p className="text-2xl font-bold text-accent">{totalOrders}</p>
+          <p className="text-xs text-text-gray">Всего заказов</p>
+        </div>
+        <div className="bg-bg-white rounded-xl border border-border p-4 text-center">
+          <p className="text-2xl font-bold text-success">{totalReviews}</p>
+          <p className="text-xs text-text-gray">Всего отзывов</p>
+        </div>
+        <div className="bg-bg-white rounded-xl border border-border p-4 text-center">
+          <p className="text-2xl font-bold text-text-dark">{clients.filter((c) => {
+            const d = new Date(c.createdAt);
+            const now = new Date();
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          }).length}</p>
+          <p className="text-xs text-text-gray">Новых за месяц</p>
+        </div>
+      </div>
+
+      <div className="bg-bg-white rounded-xl border border-border p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <h2 className="font-bold text-text-dark">Клиенты ({filtered.length})</h2>
+          <input type="text" placeholder="Поиск по email, имени, телефону..." value={search} onChange={(e) => setSearch(e.target.value)}
+            className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary w-full sm:w-64" />
+        </div>
+
+        {filtered.length === 0 ? <p className="text-text-gray text-sm">Клиентов не найдено</p> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-text-gray">
+                  <th className="pb-2 pr-3">Клиент</th>
+                  <th className="pb-2 pr-3">Email</th>
+                  <th className="pb-2 pr-3">Телефон</th>
+                  <th className="pb-2 pr-3">Город</th>
+                  <th className="pb-2 pr-3 text-center">Заказы</th>
+                  <th className="pb-2 pr-3 text-center">Отзывы</th>
+                  <th className="pb-2 pr-3">Регистрация</th>
+                  <th className="pb-2">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((c) => (
+                  <tr key={c.id} className="border-b border-border/50 hover:bg-bg-light/50">
+                    <td className="py-2.5 pr-3 font-medium text-text-dark">
+                      {c.name || c.lastName ? `${c.lastName} ${c.name}`.trim() : "—"}
+                    </td>
+                    <td className="py-2.5 pr-3 text-primary">{c.email}</td>
+                    <td className="py-2.5 pr-3">{c.phone || "—"}</td>
+                    <td className="py-2.5 pr-3">{c.city || "—"}</td>
+                    <td className="py-2.5 pr-3 text-center">{c.ordersCount}</td>
+                    <td className="py-2.5 pr-3 text-center">{c.reviewsCount}</td>
+                    <td className="py-2.5 pr-3 text-text-gray">{new Date(c.createdAt).toLocaleDateString("ru-RU")}</td>
+                    <td className="py-2.5">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => viewDetails(c.id)}
+                          className="text-xs px-2 py-1 rounded border border-primary text-primary hover:bg-primary hover:text-white transition-colors">
+                          Подробнее
+                        </button>
+                        <button onClick={() => deleteClient(c.id, c.email)}
+                          className="text-xs px-2 py-1 rounded border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
+                          Удалить
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {(selectedClient || detailsLoading) && (
+        <div className="bg-bg-white rounded-xl border border-border p-5">
+          {detailsLoading ? <p className="text-text-gray">Загрузка...</p> : selectedClient && (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-text-dark">
+                  {selectedClient.lastName} {selectedClient.name} — {selectedClient.email}
+                </h2>
+                <button onClick={() => setSelectedClient(null)} className="text-text-gray hover:text-text-dark text-lg">✕</button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-text-dark mb-2">Контакты</h3>
+                  <p className="text-sm text-text-gray">Email: <span className="text-text-dark">{selectedClient.email}</span></p>
+                  <p className="text-sm text-text-gray">Телефон: <span className="text-text-dark">{selectedClient.phone || "не указан"}</span></p>
+                  <p className="text-sm text-text-gray">Регистрация: <span className="text-text-dark">{new Date(selectedClient.createdAt).toLocaleString("ru-RU")}</span></p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-text-dark mb-2">Адрес доставки</h3>
+                  {selectedClient.city || selectedClient.street ? (
+                    <>
+                      {selectedClient.zipCode && <p className="text-sm text-text-gray">Индекс: <span className="text-text-dark">{selectedClient.zipCode}</span></p>}
+                      {selectedClient.region && <p className="text-sm text-text-gray">Регион: <span className="text-text-dark">{selectedClient.region}</span></p>}
+                      {selectedClient.city && <p className="text-sm text-text-gray">Город: <span className="text-text-dark">{selectedClient.city}</span></p>}
+                      {selectedClient.street && <p className="text-sm text-text-gray">Улица: <span className="text-text-dark">{selectedClient.street}</span></p>}
+                      {selectedClient.building && <p className="text-sm text-text-gray">Дом: <span className="text-text-dark">{selectedClient.building}</span></p>}
+                      {selectedClient.apartment && <p className="text-sm text-text-gray">Квартира: <span className="text-text-dark">{selectedClient.apartment}</span></p>}
+                    </>
+                  ) : <p className="text-sm text-text-gray">Не указан</p>}
+                </div>
+              </div>
+
+              {selectedClient.orders.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-text-dark mb-2">Последние заказы ({selectedClient.orders.length})</h3>
+                  <div className="space-y-1">
+                    {selectedClient.orders.map((o) => (
+                      <div key={o.id} className="flex items-center justify-between text-sm p-2 bg-bg-light rounded">
+                        <span className="text-text-gray">{new Date(o.createdAt).toLocaleDateString("ru-RU")}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "delivered" ? "bg-success text-white" : o.status === "cancelled" ? "bg-danger text-white" : "bg-primary text-white"}`}>
+                          {statusLabels[o.status] || o.status}
+                        </span>
+                        <span className="font-medium text-text-dark">{o.total.toLocaleString("ru-RU")} ₽</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedClient.reviews.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-text-dark mb-2">Последние отзывы ({selectedClient.reviews.length})</h3>
+                  <div className="space-y-1">
+                    {selectedClient.reviews.map((r) => (
+                      <div key={r.id} className="text-sm p-2 bg-bg-light rounded">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-accent">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+                          <span className="text-text-gray text-xs">{r.product.name}</span>
+                        </div>
+                        {r.text && <p className="text-text-dark text-xs">{r.text}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 pt-3 border-t border-border">
+                <button onClick={() => deleteClient(selectedClient.id, selectedClient.email)}
+                  className="text-sm px-4 py-2 rounded-lg border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
+                  Удалить аккаунт
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

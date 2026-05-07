@@ -1,6 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
 
+const translitMap: Record<string, string> = {
+  а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"yo",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"kh",ц:"ts",ч:"ch",ш:"sh",щ:"shch",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"
+};
+function toSlug(text: string): string {
+  return text.toLowerCase().split("").map(c => translitMap[c] ?? c).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 function checkAdmin(request: Request): boolean {
   const token = getTokenFromRequest(request);
   if (!token) return false;
@@ -19,7 +26,11 @@ export async function POST(request: Request) {
   const { title, excerpt, content, image, published, type } = await request.json();
   if (!title) return Response.json({ error: "Укажите заголовок" }, { status: 400 });
 
-  const slug = title.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, "-").replace(/^-|-$/g, "") + "-" + Date.now();
+  let slug = toSlug(title);
+  const existing = await prisma.news.findFirst({ where: { slug } });
+  if (existing) {
+    slug = slug + "-" + Math.random().toString(36).slice(2, 6);
+  }
   const news = await prisma.news.create({
     data: { title, slug, excerpt: excerpt || "", content: content || "", image: image || "", type: type || "article", published: published ?? false },
   });

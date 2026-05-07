@@ -90,7 +90,7 @@ export default function PrivacyPage() {
               <ul className="list-disc ml-5 space-y-1 mt-2">
                 <li>Получать информацию, касающуюся обработки его данных;</li>
                 <li>Требовать уточнения, блокирования или уничтожения данных в случае их неполноты или неточности;</li>
-                <li>Отозвать согласие на обработку персональных данных, направив электронное письмо на официальный адрес Оператора: <a href="mailto:info@топхит.store" className="text-primary hover:underline">info@топхит.store</a>.</li>
+                <li>Отозвать согласие на обработку персональных данных, направив электронное письмо на официальный адрес Оператора: <a href="mailto:info@tophitt.ru" className="text-primary hover:underline">info@tophitt.ru</a>.</li>
               </ul>
             </section>
 
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
               <h2 className="text-base font-bold text-text-dark mb-2">Контактная информация</h2>
               <p>По вопросам обработки персональных данных обращайтесь:</p>
               <p className="mt-2">Телефон: <a href="tel:+79362568950" className="text-primary hover:underline">+7 (936) 256-89-50</a></p>
-              <p>Email: <a href="mailto:info@топхит.store" className="text-primary hover:underline">info@топхит.store</a></p>
+              <p>Email: <a href="mailto:info@tophitt.ru" className="text-primary hover:underline">info@tophitt.ru</a></p>
             </section>
           </div>
         </div>
