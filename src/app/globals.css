@@ -16,13 +16,13 @@
   --color-success: #22C55E;
   --color-danger: #EF4444;
   --color-warning: #F59E0B;
-  --font-heading: 'Manrope', 'Inter', system-ui, sans-serif;
+  --font-heading: var(--font-manrope), 'Manrope', system-ui, sans-serif;
 }
 
 body {
   background: var(--color-bg-light);
   color: var(--color-text-dark);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 input[type="range"]::-webkit-slider-thumb {

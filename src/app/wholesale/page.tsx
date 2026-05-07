@@ -16,7 +16,9 @@ export const metadata: Metadata = {
     description: "Выгодные условия оптовых поставок для бизнеса",
     locale: "ru_RU",
     type: "website",
+    url: "https://tophitt.ru/wholesale",
   },
+  alternates: { canonical: "https://tophitt.ru/wholesale" },
 };
 
 export default async function WholesalePage() {

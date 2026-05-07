@@ -83,8 +83,10 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={resolveImageUrl(slide.imageUrl)}
-                alt={slide.title}
+                alt={slide.title || "Баннер ТОПХИТ"}
                 className="absolute inset-0 w-full h-full object-cover"
+                fetchPriority={index === 0 ? "high" : undefined}
+                loading={index === 0 ? "eager" : "lazy"}
               />
               {(slide.title || slide.subtitle) && (
                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent flex items-center">
@@ -107,6 +109,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
         <>
           <button
             onClick={prev}
+            aria-label="Предыдущий слайд"
             className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1.5 sm:p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <svg className="w-5 h-5 text-text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,6 +118,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
           </button>
           <button
             onClick={next}
+            aria-label="Следующий слайд"
             className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1.5 sm:p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <svg className="w-5 h-5 text-text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,6 +130,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
               <button
                 key={index}
                 onClick={() => setCurrent(index)}
+                aria-label={`Слайд ${index + 1}`}
                 className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-colors shadow-sm ${
                   index === current ? "bg-white border-2 border-gray-700" : "bg-gray-800/70 border border-gray-600"
                 }`}
