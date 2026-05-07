@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import AddToCartButton from "@/components/AddToCartButton";
+import AddToCartButton, { AddPackButton } from "@/components/AddToCartButton";
 import CompareButton from "@/components/CompareButton";
 import ProductGallery from "@/components/ProductGallery";
 import CategoryTracker from "@/components/CategoryTracker";
@@ -203,9 +203,14 @@ export default async function ProductPage({ params }: PageProps) {
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 mb-3">
-                <AddToCartButton productId={product.id} inStock={product.inStock} packSize={product.packSize} price={product.price} />
-                <CompareButton productId={product.id} productName={product.name} />
+              <div className="space-y-2 mb-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <AddToCartButton productId={product.id} inStock={product.inStock} />
+                  <CompareButton productId={product.id} productName={product.name} />
+                </div>
+                {product.packSize && product.packSize > 1 && (
+                  <AddPackButton productId={product.id} inStock={product.inStock} packSize={product.packSize} price={product.price} />
+                )}
               </div>
 
               {/* Quick order */}

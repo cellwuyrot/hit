@@ -178,7 +178,7 @@ export default function CartPage() {
                         <h3 className="font-medium text-text-dark text-sm sm:text-base truncate">{item.product.name}</h3>
                         <p className="text-xs sm:text-sm text-text-gray">
                           {item.isPack
-                            ? `🟢 Упаковка (${item.quantity} шт.) — скидка 10%`
+                            ? `🟢 ${item.product.packSize ? Math.round(item.quantity / item.product.packSize) : 1} уп. × ${item.product.packSize || item.quantity} шт. = ${item.quantity} шт. — скидка 10%`
                             : `${item.product.price.toLocaleString("ru-RU")} ₽ за шт.`}
                         </p>
                       </div>
@@ -190,7 +190,19 @@ export default function CartPage() {
                     </div>
                     <div className="flex items-center justify-between mt-3 pl-[3.75rem] sm:pl-[5rem]">
                       {item.isPack ? (
-                        <span className="text-xs text-green-600">{item.product.price.toLocaleString("ru-RU")} ₽ × {item.quantity} шт. − 10%</span>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => {
+                            const ps = item.product.packSize || item.quantity;
+                            updateQty(item.productId, item.quantity - ps, true);
+                          }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-green-300 flex items-center justify-center hover:bg-green-50 text-sm text-green-600">−</button>
+                          <span className="w-8 sm:w-10 text-center font-medium text-sm text-green-700">
+                            {item.product.packSize ? Math.round(item.quantity / item.product.packSize) : 1} уп.
+                          </span>
+                          <button onClick={() => {
+                            const ps = item.product.packSize || item.quantity;
+                            updateQty(item.productId, item.quantity + ps, true);
+                          }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-green-300 flex items-center justify-center hover:bg-green-50 text-sm text-green-600">+</button>
+                        </div>
                       ) : (
                         <div className="flex items-center gap-2">
                           <button onClick={() => updateQty(item.productId, item.quantity - 1, false)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light text-sm">−</button>
