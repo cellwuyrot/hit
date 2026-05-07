@@ -204,7 +204,7 @@ export default async function ProductPage({ params }: PageProps) {
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-3 mb-3">
-                <AddToCartButton productId={product.id} inStock={product.inStock} />
+                <AddToCartButton productId={product.id} inStock={product.inStock} packSize={product.packSize} price={product.price} />
                 <CompareButton productId={product.id} productName={product.name} />
               </div>
 
