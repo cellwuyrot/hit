@@ -105,7 +105,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "callbacks" | "settings" | "site-editor";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "callbacks" | "clients" | "settings" | "site-editor";
 
 interface CallbackItem {
   id: string;
@@ -741,7 +741,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, callbacks: `Заявки на звонок`, "site-editor": "Редактирование сайта", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, callbacks: `Заявки на звонок`, clients: "Клиенты", "site-editor": "Редактирование сайта", settings: "Настройки",
   };
 
   return (
@@ -1495,6 +1495,9 @@ export default function AdminPage() {
         {/* Callbacks */}
         {activeTab === "callbacks" && <CallbacksPanel token={token} />}
 
+        {/* Clients */}
+        {activeTab === "clients" && <ClientsPanel token={token} />}
+
         {/* Settings */}
         {activeTab === "settings" && (
           <div className="max-w-lg">
@@ -1752,6 +1755,242 @@ function CallbacksPanel({ token }: { token: string }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ClientItem {
+  id: string;
+  email: string;
+  name: string;
+  lastName: string;
+  phone: string;
+  city: string;
+  createdAt: string;
+  ordersCount: number;
+  reviewsCount: number;
+}
+
+interface ClientDetails {
+  id: string;
+  email: string;
+  name: string;
+  lastName: string;
+  phone: string;
+  zipCode: string;
+  region: string;
+  city: string;
+  street: string;
+  building: string;
+  apartment: string;
+  createdAt: string;
+  orders: { id: string; status: string; total: number; createdAt: string }[];
+  reviews: { id: string; rating: number; text: string; createdAt: string; product: { name: string } }[];
+}
+
+function ClientsPanel({ token }: { token: string }) {
+  const [clients, setClients] = useState<ClientItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedClient, setSelectedClient] = useState<ClientDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  const loadClients = async () => {
+    const res = await fetch("/api/admin/clients", { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) setClients(await res.json());
+    setLoading(false);
+  };
+
+  useEffect(() => { loadClients(); }, []);
+
+  const deleteClient = async (id: string, email: string) => {
+    if (!confirm(`Удалить аккаунт клиента ${email}? Это действие необратимо — будут удалены все данные, заказы и отзывы.`)) return;
+    await fetch("/api/admin/clients", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id }),
+    });
+    setSelectedClient(null);
+    loadClients();
+  };
+
+  const viewDetails = async (id: string) => {
+    setDetailsLoading(true);
+    const res = await fetch("/api/admin/clients", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id, action: "get-details" }),
+    });
+    if (res.ok) setSelectedClient(await res.json());
+    setDetailsLoading(false);
+  };
+
+  const filtered = clients.filter((c) => {
+    const q = search.toLowerCase();
+    return !q || c.email.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.lastName.toLowerCase().includes(q) || c.phone.includes(q);
+  });
+
+  const totalOrders = clients.reduce((s, c) => s + c.ordersCount, 0);
+  const totalReviews = clients.reduce((s, c) => s + c.reviewsCount, 0);
+
+  if (loading) return <p className="text-text-gray">Загрузка...</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-bg-white rounded-xl border border-border p-4 text-center">
+          <p className="text-2xl font-bold text-primary">{clients.length}</p>
+          <p className="text-xs text-text-gray">Всего клиентов</p>
+        </div>
+        <div className="bg-bg-white rounded-xl border border-border p-4 text-center">
+          <p className="text-2xl font-bold text-accent">{totalOrders}</p>
+          <p className="text-xs text-text-gray">Всего заказов</p>
+        </div>
+        <div className="bg-bg-white rounded-xl border border-border p-4 text-center">
+          <p className="text-2xl font-bold text-success">{totalReviews}</p>
+          <p className="text-xs text-text-gray">Всего отзывов</p>
+        </div>
+        <div className="bg-bg-white rounded-xl border border-border p-4 text-center">
+          <p className="text-2xl font-bold text-text-dark">{clients.filter((c) => {
+            const d = new Date(c.createdAt);
+            const now = new Date();
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          }).length}</p>
+          <p className="text-xs text-text-gray">Новых за месяц</p>
+        </div>
+      </div>
+
+      <div className="bg-bg-white rounded-xl border border-border p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <h2 className="font-bold text-text-dark">Клиенты ({filtered.length})</h2>
+          <input type="text" placeholder="Поиск по email, имени, телефону..." value={search} onChange={(e) => setSearch(e.target.value)}
+            className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary w-full sm:w-64" />
+        </div>
+
+        {filtered.length === 0 ? <p className="text-text-gray text-sm">Клиентов не найдено</p> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-text-gray">
+                  <th className="pb-2 pr-3">Клиент</th>
+                  <th className="pb-2 pr-3">Email</th>
+                  <th className="pb-2 pr-3">Телефон</th>
+                  <th className="pb-2 pr-3">Город</th>
+                  <th className="pb-2 pr-3 text-center">Заказы</th>
+                  <th className="pb-2 pr-3 text-center">Отзывы</th>
+                  <th className="pb-2 pr-3">Регистрация</th>
+                  <th className="pb-2">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((c) => (
+                  <tr key={c.id} className="border-b border-border/50 hover:bg-bg-light/50">
+                    <td className="py-2.5 pr-3 font-medium text-text-dark">
+                      {c.name || c.lastName ? `${c.lastName} ${c.name}`.trim() : "—"}
+                    </td>
+                    <td className="py-2.5 pr-3 text-primary">{c.email}</td>
+                    <td className="py-2.5 pr-3">{c.phone || "—"}</td>
+                    <td className="py-2.5 pr-3">{c.city || "—"}</td>
+                    <td className="py-2.5 pr-3 text-center">{c.ordersCount}</td>
+                    <td className="py-2.5 pr-3 text-center">{c.reviewsCount}</td>
+                    <td className="py-2.5 pr-3 text-text-gray">{new Date(c.createdAt).toLocaleDateString("ru-RU")}</td>
+                    <td className="py-2.5">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => viewDetails(c.id)}
+                          className="text-xs px-2 py-1 rounded border border-primary text-primary hover:bg-primary hover:text-white transition-colors">
+                          Подробнее
+                        </button>
+                        <button onClick={() => deleteClient(c.id, c.email)}
+                          className="text-xs px-2 py-1 rounded border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
+                          Удалить
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {(selectedClient || detailsLoading) && (
+        <div className="bg-bg-white rounded-xl border border-border p-5">
+          {detailsLoading ? <p className="text-text-gray">Загрузка...</p> : selectedClient && (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-text-dark">
+                  {selectedClient.lastName} {selectedClient.name} — {selectedClient.email}
+                </h2>
+                <button onClick={() => setSelectedClient(null)} className="text-text-gray hover:text-text-dark text-lg">✕</button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-text-dark mb-2">Контакты</h3>
+                  <p className="text-sm text-text-gray">Email: <span className="text-text-dark">{selectedClient.email}</span></p>
+                  <p className="text-sm text-text-gray">Телефон: <span className="text-text-dark">{selectedClient.phone || "не указан"}</span></p>
+                  <p className="text-sm text-text-gray">Регистрация: <span className="text-text-dark">{new Date(selectedClient.createdAt).toLocaleString("ru-RU")}</span></p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-text-dark mb-2">Адрес доставки</h3>
+                  {selectedClient.city || selectedClient.street ? (
+                    <>
+                      {selectedClient.zipCode && <p className="text-sm text-text-gray">Индекс: <span className="text-text-dark">{selectedClient.zipCode}</span></p>}
+                      {selectedClient.region && <p className="text-sm text-text-gray">Регион: <span className="text-text-dark">{selectedClient.region}</span></p>}
+                      {selectedClient.city && <p className="text-sm text-text-gray">Город: <span className="text-text-dark">{selectedClient.city}</span></p>}
+                      {selectedClient.street && <p className="text-sm text-text-gray">Улица: <span className="text-text-dark">{selectedClient.street}</span></p>}
+                      {selectedClient.building && <p className="text-sm text-text-gray">Дом: <span className="text-text-dark">{selectedClient.building}</span></p>}
+                      {selectedClient.apartment && <p className="text-sm text-text-gray">Квартира: <span className="text-text-dark">{selectedClient.apartment}</span></p>}
+                    </>
+                  ) : <p className="text-sm text-text-gray">Не указан</p>}
+                </div>
+              </div>
+
+              {selectedClient.orders.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-text-dark mb-2">Последние заказы ({selectedClient.orders.length})</h3>
+                  <div className="space-y-1">
+                    {selectedClient.orders.map((o) => (
+                      <div key={o.id} className="flex items-center justify-between text-sm p-2 bg-bg-light rounded">
+                        <span className="text-text-gray">{new Date(o.createdAt).toLocaleDateString("ru-RU")}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "delivered" ? "bg-success text-white" : o.status === "cancelled" ? "bg-danger text-white" : "bg-primary text-white"}`}>
+                          {statusLabels[o.status] || o.status}
+                        </span>
+                        <span className="font-medium text-text-dark">{o.total.toLocaleString("ru-RU")} ₽</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedClient.reviews.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-text-dark mb-2">Последние отзывы ({selectedClient.reviews.length})</h3>
+                  <div className="space-y-1">
+                    {selectedClient.reviews.map((r) => (
+                      <div key={r.id} className="text-sm p-2 bg-bg-light rounded">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-accent">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+                          <span className="text-text-gray text-xs">{r.product.name}</span>
+                        </div>
+                        {r.text && <p className="text-text-dark text-xs">{r.text}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 pt-3 border-t border-border">
+                <button onClick={() => deleteClient(selectedClient.id, selectedClient.email)}
+                  className="text-sm px-4 py-2 rounded-lg border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
+                  Удалить аккаунт
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
