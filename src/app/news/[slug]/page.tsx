@@ -8,8 +8,9 @@ export const revalidate = 60;
 
 export default async function NewsDetailPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
+  const decodedSlug = decodeURIComponent(slug);
 
-  const news = await prisma.news.findUnique({ where: { slug } });
+  const news = await prisma.news.findUnique({ where: { slug: decodedSlug } });
 
   if (!news || !news.published) {
     notFound();
