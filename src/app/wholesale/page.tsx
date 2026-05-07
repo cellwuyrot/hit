@@ -10,7 +10,7 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Оптовые продажи — ТОПХИТ",
-  description: "Оптовые поставки товаров от ТОПХИТ. Специальные условия для юридических лиц и ИП. Доставка по Москве и МО.",
+  description: "Оптовые поставки от ТОПХИТ — специальные цены для ООО, ИП и физлиц. Скидки от 5% до 20%, доставка по Москве, МО и России. Самовывоз со склада.",
   openGraph: {
     title: "Оптовые продажи — ТОПХИТ",
     description: "Выгодные условия оптовых поставок для бизнеса",
@@ -217,11 +217,11 @@ export default async function WholesalePage() {
                 </svg>
                 +7 (936) 256-89-50
               </a>
-              <a href="mailto:opt@tophit.store" className="flex items-center gap-2 text-primary font-bold hover:underline">
+              <a href="mailto:opt@tophitt.ru" className="flex items-center gap-2 text-primary font-bold hover:underline">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                opt@tophit.store
+                opt@tophitt.ru
               </a>
             </div>
             <div className="mt-4">

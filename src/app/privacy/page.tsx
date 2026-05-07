@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Политика конфиденциальности — ТОПХИТ",
-  description: "Политика обработки персональных данных интернет-магазина ТОПХИТ",
+  description: "Политика конфиденциальности и обработки персональных данных на сайте tophitt.ru. Порядок сбора, хранения и защиты данных покупателей.",
 };
 
 export default function PrivacyPage() {
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
               <ul className="list-disc ml-5 space-y-1">
                 <li><strong>Персональные данные</strong> — любая информация, относящаяся к прямо или косвенно определённому физическому лицу (субъекту персональных данных).</li>
                 <li><strong>Обработка персональных данных</strong> — любое действие с персональными данными, включая сбор, запись, систематизацию, накопление, хранение, уточнение, извлечение, использование, передачу, обезличивание, блокирование, удаление, уничтожение.</li>
-                <li><strong>Оператор</strong> — интернет-магазин ТОПХИТ (tophit.store).</li>
+                <li><strong>Оператор</strong> — интернет-магазин ТОПХИТ (tophitt.ru).</li>
               </ul>
             </section>
 
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
               <h2 className="text-base font-bold text-text-dark mb-2">7. Контактная информация</h2>
               <p>По вопросам обработки персональных данных обращайтесь:</p>
               <p className="mt-2">Телефон: <a href="tel:+79362568950" className="text-primary hover:underline">+7 (936) 256-89-50</a></p>
-              <p>Email: <a href="mailto:info@tophit.store" className="text-primary hover:underline">info@tophit.store</a></p>
+              <p>Email: <a href="mailto:info@tophitt.ru" className="text-primary hover:underline">info@tophitt.ru</a></p>
             </section>
           </div>
         </div>

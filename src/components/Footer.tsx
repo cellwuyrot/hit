@@ -47,9 +47,9 @@ export default function Footer() {
             <h3 className="font-bold mb-3 sm:mb-4 text-sm sm:text-base">Контакты</h3>
             <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/75">
               <p><a href="tel:+79362568950" className="hover:text-white transition-colors">📞 +7 (936) 256-89-50</a></p>
-              <p><a href="mailto:zakaz@топхит.store" className="hover:text-white transition-colors break-all">📧 zakaz@топхит.store</a></p>
-              <p><a href="mailto:opt@топхит.store" className="hover:text-white transition-colors break-all">📧 opt@топхит.store (опт)</a></p>
-              <p><a href="mailto:info@топхит.store" className="hover:text-white transition-colors break-all">📧 info@топхит.store (поставщики)</a></p>
+              <p><a href="mailto:zakaz@tophitt.ru" className="hover:text-white transition-colors break-all">📧 zakaz@tophitt.ru</a></p>
+              <p><a href="mailto:opt@tophitt.ru" className="hover:text-white transition-colors break-all">📧 opt@tophitt.ru (опт)</a></p>
+              <p><a href="mailto:info@tophitt.ru" className="hover:text-white transition-colors break-all">📧 info@tophitt.ru (поставщики)</a></p>
               <p>📍 127018, г. Москва, ул. Складочная д. 1 стр. 18</p>
               <p>🕒 ПН-ПТ с 09:00 до 18:00</p>
             </div>

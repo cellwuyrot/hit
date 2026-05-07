@@ -26,7 +26,11 @@ export async function POST(request: Request) {
   const { title, excerpt, content, image, published, type } = await request.json();
   if (!title) return Response.json({ error: "Укажите заголовок" }, { status: 400 });
 
-  const slug = toSlug(title) + "-" + Date.now();
+  let slug = toSlug(title);
+  const existing = await prisma.news.findFirst({ where: { slug } });
+  if (existing) {
+    slug = slug + "-" + Math.random().toString(36).slice(2, 6);
+  }
   const news = await prisma.news.create({
     data: { title, slug, excerpt: excerpt || "", content: content || "", image: image || "", type: type || "article", published: published ?? false },
   });
