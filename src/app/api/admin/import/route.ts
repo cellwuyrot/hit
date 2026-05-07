@@ -37,7 +37,8 @@ const AUTO_DETECT: Record<string, string[]> = {
   code: ["код", "code", "артикул", "sku"],
   image: ["изображение", "картинка", "фото", "image"],
   volume: ["объем (м³)", "объём (м³)", "объем", "объём", "volume"],
-  packSize: ["кол-во (шт) в упаковке"],
+  packSize: ["кол-во (шт) в упаковке", "в упаковке", "упаковка"],
+  expirationDate: ["годен до", "срок годности", "expiration", "годность"],
   description: ["описание", "description"],
   oldPrice: ["старая цена", "old price", "oldprice"],
   color: ["цвет", "color"],
@@ -200,6 +201,7 @@ interface ImportProduct {
   oldPrice?: number | string | null;
   color?: string;
   productType?: string;
+  expirationDate?: string;
 }
 
 // POST — import products (receive mapped data as JSON)
@@ -227,13 +229,27 @@ export async function POST(request: Request) {
   }
 
   const names = validRows.map((r) => String(r.name));
+  const codes = validRows.filter((r) => r.code).map((r) => String(r.code));
+  const barcodes = validRows.filter((r) => r.barcode).map((r) => String(r.barcode));
+
   const existingProducts = await prisma.product.findMany({
-    where: { name: { in: names } },
-    select: { id: true, name: true, brand: true, inStock: true },
+    where: {
+      OR: [
+        { name: { in: names } },
+        ...(codes.length > 0 ? [{ code: { in: codes } }] : []),
+        ...(barcodes.length > 0 ? [{ barcode: { in: barcodes } }] : []),
+      ],
+    },
+    select: { id: true, name: true, brand: true, inStock: true, code: true, barcode: true },
   });
-  const existingMap = new Map<string, { id: string; inStock: number }>();
+
+  const existingByName = new Map<string, { id: string; inStock: number }>();
+  const existingByCode = new Map<string, { id: string; inStock: number }>();
+  const existingByBarcode = new Map<string, { id: string; inStock: number }>();
   for (const p of existingProducts) {
-    existingMap.set(`${p.name}|||${p.brand}`, { id: p.id, inStock: p.inStock });
+    existingByName.set(`${p.name}|||${p.brand}`, { id: p.id, inStock: p.inStock });
+    if (p.code) existingByCode.set(p.code, { id: p.id, inStock: p.inStock });
+    if (p.barcode) existingByBarcode.set(p.barcode, { id: p.id, inStock: p.inStock });
   }
 
   let imported = 0;
@@ -251,15 +267,32 @@ export async function POST(request: Request) {
 
     const categoryId = (row.category ? catByName.get(String(row.category).toLowerCase()) : undefined) || defaultCatId;
 
-    const key = `${name}|||${brand}`;
-    const existing = existingMap.get(key);
+    const codeStr = row.code ? String(row.code) : "";
+    const barcodeStr = row.barcode ? String(row.barcode) : "";
+    const existing = (codeStr && existingByCode.get(codeStr))
+      || (barcodeStr && existingByBarcode.get(barcodeStr))
+      || existingByName.get(`${name}|||${brand}`);
 
     if (existing) {
+      const updateData: Record<string, unknown> = { inStock };
+      if (price > 0) updateData.price = price;
+      if (oldPrice !== null) updateData.oldPrice = oldPrice;
+      if (brand) updateData.brand = brand;
+      if (row.country) updateData.country = String(row.country);
+      if (weight !== null) updateData.weight = weight;
+      if (volume !== null) updateData.volume = volume;
+      if (packSize !== null) updateData.packSize = packSize;
+      if (codeStr) updateData.code = codeStr;
+      if (barcodeStr) updateData.barcode = barcodeStr;
+      if (row.color) updateData.color = String(row.color);
+      if (row.description) updateData.description = String(row.description);
+      if (row.image) updateData.image = String(row.image);
+      if (row.expirationDate) updateData.expirationDate = String(row.expirationDate);
+
       await prisma.product.update({
         where: { id: existing.id },
-        data: { inStock: existing.inStock + inStock },
+        data: updateData,
       });
-      existing.inStock += inStock;
       updated++;
     } else {
       const slug = slugify(name) + "-" + Date.now() + "-" + imported;
@@ -276,15 +309,18 @@ export async function POST(request: Request) {
           color: row.color ? String(row.color) : "",
           productType: row.productType ? String(row.productType) : "",
           country: row.country ? String(row.country) : "",
-          barcode: row.barcode ? String(row.barcode) : "",
-          code: row.code ? String(row.code) : "",
+          barcode: barcodeStr,
+          code: codeStr,
           weight,
           volume,
           packSize,
+          expirationDate: row.expirationDate ? String(row.expirationDate) : "",
           categoryId,
         },
       });
-      existingMap.set(key, { id: created.id, inStock });
+      existingByName.set(`${name}|||${brand}`, { id: created.id, inStock });
+      if (codeStr) existingByCode.set(codeStr, { id: created.id, inStock });
+      if (barcodeStr) existingByBarcode.set(barcodeStr, { id: created.id, inStock });
       imported++;
     }
   }

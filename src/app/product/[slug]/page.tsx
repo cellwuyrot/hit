@@ -197,6 +197,8 @@ export default async function ProductPage({ params }: PageProps) {
                 {product.brand && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Бренд:</span><span className="text-text-dark font-medium">{product.brand}</span></div>}
                 {product.productType && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Тип:</span><span className="text-text-dark font-medium">{product.productType}</span></div>}
                 {product.color && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Цвет:</span><span className="text-text-dark font-medium">{product.color}</span></div>}
+                {product.packSize && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">В упаковке:</span><span className="text-text-dark font-medium">{product.packSize} шт.</span></div>}
+                {product.expirationDate && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Годен до:</span><span className="text-text-dark font-medium">{product.expirationDate}</span></div>}
                 <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Категория:</span><Link href={`/catalog/${product.category.slug}`} className="text-primary hover:underline">{product.category.name}</Link></div>
               </div>
 

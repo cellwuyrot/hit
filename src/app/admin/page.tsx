@@ -42,6 +42,7 @@ interface Product {
   isFeatured: boolean;
   categoryId: string;
   category?: Category;
+  packSize: number | null;
 }
 
 interface ImportRow {
@@ -546,6 +547,7 @@ export default function AdminPage() {
     { value: "image", label: "Изображение" },
     { value: "volume", label: "Объём" },
     { value: "packSize", label: "Кол-во в упаковке" },
+    { value: "expirationDate", label: "Годен до" },
     { value: "description", label: "Описание" },
     { value: "oldPrice", label: "Старая цена" },
     { value: "color", label: "Цвет" },
@@ -1128,7 +1130,8 @@ export default function AdminPage() {
                       <th className="text-left py-2 px-2 text-text-gray font-medium">Категория</th>
                       <th className="text-right py-2 px-2 text-text-gray font-medium">Цена</th>
                       <th className="text-right py-2 px-2 text-text-gray font-medium">В наличии</th>
-                      <th className="text-left py-2 px-2 text-text-gray font-medium">Срок годности</th>
+                      <th className="text-right py-2 px-2 text-text-gray font-medium">В упак.</th>
+                      <th className="text-left py-2 px-2 text-text-gray font-medium">Годен до</th>
                       <th className="text-right py-2 px-2 text-text-gray font-medium">Действия</th>
                     </tr></thead>
                     <tbody>
@@ -1148,6 +1151,7 @@ export default function AdminPage() {
                           <td className="py-2 px-2 text-text-gray">{prod.category?.name}</td>
                           <td className="py-2 px-2 text-right font-medium">{prod.price.toLocaleString("ru-RU")} ₽</td>
                           <td className="py-2 px-2 text-right">{prod.inStock}</td>
+                          <td className="py-2 px-2 text-right">{prod.packSize || "—"}</td>
                           <td className="py-2 px-2 text-text-gray text-sm">{prod.expirationDate || "—"}</td>
                           <td className="py-2 px-2 text-right whitespace-nowrap">
                             <button onClick={() => searchProduct(prod.name)} className="text-accent hover:underline mr-2" title="Поиск в интернете">
