@@ -138,7 +138,7 @@ export default function Header() {
                   placeholder="Поиск товаров..."
                   className="w-full border border-border rounded-lg px-4 py-2.5 pr-10 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 />
-                <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-primary transition-colors">
+                <button type="submit" aria-label="Поиск" className="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-primary transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -217,6 +217,7 @@ export default function Header() {
             <button
               className="md:hidden text-text-gray hover:text-primary transition-colors"
               onClick={() => setMenuOpen(!menuOpen)}
+              aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {menuOpen ? (
@@ -240,7 +241,7 @@ export default function Header() {
                 placeholder="Поиск товаров..."
                 className="w-full border border-border rounded-lg px-4 py-2.5 pr-10 focus:outline-none focus:border-primary"
               />
-              <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-primary">
+              <button type="submit" aria-label="Поиск" className="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-primary">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
