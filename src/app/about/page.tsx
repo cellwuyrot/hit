@@ -9,13 +9,17 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "О компании ТОПХИТ — доставка, контакты",
-  description: "ТОПХИТ — динамично развивающаяся торговая компания. Доставка по Москве и МО. Продукты питания, бытовая химия, электроника, товары для дома.",
+  title: "О компании ТОПХИТ — оптовая и розничная торговля, доставка, контакты",
+  description: "ТОПХИТ — торговая компания, продажа товаров оптом и в розницу по лучшим ценам. Условия сотрудничества, график работы, доставка и самовывоз в Москве.",
   openGraph: {
-    title: "О компании ТОПХИТ",
-    description: "Широкий ассортимент товаров по честным ценам с доставкой по Москве и МО",
+    title: "О компании ТОПХИТ — опт и розница",
+    description: "ТОПХИТ — продажа товаров оптом и в розницу. Выгодные цены, доставка по Москве и МО, самовывоз.",
     locale: "ru_RU",
     type: "website",
+    url: "https://tophitt.ru/about",
+  },
+  alternates: {
+    canonical: "https://tophitt.ru/about",
   },
 };
 
@@ -232,7 +236,7 @@ export default async function AboutPage() {
                       <p className="text-sm text-primary font-bold">+7 (936) 256-89-50</p>
                     </div>
                   </a>
-                  <a href="mailto:zakaz@tophit.store"
+                  <a href="mailto:zakaz@tophitt.ru"
                     className="flex items-start gap-3 bg-bg-white rounded-xl border border-border p-4 hover:border-primary/30 hover:shadow-md transition-all">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                       <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,10 +245,10 @@ export default async function AboutPage() {
                     </div>
                     <div>
                       <p className="text-xs text-text-gray mb-0.5">Розничные заказы</p>
-                      <p className="text-sm text-primary font-medium">zakaz@tophit.store</p>
+                      <p className="text-sm text-primary font-medium">zakaz@tophitt.ru</p>
                     </div>
                   </a>
-                  <a href="mailto:opt@tophit.store"
+                  <a href="mailto:opt@tophitt.ru"
                     className="flex items-start gap-3 bg-bg-white rounded-xl border border-border p-4 hover:border-primary/30 hover:shadow-md transition-all">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                       <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,10 +257,10 @@ export default async function AboutPage() {
                     </div>
                     <div>
                       <p className="text-xs text-text-gray mb-0.5">Оптовые заказы</p>
-                      <p className="text-sm text-primary font-medium">opt@tophit.store</p>
+                      <p className="text-sm text-primary font-medium">opt@tophitt.ru</p>
                     </div>
                   </a>
-                  <a href="mailto:info@tophit.store"
+                  <a href="mailto:info@tophitt.ru"
                     className="flex items-start gap-3 bg-bg-white rounded-xl border border-border p-4 hover:border-primary/30 hover:shadow-md transition-all sm:col-span-2">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                       <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,7 +269,7 @@ export default async function AboutPage() {
                     </div>
                     <div>
                       <p className="text-xs text-text-gray mb-0.5">Для поставщиков</p>
-                      <p className="text-sm text-primary font-medium">info@tophit.store</p>
+                      <p className="text-sm text-primary font-medium">info@tophitt.ru</p>
                     </div>
                   </a>
                 </div>

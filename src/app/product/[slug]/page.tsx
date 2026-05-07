@@ -41,10 +41,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       type: "website",
       locale: "ru_RU",
-      url: `https://tophit.store/product/${slug}`,
+      url: `https://tophitt.ru/product/${slug}`,
       images: product.image ? [{ url: product.image }] : [],
     },
-    alternates: { canonical: `https://tophit.store/product/${slug}` },
+    alternates: { canonical: `https://tophitt.ru/product/${slug}` },
   };
 }
 
@@ -89,7 +89,7 @@ export default async function ProductPage({ params }: PageProps) {
     category: product.category.name,
     offers: {
       "@type": "Offer",
-      url: `https://tophit.store/product/${product.slug}`,
+      url: `https://tophitt.ru/product/${product.slug}`,
       priceCurrency: "RUB",
       price: product.price,
       availability: product.inStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
@@ -114,10 +114,10 @@ export default async function ProductPage({ params }: PageProps) {
   };
 
   const breadcrumbItems = [
-    { name: "Главная", url: "https://tophit.store/" },
-    { name: "Каталог", url: "https://tophit.store/catalog" },
-    ...(product.category.parent ? [{ name: product.category.parent.name, url: `https://tophit.store/catalog/${product.category.parent.slug}` }] : []),
-    { name: product.category.name, url: `https://tophit.store/catalog/${product.category.slug}` },
+    { name: "Главная", url: "https://tophitt.ru/" },
+    { name: "Каталог", url: "https://tophitt.ru/catalog" },
+    ...(product.category.parent ? [{ name: product.category.parent.name, url: `https://tophitt.ru/catalog/${product.category.parent.slug}` }] : []),
+    { name: product.category.name, url: `https://tophitt.ru/catalog/${product.category.slug}` },
     { name: product.name },
   ];
 

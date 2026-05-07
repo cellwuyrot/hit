@@ -306,7 +306,11 @@ export async function POST(request: Request) {
       });
       updated++;
     } else {
-      const slug = slugify(name) + "-" + Date.now() + "-" + imported;
+      let slug = slugify(name);
+      const slugExists = await prisma.product.findFirst({ where: { slug } });
+      if (slugExists) {
+        slug = slug + "-" + Math.random().toString(36).slice(2, 6);
+      }
       const created = await prisma.product.create({
         data: {
           name,

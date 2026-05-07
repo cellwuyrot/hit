@@ -44,7 +44,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "Название, цена и категория обязательны" }, { status: 400 });
   }
 
-  const slug = slugify(name) + "-" + Date.now();
+  let slug = slugify(name);
+  const existing = await prisma.product.findFirst({ where: { slug } });
+  if (existing) {
+    slug = slug + "-" + Math.random().toString(36).slice(2, 6);
+  }
   const product = await prisma.product.create({
     data: {
       name, slug, description: description || "", price: Number(price),
