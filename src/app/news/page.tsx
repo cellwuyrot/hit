@@ -17,7 +17,9 @@ export const metadata: Metadata = {
     description: "Новости и обновления магазина ТОПХИТ",
     locale: "ru_RU",
     type: "website",
+    url: "https://tophitt.ru/news",
   },
+  alternates: { canonical: "https://tophitt.ru/news" },
 };
 
 export default async function NewsPage(props: { searchParams: Promise<{ type?: string }> }) {

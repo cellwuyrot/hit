@@ -9,41 +9,60 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { getCategoryPath } from "@/lib/slugify";
 
 
 export const revalidate = 60;
 
+async function resolveCategory(slugSegments: string[]) {
+  const leafSlug = slugSegments[slugSegments.length - 1];
+  const category = await prisma.category.findUnique({
+    where: { slug: leafSlug },
+    include: { children: { orderBy: { order: "asc" } }, parent: true },
+  });
+  if (!category) return null;
+
+  if (slugSegments.length === 2) {
+    if (!category.parent || category.parent.slug !== slugSegments[0]) return null;
+  } else if (slugSegments.length === 1) {
+    // ok
+  } else {
+    return null;
+  }
+  return category;
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { categorySlug } = await params;
-  const category = await prisma.category.findUnique({ where: { slug: categorySlug } });
+  const { slug } = await params;
+  const category = await resolveCategory(slug);
   if (!category) return {};
+  const canonicalPath = getCategoryPath(category);
   const title = category.metaTitle || `${category.name} — купить в ТОПХИТ`;
   const description = category.metaDescription || `Купить ${category.name} в магазине ТОПХИТ. Широкий ассортимент, выгодные цены, доставка по Москве и МО.`;
   return {
     title,
     description,
-    openGraph: { title, description, locale: "ru_RU", type: "website", url: `https://tophitt.ru/catalog/${categorySlug}` },
-    alternates: { canonical: `https://tophitt.ru/catalog/${categorySlug}` },
+    openGraph: { title, description, locale: "ru_RU", type: "website", url: `https://tophitt.ru${canonicalPath}` },
+    alternates: { canonical: `https://tophitt.ru${canonicalPath}` },
   };
 }
 
 interface PageProps {
-  params: Promise<{ categorySlug: string }>;
+  params: Promise<{ slug: string[] }>;
   searchParams: Promise<Record<string, string | undefined>>;
 }
 
 async function CategoryContent({
-  categorySlug,
+  slugSegments,
   searchParams,
 }: {
-  categorySlug: string;
+  slugSegments: string[];
   searchParams: Record<string, string | undefined>;
 }) {
-  const category = await prisma.category.findUnique({
-    where: { slug: categorySlug },
-    include: { children: { orderBy: { order: "asc" } }, parent: true },
-  });
+  const category = await resolveCategory(slugSegments);
   if (!category) notFound();
+
+  const categoryPath = getCategoryPath(category);
 
   const sort = searchParams.sort || "popular";
   const priceFrom = searchParams.priceFrom ? Number(searchParams.priceFrom) : undefined;
@@ -77,7 +96,7 @@ async function CategoryContent({
 
   const [totalCount, rawProducts, catProducts] = await Promise.all([
     prisma.product.count({ where }),
-    prisma.product.findMany({ where, orderBy, include: { category: true }, take: PER_PAGE, skip }),
+    prisma.product.findMany({ where, orderBy, include: { category: { include: { parent: true } } }, take: PER_PAGE, skip }),
     prisma.product.findMany({
       where: { categoryId: { in: catIds } },
       select: { brand: true, productType: true, color: true, price: true },
@@ -100,7 +119,7 @@ async function CategoryContent({
     "@type": "CollectionPage",
     name: category.name,
     description: category.metaDescription || `Купить ${category.name} в магазине ТОПХИТ`,
-    url: `https://tophitt.ru/catalog/${category.slug}`,
+    url: `https://tophitt.ru${categoryPath}`,
     mainEntity: {
       "@type": "ItemList",
       numberOfItems: totalCount,
@@ -114,14 +133,16 @@ async function CategoryContent({
     },
   };
 
+  const breadcrumbItems = [
+    { label: "Каталог", href: "/catalog" },
+    ...(category.parent ? [{ label: category.parent.name, href: `/catalog/${category.parent.slug}` }] : []),
+    { label: category.name },
+  ];
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }} />
-      <Breadcrumbs items={[
-        { label: "Каталог", href: "/catalog" },
-        ...(category.parent ? [{ label: category.parent.name, href: `/catalog/${category.parent.slug}` }] : []),
-        { label: category.name },
-      ]} />
+      <Breadcrumbs items={breadcrumbItems} />
 
       <h1 className="text-2xl font-bold text-text-dark mb-6">{category.name}</h1>
 
@@ -132,7 +153,7 @@ async function CategoryContent({
       {category.children.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
           {category.children.map((sub) => (
-            <Link key={sub.id} href={`/catalog/${sub.slug}`}
+            <Link key={sub.id} href={`/catalog/${category.slug}/${sub.slug}`}
               className="px-4 py-2 bg-bg-white border border-border rounded-lg text-sm text-text-gray hover:text-primary hover:border-primary/30 transition-colors">
               {sub.name}
             </Link>
@@ -225,7 +246,7 @@ function SortLinks({ current }: { current: string }) {
 }
 
 export default async function CategoryPage({ params, searchParams }: PageProps) {
-  const { categorySlug } = await params;
+  const { slug } = await params;
   const resolvedParams = await searchParams;
 
   return (
@@ -234,7 +255,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <Suspense fallback={<div className="text-center py-12 text-text-gray">Загрузка...</div>}>
-            <CategoryContent categorySlug={categorySlug} searchParams={resolvedParams} />
+            <CategoryContent slugSegments={slug} searchParams={resolvedParams} />
           </Suspense>
         </div>
       </main>
