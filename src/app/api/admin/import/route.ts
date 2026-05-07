@@ -92,14 +92,25 @@ function isDataRow(row: unknown[], minCells: number): boolean {
   return nonEmpty.length >= minCells;
 }
 
+export const maxDuration = 60;
+
 // PUT — parse file and return structured data (upload file once)
 export async function PUT(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 
-  const formData = await request.formData();
+  let formData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return Response.json({ error: "Файл слишком большой. Максимум ~10 МБ." }, { status: 413 });
+  }
   const file = formData.get("file") as File | null;
 
   if (!file) return Response.json({ error: "Файл не выбран" }, { status: 400 });
+
+  if (file.size > 10 * 1024 * 1024) {
+    return Response.json({ error: "Файл слишком большой. Максимум 10 МБ." }, { status: 413 });
+  }
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const fileName = file.name.toLowerCase();

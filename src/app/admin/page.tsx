@@ -571,7 +571,16 @@ export default function AdminPage() {
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setImportStatus("Ошибка: файл слишком большой или сервер не ответил. Попробуйте файл поменьше.");
+        setImportLoading(false);
+        e.target.value = "";
+        return;
+      }
       if (!res.ok || !data.headers) {
         setImportStatus(`Ошибка: ${data.error || "Не удалось обработать файл"}`);
         setImportLoading(false);
@@ -642,7 +651,15 @@ export default function AdminPage() {
       headers: { ...hdrs() },
       body: JSON.stringify({ products }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      setImportStatus("Ошибка: слишком много товаров для одной загрузки. Разбейте файл на части.");
+      setImportLoading(false);
+      return;
+    }
     setImportLoading(false);
     if (res.ok) {
       setImportStatus(`Новых: ${data.imported}, обновлено: ${data.updated || 0} из ${data.total}`);
