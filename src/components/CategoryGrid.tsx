@@ -61,7 +61,7 @@ export default function CategoryGrid({ categories }: { categories: CategoryItem[
               {cat.children.map((sub) => (
                 <Link
                   key={sub.id}
-                  href={`/catalog/${sub.slug}`}
+                  href={`/catalog/${cat.slug}/${sub.slug}`}
                   className="block px-3 py-2 text-xs sm:text-sm text-text-dark hover:bg-primary/5 hover:text-primary transition-colors border-b border-border/30 last:border-0"
                 >
                   {sub.icon && !(sub.icon.startsWith("/") || sub.icon.startsWith("http")) && (

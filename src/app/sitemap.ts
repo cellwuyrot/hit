@@ -5,7 +5,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://tophitt.ru";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [categories, products, news] = await Promise.all([
-    prisma.category.findMany({ select: { slug: true } }),
+    prisma.category.findMany({ select: { slug: true, parent: { select: { slug: true } } } }),
     prisma.product.findMany({ select: { slug: true, updatedAt: true } }),
     prisma.news.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
   ]);
@@ -19,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const categoryPages: MetadataRoute.Sitemap = categories.map((cat) => ({
-    url: `${BASE_URL}/catalog/${cat.slug}`,
+    url: cat.parent ? `${BASE_URL}/catalog/${cat.parent.slug}/${cat.slug}` : `${BASE_URL}/catalog/${cat.slug}`,
     lastModified: new Date(),
     changeFrequency: "daily" as const,
     priority: 0.8,

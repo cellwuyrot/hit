@@ -117,7 +117,7 @@ export default async function ProductPage({ params }: PageProps) {
     { name: "Главная", url: "https://tophitt.ru/" },
     { name: "Каталог", url: "https://tophitt.ru/catalog" },
     ...(product.category.parent ? [{ name: product.category.parent.name, url: `https://tophitt.ru/catalog/${product.category.parent.slug}` }] : []),
-    { name: product.category.name, url: `https://tophitt.ru/catalog/${product.category.slug}` },
+    { name: product.category.name, url: product.category.parent ? `https://tophitt.ru/catalog/${product.category.parent.slug}/${product.category.slug}` : `https://tophitt.ru/catalog/${product.category.slug}` },
     { name: product.name },
   ];
 
@@ -153,7 +153,7 @@ export default async function ProductPage({ params }: PageProps) {
                 <span>/</span>
               </>
             )}
-            <Link href={`/catalog/${product.category.slug}`} className="hover:text-primary">{product.category.name}</Link>
+            <Link href={product.category.parent ? `/catalog/${product.category.parent.slug}/${product.category.slug}` : `/catalog/${product.category.slug}`} className="hover:text-primary">{product.category.name}</Link>
             <span>/</span>
             <span className="text-text-dark">{product.name}</span>
           </nav>
@@ -199,7 +199,7 @@ export default async function ProductPage({ params }: PageProps) {
                 {product.color && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Цвет:</span><span className="text-text-dark font-medium">{product.color}</span></div>}
                 {product.packSize && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">В упаковке:</span><span className="text-text-dark font-medium">{product.packSize} шт.</span></div>}
                 {product.expirationDate && <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Годен до:</span><span className="text-text-dark font-medium">{product.expirationDate}</span></div>}
-                <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Категория:</span><Link href={`/catalog/${product.category.slug}`} className="text-primary hover:underline">{product.category.name}</Link></div>
+                <div className="flex gap-2"><span className="text-text-gray w-20 sm:w-28 flex-shrink-0">Категория:</span><Link href={product.category.parent ? `/catalog/${product.category.parent.slug}/${product.category.slug}` : `/catalog/${product.category.slug}`} className="text-primary hover:underline">{product.category.name}</Link></div>
               </div>
 
               {/* Actions */}

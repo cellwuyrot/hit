@@ -121,7 +121,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
                     {cat.children.map((sub: { id: string; slug: string; name: string; _count: { products: number } }) => (
                       <li key={sub.id}>
                         <Link
-                          href={`/catalog/${sub.slug}`}
+                          href={`/catalog/${cat.slug}/${sub.slug}`}
                           className="text-xs text-text-gray hover:text-primary transition-colors flex justify-between py-0.5"
                         >
                           <span>{sub.name}</span>
