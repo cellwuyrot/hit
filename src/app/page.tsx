@@ -72,6 +72,26 @@ export default async function HomePage() {
           <HeroSlider slides={slides} />
         </section>
 
+        {/* H1 + УТП / Оффер */}
+        <section className="max-w-7xl mx-auto px-3 sm:px-4 pt-2 sm:pt-4 pb-4 sm:pb-6">
+          <div className="bg-gradient-to-br from-bg-white to-primary/[0.03] rounded-2xl border border-border p-5 sm:p-8 text-center">
+            <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-extrabold text-text-dark leading-tight mb-3 sm:mb-4">
+              Товары оптом и в розницу<br className="hidden sm:block" /> по ценам от производителя
+            </h1>
+            <p className="text-text-gray text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-5 sm:mb-6 leading-relaxed">
+              Продукты, бытовая химия, товары для дома — <strong className="text-text-dark">от 1 штуки</strong> или <strong className="text-text-dark">упаковками со скидкой&nbsp;10%</strong>. Доставка по Москве и МО, самовывоз со склада.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/catalog" className="bg-primary hover:bg-primary-dark text-white font-bold px-8 py-3 rounded-xl transition-colors text-sm sm:text-base shadow-md hover:shadow-lg">
+                Перейти в каталог
+              </Link>
+              <Link href="/wholesale" className="border-2 border-primary text-primary hover:bg-primary hover:text-white font-bold px-8 py-3 rounded-xl transition-all text-sm sm:text-base">
+                Оптовым клиентам
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Advantages */}
         <ScrollReveal>
           <section className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
