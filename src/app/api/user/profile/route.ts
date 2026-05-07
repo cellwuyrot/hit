@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: payload.id },
-    select: { id: true, email: true, name: true, lastName: true, phone: true, address: true, createdAt: true },
+    select: { id: true, email: true, name: true, lastName: true, phone: true, address: true, zipCode: true, region: true, city: true, street: true, building: true, apartment: true, createdAt: true },
   });
   if (!user) return Response.json({ error: "Пользователь не найден" }, { status: 404 });
   return Response.json(user);
@@ -23,13 +23,19 @@ export async function PUT(request: Request) {
   if (!payload || payload.role !== "user") return Response.json({ error: "Не авторизован" }, { status: 401 });
 
   const body = await request.json();
-  const { name, lastName, phone, address, email, currentPassword, newPassword } = body;
+  const { name, lastName, phone, address, email, currentPassword, newPassword, zipCode, region, city, street, building, apartment } = body;
 
   const data: Record<string, string> = {};
   if (name !== undefined) data.name = name;
   if (lastName !== undefined) data.lastName = lastName;
   if (phone !== undefined) data.phone = phone;
   if (address !== undefined) data.address = address;
+  if (zipCode !== undefined) data.zipCode = zipCode;
+  if (region !== undefined) data.region = region;
+  if (city !== undefined) data.city = city;
+  if (street !== undefined) data.street = street;
+  if (building !== undefined) data.building = building;
+  if (apartment !== undefined) data.apartment = apartment;
 
   if (email) {
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -56,7 +62,7 @@ export async function PUT(request: Request) {
   const user = await prisma.user.update({
     where: { id: payload.id },
     data,
-    select: { id: true, email: true, name: true, lastName: true, phone: true, address: true },
+    select: { id: true, email: true, name: true, lastName: true, phone: true, address: true, zipCode: true, region: true, city: true, street: true, building: true, apartment: true },
   });
   return Response.json(user);
 }

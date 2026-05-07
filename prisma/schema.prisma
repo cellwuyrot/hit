@@ -78,6 +78,12 @@ model User {
   lastName     String        @default("")
   phone        String        @default("")
   address      String        @default("")
+  zipCode      String        @default("")
+  region       String        @default("")
+  city         String        @default("")
+  street       String        @default("")
+  building     String        @default("")
+  apartment    String        @default("")
   resetToken   String?
   resetExpires DateTime?
   cart         CartItem[]

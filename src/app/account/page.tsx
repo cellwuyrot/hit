@@ -12,6 +12,24 @@ interface UserProfile {
   lastName: string;
   phone: string;
   address: string;
+  zipCode: string;
+  region: string;
+  city: string;
+  street: string;
+  building: string;
+  apartment: string;
+}
+
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  const d = digits.startsWith("8") ? "7" + digits.slice(1) : digits.startsWith("7") ? digits : "7" + digits;
+  let result = "+7";
+  if (d.length > 1) result += " (" + d.slice(1, 4);
+  if (d.length >= 4) result += ")";
+  if (d.length > 4) result += " " + d.slice(4, 7);
+  if (d.length > 7) result += "-" + d.slice(7, 9);
+  if (d.length > 9) result += "-" + d.slice(9, 11);
+  return result;
 }
 
 interface OrderItem {
@@ -49,7 +67,7 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [form, setForm] = useState({ email: "", password: "" });
-  const [editForm, setEditForm] = useState({ name: "", lastName: "", phone: "", address: "", email: "" });
+  const [editForm, setEditForm] = useState({ name: "", lastName: "", phone: "", address: "", email: "", zipCode: "", region: "", city: "", street: "", building: "", apartment: "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [error, setError] = useState("");
@@ -78,7 +96,7 @@ export default function AccountPage() {
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((data) => startTransition(() => {
         setProfile(data);
-        setEditForm({ name: data.name, lastName: data.lastName, phone: data.phone, address: data.address, email: data.email });
+        setEditForm({ name: data.name || "", lastName: data.lastName || "", phone: data.phone || "", address: data.address || "", email: data.email || "", zipCode: data.zipCode || "", region: data.region || "", city: data.city || "", street: data.street || "", building: data.building || "", apartment: data.apartment || "" });
       }))
       .catch(() => { localStorage.removeItem("userToken"); startTransition(() => setToken(null)); });
 
@@ -167,14 +185,14 @@ export default function AccountPage() {
     if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
       setError("Некорректный формат email (нужен символ @)"); return;
     }
-    if (editForm.phone && !/^[\d\s\+\-\(\)]+$/.test(editForm.phone)) {
-      setError("Телефон должен содержать только цифры"); return;
+    if (editForm.phone && editForm.phone !== "+7") {
+      const phoneDigits = editForm.phone.replace(/\D/g, "");
+      if (phoneDigits.length < 11) {
+        setError("Введите полный номер телефона (+7 и 10 цифр)"); return;
+      }
     }
-    if (editForm.phone && editForm.phone.replace(/\D/g, "").length < 10) {
-      setError("Телефон должен содержать минимум 10 цифр"); return;
-    }
-    if (editForm.address && editForm.address.trim().length < 10) {
-      setError("Укажите полный адрес (город, улица, дом)"); return;
+    if (editForm.zipCode && !/^\d{6}$/.test(editForm.zipCode)) {
+      setError("Почтовый индекс должен содержать 6 цифр"); return;
     }
     const res = await fetch("/api/user/profile", {
       method: "PUT",
@@ -377,37 +395,82 @@ export default function AccountPage() {
           {activeSection === "profile" && profile && (
             <div className="space-y-6">
               <div className="bg-bg-white rounded-xl border border-border p-5 sm:p-6">
-                <h2 className="text-lg font-bold text-text-dark mb-4">Данные профиля</h2>
+                <h2 className="text-lg font-bold text-text-dark mb-4">Личные данные</h2>
                 {success && <p className="text-success text-sm mb-4">{success}</p>}
                 {error && <p className="text-danger text-sm mb-4">{error}</p>}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm text-text-gray mb-1 block">Email</label>
-                    <input type="email" placeholder="Email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-                  </div>
+
+                <h3 className="text-sm font-semibold text-text-dark mb-3 mt-2">1. Основная информация</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                   <div>
                     <label className="text-sm text-text-gray mb-1 block">Имя</label>
-                    <input type="text" placeholder="Имя" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    <input type="text" placeholder="Введите имя" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                       className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
                   </div>
                   <div>
                     <label className="text-sm text-text-gray mb-1 block">Фамилия</label>
-                    <input type="text" placeholder="Фамилия" value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-                  </div>
-                  <div>
-                    <label className="text-sm text-text-gray mb-1 block">Телефон</label>
-                    <input type="tel" placeholder="+7 (___) ___-__-__" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    <input type="text" placeholder="Введите фамилию" value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
                       className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-sm text-text-gray mb-1 block">Адрес доставки</label>
-                    <textarea placeholder="Город, улица, дом, квартира" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" rows={3} />
+                    <label className="text-sm text-text-gray mb-1 block">Электронная почта</label>
+                    <input type="email" placeholder="example@mail.ru" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                    <p className="text-xs text-text-gray mt-1">Должен содержать символ @ и домен</p>
                   </div>
                 </div>
-                <button onClick={handleUpdateProfile} className="mt-4 bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">Сохранить</button>
+
+                <h3 className="text-sm font-semibold text-text-dark mb-3">2. Контактный телефон</h3>
+                <div className="mb-5">
+                  <label className="text-sm text-text-gray mb-1 block">Номер телефона</label>
+                  <input type="tel" placeholder="+7 (___) ___-__-__"
+                    value={editForm.phone}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw.length < 3) {
+                        setEditForm({ ...editForm, phone: "" });
+                        return;
+                      }
+                      setEditForm({ ...editForm, phone: formatPhone(raw) });
+                    }}
+                    onFocus={(e) => { if (!e.target.value) setEditForm({ ...editForm, phone: "+7" }); }}
+                    className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary max-w-sm" />
+                </div>
+
+                <h3 className="text-sm font-semibold text-text-dark mb-3">3. Адрес доставки</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Почтовый индекс</label>
+                    <input type="text" placeholder="101000" value={editForm.zipCode}
+                      onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Регион / Область</label>
+                    <input type="text" placeholder="г. Москва" value={editForm.region} onChange={(e) => setEditForm({ ...editForm, region: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Город / Населённый пункт</label>
+                    <input type="text" placeholder="г. Видное" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Улица</label>
+                    <input type="text" placeholder="ул. Ленина" value={editForm.street} onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Дом / Корпус / Строение</label>
+                    <input type="text" placeholder="д. 12, корп. 2" value={editForm.building} onChange={(e) => setEditForm({ ...editForm, building: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-text-gray mb-1 block">Квартира / Офис</label>
+                    <input type="text" placeholder="кв. 45" value={editForm.apartment} onChange={(e) => setEditForm({ ...editForm, apartment: e.target.value })}
+                      className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+                  </div>
+                </div>
+                <button onClick={handleUpdateProfile} className="mt-5 bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">Сохранить</button>
               </div>
 
               <div className="bg-bg-white rounded-xl border border-border p-5 sm:p-6">
