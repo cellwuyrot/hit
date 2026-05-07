@@ -101,8 +101,9 @@ model CartItem {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int     @default(1)
+  isPack    Boolean @default(false)
 
-  @@unique([userId, productId])
+  @@unique([userId, productId, isPack])
 }
 
 model Order {
