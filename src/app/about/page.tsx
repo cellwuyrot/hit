@@ -41,8 +41,8 @@ export default async function AboutPage() {
             <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
               <Image src="/logo.png" alt="ТОПХИТ" width={64} height={64} className="w-12 h-12 sm:w-16 sm:h-16" />
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-dark">ТОПХИТ</h1>
-                <p className="text-text-gray">Торговая компания</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-dark">ТОПХИТ — торговая компания</h1>
+                <p className="text-text-gray">Товары оптом и в розницу по ценам от производителя</p>
               </div>
             </div>
 
