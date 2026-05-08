@@ -118,7 +118,7 @@ interface CallbackItem {
 
 interface AnalyticsData {
   period: string;
-  data: { date: string; views: number; unique: number }[];
+  data: { date: string; label: string; views: number; unique: number }[];
   totalViews: number;
   totalUniqueVisitors: number;
   topPages: { path: string; views: number }[];
@@ -1586,14 +1586,11 @@ function AnalyticsPanel({ token }: { token: string }) {
   }, [period, token]);
 
   const maxViews = data ? Math.max(...data.data.map((d) => d.views), 1) : 1;
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + "T00:00:00");
-    if (period === "day") return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-    return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
-  };
+  const maxUnique = data ? Math.max(...data.data.map((d) => d.unique), 1) : 1;
+  const maxVal = Math.max(maxViews, maxUnique, 1);
 
   const periodLabels = { day: "Сегодня", week: "Неделя", month: "Месяц" };
+  const avgLabel = period === "day" ? "в час" : "в день";
 
   return (
     <div className="space-y-6">
@@ -1630,16 +1627,16 @@ function AnalyticsPanel({ token }: { token: string }) {
               <p className="text-xs text-text-light mt-1">за {periodLabels[period].toLowerCase()}</p>
             </div>
             <div className="bg-bg-white rounded-xl border border-border p-5">
-              <p className="text-sm text-text-gray mb-1">Среднее в день</p>
+              <p className="text-sm text-text-gray mb-1">Среднее {avgLabel}</p>
               <p className="text-3xl font-bold text-text-dark">
                 {data.data.length > 0 ? Math.round(data.totalViews / data.data.length).toLocaleString("ru-RU") : 0}
               </p>
-              <p className="text-xs text-text-light mt-1">просмотров/день</p>
+              <p className="text-xs text-text-light mt-1">просмотров</p>
             </div>
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <p className="text-sm text-text-gray mb-1">Популярных страниц</p>
               <p className="text-3xl font-bold text-text-dark">{data.topPages.length}</p>
-              <p className="text-xs text-text-light mt-1">уникальных страниц</p>
+              <p className="text-xs text-text-light mt-1">уникальных URL</p>
             </div>
           </div>
 
@@ -1651,25 +1648,33 @@ function AnalyticsPanel({ token }: { token: string }) {
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-accent/80 inline-block"></span> Уникальные</span>
               </div>
             </div>
-            <div className="flex items-end gap-1 h-48">
-              {data.data.map((d, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                  <span className="text-[10px] text-text-gray font-medium">{d.views || ""}</span>
-                  <div className="w-full flex gap-px justify-center" style={{ height: `${Math.max((d.views / maxViews) * 100, 2)}%` }}>
-                    <div
-                      className="flex-1 bg-primary/80 hover:bg-primary rounded-t transition-colors min-h-[2px]"
-                      title={`${formatDate(d.date)}: ${d.views} просмотров`}
-                    />
-                    <div
-                      className="flex-1 bg-accent/80 hover:bg-accent rounded-t transition-colors min-h-[2px]"
-                      style={{ height: d.views > 0 ? `${Math.max((d.unique / d.views) * 100, 5)}%` : "2px" }}
-                      title={`${formatDate(d.date)}: ${d.unique} уникальных`}
-                    />
+            <div className="flex items-end gap-1 h-52">
+              {data.data.map((d, i) => {
+                const viewsH = Math.max((d.views / maxVal) * 100, d.views > 0 ? 4 : 0);
+                const uniqueH = Math.max((d.unique / maxVal) * 100, d.unique > 0 ? 4 : 0);
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                    <span className="text-[10px] text-text-gray font-medium">{d.views || ""}</span>
+                    <div className="w-full flex gap-px justify-center items-end" style={{ height: `${Math.max(viewsH, uniqueH, 2)}%` }}>
+                      <div
+                        className="flex-1 bg-primary/80 hover:bg-primary rounded-t transition-colors"
+                        style={{ height: `${viewsH > 0 ? Math.max((d.views / Math.max(d.views, d.unique, 1)) * 100, 8) : 2}%`, minHeight: "2px" }}
+                        title={`${d.label}: ${d.views} просмотров`}
+                      />
+                      <div
+                        className="flex-1 bg-accent/80 hover:bg-accent rounded-t transition-colors"
+                        style={{ height: `${uniqueH > 0 ? Math.max((d.unique / Math.max(d.views, d.unique, 1)) * 100, 8) : 2}%`, minHeight: "2px" }}
+                        title={`${d.label}: ${d.unique} уникальных`}
+                      />
+                    </div>
+                    <span className="text-[9px] text-text-light truncate w-full text-center">{d.label}</span>
                   </div>
-                  <span className="text-[9px] text-text-light truncate w-full text-center">{formatDate(d.date)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
+            {data.data.length === 0 && (
+              <p className="text-center text-text-gray text-sm py-8">Нет данных за выбранный период</p>
+            )}
           </div>
 
           {data.topPages.length > 0 && (
@@ -1682,7 +1687,7 @@ function AnalyticsPanel({ token }: { token: string }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm text-text-dark truncate">{page.path}</span>
-                        <span className="text-sm text-text-gray flex-shrink-0">{page.views}</span>
+                        <span className="text-sm font-medium text-text-gray flex-shrink-0">{page.views} просм.</span>
                       </div>
                       <div className="mt-1 h-1.5 bg-bg-light rounded-full overflow-hidden">
                         <div
