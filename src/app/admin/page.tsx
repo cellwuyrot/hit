@@ -1083,8 +1083,18 @@ export default function AdminPage() {
                   <option value="">Выберите категорию *</option>
                   {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.parentId ? `  └ ${cat.name}` : cat.name}</option>)}
                 </select>
-                <textarea placeholder="Описание" value={prodForm.description} onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
-                  className="md:col-span-2 lg:col-span-3 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={2} />
+                <div className="md:col-span-2 lg:col-span-3 relative">
+                  <textarea placeholder="Описание" value={prodForm.description} onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary pr-10" rows={2} />
+                  {prodForm.name && (
+                    <button type="button" title="Сгенерировать описание через ИИ-поиск" onClick={() => {
+                      const query = `Напиши короткое SEO-описание товара "${prodForm.name}" для интернет-магазина, 2-3 предложения`;
+                      window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank");
+                    }} className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-md transition-all hover:scale-110 cursor-pointer">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" /></svg>
+                    </button>
+                  )}
+                </div>
                 <div className="md:col-span-2 lg:col-span-3 flex items-center gap-4">
                   <button type="submit" className="bg-primary hover:bg-primary-dark text-white text-sm px-6 py-2 rounded-lg">{editingProd ? "Сохранить" : "Добавить"}</button>
                   {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
