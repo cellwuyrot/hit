@@ -75,6 +75,9 @@ export default async function ProductPage({ params }: PageProps) {
 
   const images = [product.image, product.image2, product.image3, product.image4].filter(Boolean);
 
+  const priceValidUntil = new Date();
+  priceValidUntil.setFullYear(priceValidUntil.getFullYear() + 1);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -83,17 +86,41 @@ export default async function ProductPage({ params }: PageProps) {
     image: images.length > 0 ? images : undefined,
     brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
     sku: product.code || product.id,
+    mpn: product.code || undefined,
     gtin13: product.barcode || undefined,
     color: product.color || undefined,
     weight: product.weight ? { "@type": "QuantitativeValue", value: product.weight, unitCode: "KGM" } : undefined,
     category: product.category.name,
+    url: `https://tophitt.ru/product/${product.slug}`,
     offers: {
       "@type": "Offer",
       url: `https://tophitt.ru/product/${product.slug}`,
       priceCurrency: "RUB",
       price: product.price,
+      priceValidUntil: priceValidUntil.toISOString().split("T")[0],
       availability: product.inStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
       seller: { "@type": "Organization", name: "ТОПХИТ" },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "RU",
+        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+        merchantReturnDays: 14,
+        returnMethod: "https://schema.org/ReturnByMail",
+        returnFees: "https://schema.org/FreeReturn",
+      },
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingDestination: {
+          "@type": "DefinedRegion",
+          addressCountry: "RU",
+        },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 3, unitCode: "DAY" },
+          transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 7, unitCode: "DAY" },
+        },
+      },
     },
     ...(product.reviews.length > 0 ? {
       aggregateRating: {

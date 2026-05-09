@@ -127,8 +127,19 @@ async function CategoryContent({
         "@type": "ListItem",
         position: skip + i + 1,
         url: `https://tophitt.ru/product/${p.slug}`,
-        name: p.name,
-        image: p.image || undefined,
+        item: {
+          "@type": "Product",
+          name: p.name,
+          url: `https://tophitt.ru/product/${p.slug}`,
+          image: p.image || undefined,
+          offers: {
+            "@type": "Offer",
+            priceCurrency: "RUB",
+            price: p.price,
+            availability: p.inStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            itemCondition: "https://schema.org/NewCondition",
+          },
+        },
       })),
     },
   };
