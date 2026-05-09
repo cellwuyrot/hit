@@ -52,6 +52,14 @@ export async function PUT(request: Request) {
 
   const body = await request.json();
 
+  // Bulk stock update for all products
+  if (body.bulkStock !== undefined) {
+    const result = await prisma.product.updateMany({
+      data: { inStock: Number(body.bulkStock) },
+    });
+    return Response.json({ success: true, updated: result.count });
+  }
+
   // Bulk category assignment
   if (body.ids && body.categoryId) {
     const result = await prisma.product.updateMany({
