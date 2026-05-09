@@ -457,6 +457,23 @@ export default function AdminPage() {
     fetchData();
   };
 
+  const exportProducts = async () => {
+    if (selectedProducts.size === 0) return;
+    const res = await fetch("/api/admin/export", {
+      method: "POST",
+      headers: hdrs(),
+      body: JSON.stringify({ ids: Array.from(selectedProducts) }),
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `products_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const uploadImage = async (file: File, field: string) => {
     setUploadingImage(field);
     const formData = new FormData();
@@ -1122,6 +1139,10 @@ export default function AdminPage() {
                           Применить ({selectedProducts.size})
                         </button>
                       )}
+                      <button onClick={exportProducts} className="bg-accent hover:bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Выгрузить ({selectedProducts.size})
+                      </button>
                       <button onClick={bulkDeleteProducts} className="bg-danger hover:bg-red-700 text-white text-sm px-3 py-1.5 rounded-lg transition-colors">
                         Удалить ({selectedProducts.size})
                       </button>
