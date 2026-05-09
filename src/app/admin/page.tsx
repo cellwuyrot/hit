@@ -495,6 +495,20 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
   };
 
+  const bulkSetStock = async (stock: number) => {
+    if (!confirm(`Установить остаток ${stock.toLocaleString()} на ВСЕ товары (${products.length} шт)?`)) return;
+    const res = await fetch("/api/admin/products", {
+      method: "PUT",
+      headers: hdrs(),
+      body: JSON.stringify({ bulkStock: stock }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      alert(`Обновлено ${data.updated} товаров`);
+      fetchData();
+    }
+  };
+
   const uploadImage = async (file: File, field: string) => {
     setUploadingImage(field);
     const formData = new FormData();
@@ -1175,6 +1189,10 @@ export default function AdminPage() {
                       </button>
                     </>
                   )}
+                  <button onClick={() => bulkSetStock(10000)} className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1" title="Установить остаток 10 000 на все товары">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    Остаток 10 000
+                  </button>
                   {(() => {
                     const noTagsCount = products.filter((p) => !p.tags).length;
                     return noTagsCount > 0 ? (
