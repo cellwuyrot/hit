@@ -15,14 +15,20 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const ids: string[] = body.ids;
+  const ids: string[] | undefined = body.ids;
+  const filter: string | undefined = body.filter;
 
-  if (!ids || ids.length === 0) {
+  let whereClause = {};
+  if (filter === "no-tags") {
+    whereClause = { OR: [{ tags: "" }, { tags: null }] };
+  } else if (ids && ids.length > 0) {
+    whereClause = { id: { in: ids } };
+  } else {
     return Response.json({ error: "Не выбраны товары" }, { status: 400 });
   }
 
   const products = await prisma.product.findMany({
-    where: { id: { in: ids } },
+    where: whereClause,
     include: { category: true },
     orderBy: { name: "asc" },
   });
@@ -48,6 +54,7 @@ export async function POST(request: Request) {
     "Цвет": p.color,
     "Тип/Вид": p.productType,
     "Годен до": p.expirationDate,
+    "Теги": p.tags,
     "Изображение": p.image,
   }));
 
@@ -70,6 +77,7 @@ export async function POST(request: Request) {
     { wch: 12 }, // Цвет
     { wch: 15 }, // Тип/Вид
     { wch: 12 }, // Годен до
+    { wch: 40 }, // Теги
     { wch: 30 }, // Изображение
   ];
   worksheet["!cols"] = colWidths;

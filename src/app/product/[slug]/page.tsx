@@ -33,9 +33,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = product.description
     ? product.description.slice(0, 160)
     : `${product.name} по цене ${product.price} ₽. ${product.brand ? `Бренд: ${product.brand}.` : ""} Купить в интернет-магазине ТОПХИТ с доставкой.`;
+  const keywords = product.tags
+    ? product.tags
+    : [product.name, product.brand, product.category.name, "купить", "ТОПХИТ"].filter(Boolean).join(", ");
   return {
     title,
     description,
+    keywords,
     openGraph: {
       title,
       description,
@@ -92,6 +96,7 @@ export default async function ProductPage({ params }: PageProps) {
     weight: product.weight ? { "@type": "QuantitativeValue", value: product.weight, unitCode: "KGM" } : undefined,
     category: product.category.name,
     url: `https://tophitt.ru/product/${product.slug}`,
+    keywords: product.tags || undefined,
     offers: {
       "@type": "Offer",
       url: `https://tophitt.ru/product/${product.slug}`,
