@@ -28,6 +28,7 @@ const AUTO_DETECT: Record<string, string[]> = {
   oldPrice: ["старая цена", "old price", "oldprice"],
   color: ["цвет", "color"],
   productType: ["тип", "type", "вид", "producttype"],
+  tags: ["теги", "ключевые слова", "tags", "keywords", "мета-теги"],
 };
 
 function autoDetectMapping(headers: string[]): Record<string, string> {
@@ -198,6 +199,7 @@ interface ImportProduct {
   color?: string;
   productType?: string;
   expirationDate?: string;
+  tags?: string;
 }
 
 // POST — import products (receive mapped data as JSON)
@@ -282,6 +284,7 @@ export async function POST(request: Request) {
       if (barcodeStr) updateData.barcode = barcodeStr;
       if (row.color) updateData.color = String(row.color);
       if (row.description) updateData.description = String(row.description);
+      if (row.tags) updateData.tags = String(row.tags);
       if (row.image) updateData.image = String(row.image);
       if (row.expirationDate) updateData.expirationDate = String(row.expirationDate);
 
@@ -315,6 +318,7 @@ export async function POST(request: Request) {
           volume,
           packSize,
           expirationDate: row.expirationDate ? String(row.expirationDate) : "",
+          tags: row.tags ? String(row.tags) : "",
           categoryId,
         },
       });

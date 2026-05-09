@@ -50,6 +50,7 @@ model Product {
   volume      Float?
   packSize    Int?
   expirationDate String      @default("")
+  tags        String         @default("")
   isFeatured  Boolean        @default(false)
   categoryId  String
   category    Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)

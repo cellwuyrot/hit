@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 
   const body = await request.json();
-  const { name, description, price, oldPrice, image, inStock, packSize, expirationDate, brand, color, productType, categoryId, isFeatured } = body;
+  const { name, description, price, oldPrice, image, inStock, packSize, expirationDate, brand, color, productType, categoryId, isFeatured, tags } = body;
 
   if (!name || !price || !categoryId) {
     return Response.json({ error: "Название, цена и категория обязательны" }, { status: 400 });
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       inStock: Number(inStock) || 0, packSize: packSize ? Number(packSize) : null,
       expirationDate: expirationDate || "", brand: brand || "", color: color || "",
       productType: productType || "", categoryId, isFeatured: !!isFeatured,
+      tags: tags || "",
     },
   });
   return Response.json(product, { status: 201 });
@@ -60,7 +61,7 @@ export async function PUT(request: Request) {
     return Response.json({ success: true, updated: result.count });
   }
 
-  const { id, name, description, price, oldPrice, image, image2, image3, image4, inStock, packSize, expirationDate, brand, color, productType, categoryId, isFeatured } = body;
+  const { id, name, description, price, oldPrice, image, image2, image3, image4, inStock, packSize, expirationDate, brand, color, productType, categoryId, isFeatured, tags } = body;
 
   if (!id || !name || !price || !categoryId) {
     return Response.json({ error: "Обязательные поля не заполнены" }, { status: 400 });
@@ -75,6 +76,7 @@ export async function PUT(request: Request) {
       inStock: Number(inStock) || 0, packSize: packSize ? Number(packSize) : null,
       expirationDate: expirationDate || "", brand: brand || "", color: color || "",
       productType: productType || "", categoryId, isFeatured: !!isFeatured,
+      tags: tags || "",
     },
   });
   return Response.json(product);
