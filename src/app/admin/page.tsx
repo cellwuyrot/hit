@@ -1381,7 +1381,7 @@ export default function AdminPage() {
                       <span className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">{idx + 1}</span>
                       <div className="w-20 h-14 bg-border rounded overflow-hidden flex-shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={slide.imageUrl} alt={slide.title || "слайд"} className="w-full h-full object-cover" />
+                        <img src={slide.imageUrl} alt={slide.title ? `${slide.title} — слайд` : `Слайд ${idx + 1}`} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-text-dark text-sm truncate">{slide.title || "Без названия"}</p>
