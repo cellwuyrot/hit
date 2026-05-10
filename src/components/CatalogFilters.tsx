@@ -11,6 +11,34 @@ interface FiltersProps {
   maxPrice: number;
 }
 
+function FilterSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="mb-5">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center justify-between w-full text-sm font-medium text-text-dark mb-2 hover:text-primary transition-colors"
+      >
+        {title}
+        <svg
+          className={`w-4 h-4 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          open ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function CatalogFilters({
   brands,
   productTypes,
@@ -84,8 +112,7 @@ export default function CatalogFilters({
       <h3 className="font-bold text-text-dark mb-4">Фильтр по параметрам</h3>
 
       {/* Price range */}
-      <div className="mb-5">
-        <h4 className="text-sm font-medium text-text-dark mb-2">Розничная</h4>
+      <FilterSection title="Розничная" defaultOpen={true}>
         <div className="flex items-center gap-2 mb-2">
           <input
             type="number"
@@ -113,15 +140,14 @@ export default function CatalogFilters({
           <span>{minPrice.toLocaleString("ru-RU")}</span>
           <span>{maxPrice.toLocaleString("ru-RU")}</span>
         </div>
-      </div>
+      </FilterSection>
 
       {/* Product types */}
       {productTypes.length > 0 && (
-        <div className="mb-5">
-          <h4 className="text-sm font-medium text-text-dark mb-2">Тип товара</h4>
+        <FilterSection title="Тип товара">
           <div className="space-y-1.5 max-h-40 overflow-y-auto">
             {productTypes.map((type) => (
-              <label key={type} className="flex items-center gap-2 text-sm text-text-gray cursor-pointer hover:text-text-dark">
+              <label key={type} className="flex items-center gap-2 text-sm text-text-gray cursor-pointer hover:text-text-dark transition-colors">
                 <input
                   type="checkbox"
                   checked={selectedTypes.includes(type)}
@@ -132,16 +158,15 @@ export default function CatalogFilters({
               </label>
             ))}
           </div>
-        </div>
+        </FilterSection>
       )}
 
       {/* Brands */}
       {brands.length > 0 && (
-        <div className="mb-5">
-          <h4 className="text-sm font-medium text-text-dark mb-2">Бренд</h4>
+        <FilterSection title="Бренд">
           <div className="space-y-1.5 max-h-40 overflow-y-auto">
             {brands.map((brand) => (
-              <label key={brand} className="flex items-center gap-2 text-sm text-text-gray cursor-pointer hover:text-text-dark">
+              <label key={brand} className="flex items-center gap-2 text-sm text-text-gray cursor-pointer hover:text-text-dark transition-colors">
                 <input
                   type="checkbox"
                   checked={selectedBrands.includes(brand)}
@@ -152,16 +177,15 @@ export default function CatalogFilters({
               </label>
             ))}
           </div>
-        </div>
+        </FilterSection>
       )}
 
       {/* Colors */}
       {colors.length > 0 && (
-        <div className="mb-5">
-          <h4 className="text-sm font-medium text-text-dark mb-2">Цвет / База</h4>
+        <FilterSection title="Цвет / База">
           <div className="space-y-1.5 max-h-40 overflow-y-auto">
             {colors.map((color) => (
-              <label key={color} className="flex items-center gap-2 text-sm text-text-gray cursor-pointer hover:text-text-dark">
+              <label key={color} className="flex items-center gap-2 text-sm text-text-gray cursor-pointer hover:text-text-dark transition-colors">
                 <input
                   type="checkbox"
                   checked={selectedColors.includes(color)}
@@ -172,7 +196,7 @@ export default function CatalogFilters({
               </label>
             ))}
           </div>
-        </div>
+        </FilterSection>
       )}
 
       {/* Action buttons */}
