@@ -283,16 +283,9 @@ export default function AccountPage() {
       <>
         <Header />
         <main className="flex-1 relative min-h-[80vh] flex items-center justify-center overflow-hidden">
-          {/* Animated gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary-dark/70 to-blue-900/80 animate-gradient" />
-
-          {/* Floating decorative elements */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-[10%] left-[10%] w-32 h-32 bg-white/5 rounded-full animate-float" />
-            <div className="absolute top-[60%] right-[15%] w-24 h-24 bg-white/5 rounded-full animate-float-delay" />
-            <div className="absolute bottom-[20%] left-[20%] w-20 h-20 bg-white/5 rounded-full animate-float-slow" />
-            <div className="absolute top-[30%] right-[30%] w-16 h-16 bg-white/5 rounded-full animate-float" />
-          </div>
+          {/* Blurred store background */}
+          <div className="absolute inset-0 bg-[url('/slider/slide1.svg')] bg-cover bg-center" style={{ filter: "blur(65px)" }} />
+          <div className="absolute inset-0 bg-primary/30" />
 
           {/* Login card with glass effect */}
           <div className="relative z-10 w-full max-w-md mx-4 animate-fade-in-up">
