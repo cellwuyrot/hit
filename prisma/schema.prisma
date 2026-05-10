@@ -190,10 +190,10 @@ model PageView {
   visitorId String   @default("")
   createdAt DateTime @default(now())
 
+  @@unique([date, visitorId, path])
   @@index([date])
   @@index([path])
   @@index([visitorId])
-  @@index([date, visitorId, path])
 }
 
 model WishlistItem {
