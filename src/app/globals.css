@@ -216,35 +216,7 @@ input[type="range"]::-webkit-slider-thumb {
   overflow: hidden;
 }
 
-/* Login page background animation */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
 
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-shift 8s ease infinite;
-}
-
-/* Float animation for decorative elements */
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-15px) rotate(3deg); }
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-.animate-float-delay {
-  animation: float 5s ease-in-out infinite 1s;
-}
-
-.animate-float-slow {
-  animation: float 6s ease-in-out infinite 2s;
-}
 
 /* Hide scrollbar but keep scrolling */
 .scrollbar-hide {

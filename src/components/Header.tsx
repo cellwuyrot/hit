@@ -24,6 +24,7 @@ export default function Header() {
   const prevCartCount = useRef(0);
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [userLabel, setUserLabel] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const router = useRouter();
@@ -47,6 +48,19 @@ export default function Header() {
     window.addEventListener("cart-updated", handleCartUpdate);
 
     return () => { clearInterval(interval); window.removeEventListener("cart-updated", handleCartUpdate); };
+  }, []);
+
+  useEffect(() => {
+    const adminToken = localStorage.getItem("admin_token");
+    const userToken = localStorage.getItem("userToken");
+    if (adminToken) {
+      setUserLabel("Админ");
+    } else if (userToken) {
+      fetch("/api/user/profile", { headers: { Authorization: `Bearer ${userToken}` } })
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => { if (data?.email) setUserLabel(data.email); })
+        .catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -231,7 +245,7 @@ export default function Header() {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              <span className="text-[10px] sm:text-xs mt-0.5">Вход</span>
+              <span className="text-[10px] sm:text-xs mt-0.5 max-w-[80px] truncate">{userLabel || "Вход"}</span>
             </Link>
 
             {/* Mobile menu toggle */}
@@ -298,7 +312,7 @@ export default function Header() {
               <Link href="/wishlist" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Избранное</Link>
               <Link href="/compare" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Сравнение</Link>
               <Link href="/cart" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Корзина</Link>
-              <Link href="/account" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Вход / Кабинет</Link>
+              <Link href="/account" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>{userLabel || "Вход / Кабинет"}</Link>
               <div className="border-t border-border my-2" />
             </nav>
           </div>
