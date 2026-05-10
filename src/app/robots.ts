@@ -8,12 +8,12 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api/", "/checkout"],
+        disallow: ["/admin", "/api/", "/checkout", "/account", "/cart", "/compare", "/wishlist", "/wholesale?*"],
       },
       {
         userAgent: "Yandex",
         allow: "/",
-        disallow: ["/admin", "/api/", "/checkout"],
+        disallow: ["/admin", "/api/", "/checkout", "/account", "/cart", "/compare", "/wishlist", "/wholesale?*"],
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,

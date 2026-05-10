@@ -30,9 +30,13 @@ export async function POST(request: Request) {
   }
 
   let slug = slugify(name);
-  const existing = await prisma.product.findFirst({ where: { slug } });
+  let existing = await prisma.product.findFirst({ where: { slug } });
   if (existing) {
-    slug = slug + "-" + Math.random().toString(36).slice(2, 6);
+    let counter = 2;
+    while (await prisma.product.findFirst({ where: { slug: `${slug}-${counter}` } })) {
+      counter++;
+    }
+    slug = `${slug}-${counter}`;
   }
   const product = await prisma.product.create({
     data: {

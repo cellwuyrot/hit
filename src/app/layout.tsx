@@ -18,6 +18,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://tophitt.ru"),
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "",
     yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION || "",
@@ -88,7 +89,6 @@ export default function RootLayout({
                 "https://t.me/tophit_store",
                 "https://vk.com/tophit_market",
                 "https://www.ozon.ru/seller/tophit/",
-                "https://wa.me/79362568950",
               ],
             }),
           }}

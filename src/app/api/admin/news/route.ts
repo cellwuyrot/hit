@@ -23,7 +23,11 @@ export async function POST(request: Request) {
   let slug = slugify(title);
   const existing = await prisma.news.findFirst({ where: { slug } });
   if (existing) {
-    slug = slug + "-" + Math.random().toString(36).slice(2, 6);
+    let counter = 2;
+    while (await prisma.news.findFirst({ where: { slug: `${slug}-${counter}` } })) {
+      counter++;
+    }
+    slug = `${slug}-${counter}`;
   }
   const news = await prisma.news.create({
     data: { title, slug, excerpt: excerpt || "", content: content || "", image: image || "", type: type || "article", published: published ?? false },
