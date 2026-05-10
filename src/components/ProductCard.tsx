@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect, startTransition } from "react";
+import { useState, useEffect, useRef, startTransition } from "react";
 import { showToast } from "@/components/Toast";
 
 interface ProductCardProps {
@@ -34,6 +34,7 @@ export default function ProductCard({
   isFeatured,
 }: ProductCardProps) {
   const [added, setAdded] = useState(false);
+  const cartBtnRef = useRef<HTMLButtonElement>(null);
   const [inCompare, setInCompare] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -55,6 +56,22 @@ export default function ProductCard({
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ productId: id, quantity: 1 }),
     });
+    if (cartBtnRef.current) {
+      const cartIcon = document.getElementById("cart-icon");
+      if (cartIcon) {
+        const btnRect = cartBtnRef.current.getBoundingClientRect();
+        const cartRect = cartIcon.getBoundingClientRect();
+        const ghost = document.createElement("div");
+        ghost.className = "animate-fly-to-cart";
+        ghost.style.cssText = `left:${btnRect.left + btnRect.width / 2 - 20}px;top:${btnRect.top}px;width:40px;height:40px;border-radius:50%;background:var(--color-primary);display:flex;align-items:center;justify-content:center;`;
+        ghost.style.setProperty("--fly-x", `${cartRect.left - btnRect.left}px`);
+        ghost.style.setProperty("--fly-y", `${cartRect.top - btnRect.top}px`);
+        ghost.innerHTML = `<svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>`;
+        document.body.appendChild(ghost);
+        setTimeout(() => ghost.remove(), 700);
+      }
+    }
+    window.dispatchEvent(new Event("cart-updated"));
     setAdded(true);
     showToast(`${name.slice(0, 30)}${name.length > 30 ? "..." : ""} добавлен в корзину`);
     setTimeout(() => setAdded(false), 2000);
@@ -196,7 +213,7 @@ export default function ProductCard({
 
       {/* Action buttons */}
       <div className="mt-2 sm:mt-3 space-y-1.5 sm:space-y-2">
-        <button onClick={addToCart} disabled={inStock === 0}
+        <button ref={cartBtnRef} onClick={addToCart} disabled={inStock === 0}
           className={`w-full text-xs sm:text-sm font-medium py-2 sm:py-2.5 rounded-lg transition-all duration-200 ${
             added ? "bg-success text-white animate-bounce-in" : inStock === 0 ? "bg-gray-200 text-text-gray cursor-not-allowed" : "bg-primary hover:bg-primary-dark text-white active:scale-95"
           }`}>

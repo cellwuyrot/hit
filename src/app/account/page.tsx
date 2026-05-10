@@ -282,90 +282,143 @@ export default function AccountPage() {
     return (
       <>
         <Header />
-        <main className="flex-1 bg-bg-light">
-          <div className="max-w-md mx-auto px-4 py-10">
-            <h1 className="font-heading text-2xl font-bold text-text-dark mb-6 text-center">
-              {resetMode ? "Восстановление пароля" : "Вход в систему"}
-            </h1>
-            <div className="bg-bg-white rounded-xl border border-border p-6">
+        <main className="flex-1 relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+          {/* Animated gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary-dark/70 to-blue-900/80 animate-gradient" />
+
+          {/* Floating decorative elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-[10%] left-[10%] w-32 h-32 bg-white/5 rounded-full animate-float" />
+            <div className="absolute top-[60%] right-[15%] w-24 h-24 bg-white/5 rounded-full animate-float-delay" />
+            <div className="absolute bottom-[20%] left-[20%] w-20 h-20 bg-white/5 rounded-full animate-float-slow" />
+            <div className="absolute top-[30%] right-[30%] w-16 h-16 bg-white/5 rounded-full animate-float" />
+          </div>
+
+          {/* Login card with glass effect */}
+          <div className="relative z-10 w-full max-w-md mx-4 animate-fade-in-up">
+            {/* Logo */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 mb-2">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <span className="text-white font-bold text-lg font-heading">TH</span>
+                </div>
+                <span className="text-white text-2xl font-bold font-heading">ТОПХИТ</span>
+              </div>
+              <p className="text-white/70 text-sm">
+                {resetMode ? "Восстановление доступа к аккаунту" : "Войдите для управления заказами и избранным"}
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-6 sm:p-8 shadow-2xl">
               {resetMode ? (
                 <>
-                  {error && <p className="text-danger text-sm mb-4">{error}</p>}
-                  {success && <p className="text-success text-sm mb-4">{success}</p>}
+                  {error && <div className="bg-danger/20 border border-danger/30 text-white text-sm rounded-lg px-4 py-2.5 mb-4 animate-fade-in">{error}</div>}
+                  {success && <div className="bg-success/20 border border-success/30 text-white text-sm rounded-lg px-4 py-2.5 mb-4 animate-fade-in">{success}</div>}
                   {resetStep === "email" ? (
                     <>
-                      <p className="text-sm text-text-gray mb-4">Введите email, указанный при регистрации</p>
-                      <input type="email" placeholder="Email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)}
-                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
-                      <button onClick={handleResetRequest} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
+                      <p className="text-sm text-white/80 mb-4">Введите email, указанный при регистрации</p>
+                      <div className="relative mb-4">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <input type="email" placeholder="Email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)}
+                          className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pl-10 text-white placeholder-white/40 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/20 transition-all" />
+                      </div>
+                      <button onClick={handleResetRequest}
+                        className="w-full bg-white text-primary py-3 rounded-xl hover:bg-white/90 transition-all font-medium shadow-lg hover:shadow-xl active:scale-[0.98]">
                         Получить код
                       </button>
                     </>
                   ) : (
                     <>
-                      <p className="text-sm text-text-gray mb-4">Введите код восстановления и новый пароль</p>
+                      <p className="text-sm text-white/80 mb-4">Введите код восстановления и новый пароль</p>
                       <input type="text" placeholder="Код восстановления" value={resetToken} onChange={(e) => setResetToken(e.target.value)}
-                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 mb-3 text-white placeholder-white/40 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/20 transition-all" />
                       <input type="password" placeholder="Новый пароль (мин. 6 символов)" value={resetNewPassword} onChange={(e) => setResetNewPassword(e.target.value)}
-                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
-                      <button onClick={handleResetPassword} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 mb-4 text-white placeholder-white/40 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/20 transition-all" />
+                      <button onClick={handleResetPassword}
+                        className="w-full bg-white text-primary py-3 rounded-xl hover:bg-white/90 transition-all font-medium shadow-lg hover:shadow-xl active:scale-[0.98]">
                         Сменить пароль
                       </button>
                     </>
                   )}
                   <button onClick={() => { setResetMode(false); setError(""); setSuccess(""); setResetStep("email"); }}
-                    className="w-full text-sm text-primary hover:underline mt-3 text-center">
-                    Вернуться ко входу
+                    className="w-full text-sm text-white/70 hover:text-white mt-4 text-center transition-colors">
+                    ← Вернуться ко входу
                   </button>
                 </>
               ) : (
                 <>
-                  <div className="flex mb-6">
-                    <button onClick={() => setTab("login")} className={`flex-1 py-2 text-center font-medium border-b-2 ${tab === "login" ? "border-primary text-primary" : "border-transparent text-text-gray"}`}>Вход</button>
-                    <button onClick={() => setTab("register")} className={`flex-1 py-2 text-center font-medium border-b-2 ${tab === "register" ? "border-primary text-primary" : "border-transparent text-text-gray"}`}>Регистрация</button>
+                  {/* Tabs */}
+                  <div className="flex mb-6 bg-white/10 rounded-xl p-1">
+                    <button onClick={() => setTab("login")}
+                      className={`flex-1 py-2.5 text-center font-medium rounded-lg text-sm transition-all duration-300 ${
+                        tab === "login" ? "bg-white text-primary shadow-md" : "text-white/70 hover:text-white"
+                      }`}>
+                      Вход
+                    </button>
+                    <button onClick={() => setTab("register")}
+                      className={`flex-1 py-2.5 text-center font-medium rounded-lg text-sm transition-all duration-300 ${
+                        tab === "register" ? "bg-white text-primary shadow-md" : "text-white/70 hover:text-white"
+                      }`}>
+                      Регистрация
+                    </button>
                   </div>
-                  {error && <p className="text-danger text-sm mb-4">{error}</p>}
-                  {success && <p className="text-success text-sm mb-4">{success}</p>}
+
+                  {error && <div className="bg-danger/20 border border-danger/30 text-white text-sm rounded-lg px-4 py-2.5 mb-4 animate-fade-in">{error}</div>}
+                  {success && <div className="bg-success/20 border border-success/30 text-white text-sm rounded-lg px-4 py-2.5 mb-4 animate-fade-in">{success}</div>}
 
                   {tab === "register" && verifyStep === "code" ? (
-                    <>
-                      <p className="text-sm text-text-dark mb-3">Введите код подтверждения, отправленный на <span className="font-medium">{form.email}</span></p>
-                      <input type="text" placeholder="6-значный код" value={verifyCode}
+                    <div className="animate-fade-in">
+                      <p className="text-sm text-white/80 mb-3">Введите код подтверждения, отправленный на <span className="font-medium text-white">{form.email}</span></p>
+                      <input type="text" placeholder="000000" value={verifyCode}
                         onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-center text-2xl tracking-[0.5em] font-mono" />
-                      <button onClick={handleVerifyAndRegister} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 mb-4 text-white placeholder-white/30 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/20 text-center text-2xl tracking-[0.5em] font-mono transition-all" />
+                      <button onClick={handleVerifyAndRegister}
+                        className="w-full bg-white text-primary py-3 rounded-xl hover:bg-white/90 transition-all font-medium shadow-lg hover:shadow-xl active:scale-[0.98]">
                         Подтвердить и зарегистрироваться
                       </button>
                       <button onClick={() => { setVerifyStep("form"); setVerifyCode(""); setError(""); setSuccess(""); }}
-                        className="w-full text-sm text-primary hover:underline mt-3 text-center">
+                        className="w-full text-sm text-white/70 hover:text-white mt-3 text-center transition-colors">
                         Изменить email
                       </button>
-                      <button onClick={handleAuth} className="w-full text-sm text-text-gray hover:underline mt-2 text-center">
+                      <button onClick={handleAuth} className="w-full text-sm text-white/50 hover:text-white/80 mt-2 text-center transition-colors">
                         Отправить код повторно
                       </button>
-                    </>
+                    </div>
                   ) : (
-                    <>
-                      <input type="text" placeholder={tab === "login" ? "Email или Логин" : "Email"} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
-                      <input type="password" placeholder="Пароль" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                        className="w-full border border-border rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
-                      <button onClick={handleAuth} disabled={verifyLoading} className="w-full bg-primary text-white py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium disabled:opacity-50">
+                    <div className="animate-fade-in">
+                      <div className="relative mb-3">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <input type="text" placeholder={tab === "login" ? "Email или Логин" : "Email"} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pl-10 text-white placeholder-white/40 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/20 transition-all" />
+                      </div>
+                      <div className="relative mb-4">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <input type="password" placeholder="Пароль" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+                          className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pl-10 text-white placeholder-white/40 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/20 transition-all" />
+                      </div>
+                      <button onClick={handleAuth} disabled={verifyLoading}
+                        className="w-full bg-white text-primary py-3 rounded-xl hover:bg-white/90 transition-all font-medium shadow-lg hover:shadow-xl disabled:opacity-50 active:scale-[0.98]">
                         {verifyLoading ? "Отправка кода..." : tab === "login" ? "Войти" : "Зарегистрироваться"}
                       </button>
                       {tab === "login" && (
                         <>
                           <button onClick={() => { setResetMode(true); setError(""); setSuccess(""); }}
-                            className="w-full text-sm text-primary hover:underline mt-3 text-center">
+                            className="w-full text-sm text-white/70 hover:text-white mt-4 text-center transition-colors">
                             Забыли пароль?
                           </button>
-                          <p className="text-xs text-text-gray text-center mt-2">Используйте email для клиентов или логин для администраторов</p>
+                          <p className="text-xs text-white/40 text-center mt-2">Используйте email для клиентов или логин для администраторов</p>
                         </>
                       )}
                       {tab === "register" && (
-                        <p className="text-xs text-text-gray text-center mt-3">На ваш email будет отправлен код подтверждения</p>
+                        <p className="text-xs text-white/50 text-center mt-3">На ваш email будет отправлен код подтверждения</p>
                       )}
-                    </>
+                    </div>
                   )}
                 </>
               )}
