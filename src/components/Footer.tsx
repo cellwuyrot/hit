@@ -9,7 +9,7 @@ export default function Footer() {
           {/* Company info */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Image src="/logo.png" alt="ТОПХИТ" width={32} height={32} className="w-8 h-8" />
+              <Image src="/logo.png" alt="ТОПХИТ" width={40} height={40} className="w-10 h-10 drop-shadow-md" />
               <span className="text-lg font-bold">ТОПХИТ</span>
             </div>
             <p className="text-white/75 text-sm">

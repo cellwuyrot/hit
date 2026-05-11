@@ -146,11 +146,11 @@ export default function Header() {
         <div className="flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Image src="/logo.png" alt="ТОПХИТ" width={40} height={40} className="w-8 h-8 sm:w-10 sm:h-10" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Image src="/logo.png" alt="ТОПХИТ" width={56} height={56} className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-md" />
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-primary leading-tight font-heading">ТОПХИТ</h1>
-                <p className="text-[10px] sm:text-xs text-text-gray leading-tight">интернет-магазин</p>
+                <h1 className="text-xl sm:text-2xl font-extrabold text-primary leading-tight font-heading tracking-tight">ТОПХИТ</h1>
+                <p className="text-[10px] sm:text-xs text-text-gray leading-tight tracking-wide">интернет-магазин</p>
               </div>
             </div>
           </Link>

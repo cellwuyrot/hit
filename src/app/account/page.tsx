@@ -2,6 +2,7 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Image from "next/image";
 import { useState, useEffect, startTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -319,11 +320,9 @@ export default function AccountPage() {
           <div className="relative z-10 w-full max-w-md mx-4 animate-fade-in-up">
             {/* Logo */}
             <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-2 mb-2">
-                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-md">
-                  <span className="text-white font-bold text-lg font-heading">TH</span>
-                </div>
-                <span className="text-primary text-2xl font-bold font-heading">ТОПХИТ</span>
+              <div className="inline-flex items-center gap-3 mb-2">
+                <Image src="/logo.png" alt="ТОПХИТ" width={56} height={56} className="w-14 h-14 drop-shadow-md" />
+                <span className="text-primary text-3xl font-extrabold font-heading tracking-tight">ТОПХИТ</span>
               </div>
               <p className="text-text-gray text-sm">
                 {resetMode ? "Восстановление доступа к аккаунту" : "Войдите для управления заказами и избранным"}
