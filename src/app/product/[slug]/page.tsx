@@ -82,16 +82,20 @@ export default async function ProductPage({ params }: PageProps) {
   const priceValidUntil = new Date();
   priceValidUntil.setFullYear(priceValidUntil.getFullYear() + 1);
 
+  const brandName = product.brand || product.category.name || "ТОПХИТ";
+  const productDescription = product.description
+    || `${product.name}${product.brand ? ` от ${product.brand}` : ""} — купить по цене ${product.price} ₽ в интернет-магазине ТОПХИТ. ${product.category.name}${product.inStock > 0 ? ", в наличии" : ""}. Доставка по Москве и России.`;
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: product.description || product.name,
+    description: productDescription,
     image: images.length > 0 ? images : undefined,
-    brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
+    brand: { "@type": "Brand", name: brandName },
     sku: product.code || product.id,
     mpn: product.code || undefined,
-    gtin13: product.barcode || undefined,
+    ...(product.barcode ? { gtin13: product.barcode } : {}),
     color: product.color || undefined,
     weight: product.weight ? { "@type": "QuantitativeValue", value: product.weight, unitCode: "KGM" } : undefined,
     category: product.category.name,
@@ -108,6 +112,7 @@ export default async function ProductPage({ params }: PageProps) {
       seller: { "@type": "Organization", name: "ТОПХИТ" },
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
+        "@id": "https://tophitt.ru/returns#policy",
         applicableCountry: "RU",
         returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
         merchantReturnDays: 14,
@@ -116,6 +121,11 @@ export default async function ProductPage({ params }: PageProps) {
       },
       shippingDetails: {
         "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: "0",
+          currency: "RUB",
+        },
         shippingDestination: {
           "@type": "DefinedRegion",
           addressCountry: "RU",
