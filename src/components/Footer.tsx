@@ -97,6 +97,7 @@ export default function Footer() {
         {/* Legal info */}
         <div className="border-t border-white/10 mt-8 pt-6 text-xs text-white/55 space-y-2">
           <p>© {new Date().getFullYear()} ТОПХИТ. Все права защищены.</p>
+          <p>ИП Атаманова Н.О. ИНН 720302151142, ОГРНИП 323508100551579</p>
           <p>Юридический адрес: 127018, г. Москва, ул. Складочная д. 1 стр. 18</p>
           <p className="text-white/45">
             Информация на сайте не является публичной офертой. Изображения товаров могут отличаться от фактического вида.
