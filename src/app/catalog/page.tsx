@@ -22,7 +22,9 @@ export const metadata: Metadata = {
     description: "Продукты, бытовая химия, товары для дома — от 1 штуки или упаковками со скидкой 10%",
     locale: "ru_RU",
     type: "website",
+    url: "https://tophitt.ru/catalog",
   },
+  alternates: { canonical: "https://tophitt.ru/catalog" },
 };
 
 interface PageProps {
