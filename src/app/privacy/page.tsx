@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Политика обработки персональных данных — ТОПХИТ",
-  description: "Политика обработки персональных данных ООО/ИП ТОПХИТ. Порядок сбора, хранения и защиты персональных данных пользователей сайта tophitt.ru",
+  description: "Политика обработки персональных данных ИП Атаманова Н.О. (ТОПХИТ). Порядок сбора, хранения и защиты персональных данных пользователей сайта tophitt.ru",
+  alternates: { canonical: "https://tophitt.ru/privacy" },
 };
 
 export default function PrivacyPage() {
