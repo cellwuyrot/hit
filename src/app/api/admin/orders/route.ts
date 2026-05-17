@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
+import { sendOrderStatusUpdate } from "@/lib/resend";
 
 function checkAdmin(request: Request): boolean {
   const token = getTokenFromRequest(request);
@@ -19,9 +20,34 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
-  const { id, status } = await request.json();
-  if (!id || !status) return Response.json({ error: "Укажите id и статус" }, { status: 400 });
-  const order = await prisma.order.update({ where: { id }, data: { status } });
+  const { id, status, trackNumber, trackUrl } = await request.json();
+  if (!id) return Response.json({ error: "Укажите id" }, { status: 400 });
+
+  const updateData: Record<string, string> = {};
+  if (status) updateData.status = status;
+  if (trackNumber !== undefined) updateData.trackNumber = trackNumber;
+  if (trackUrl !== undefined) updateData.trackUrl = trackUrl;
+
+  if (Object.keys(updateData).length === 0) {
+    return Response.json({ error: "Нечего обновлять" }, { status: 400 });
+  }
+
+  const order = await prisma.order.update({
+    where: { id },
+    data: updateData,
+    include: { user: { select: { email: true } } },
+  });
+
+  if (status || trackNumber) {
+    sendOrderStatusUpdate(
+      order.user.email,
+      order.id,
+      order.status,
+      order.trackNumber || undefined,
+      order.trackUrl || undefined,
+    );
+  }
+
   return Response.json(order);
 }
 

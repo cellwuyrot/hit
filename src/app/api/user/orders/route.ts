@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
+import { sendOrderNotificationToAdmin, sendOrderConfirmationToClient } from "@/lib/resend";
 
 function getUserId(request: Request): string | null {
   const token = getTokenFromRequest(request);
@@ -57,10 +58,14 @@ export async function POST(request: Request) {
         })),
       },
     },
-    include: { items: { include: { product: true } } },
+    include: { items: { include: { product: true } }, user: { select: { email: true } } },
   });
 
   await prisma.cartItem.deleteMany({ where: { userId } });
+
+  const customerEmail = order.user.email;
+  sendOrderNotificationToAdmin(order, customerEmail);
+  sendOrderConfirmationToClient(customerEmail, order);
 
   return Response.json(order);
 }
