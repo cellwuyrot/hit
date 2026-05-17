@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     type: "website",
     url: "https://tophitt.ru/catalog",
+    images: [{ url: "https://tophitt.ru/opengraph-image", width: 1200, height: 630 }],
   },
   alternates: { canonical: "https://tophitt.ru/catalog" },
 };
@@ -116,7 +117,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
                   className="text-sm font-medium text-text-dark hover:text-primary transition-colors flex justify-between py-1"
                 >
                   <span>{cat.name}</span>
-                  <span className="text-text-light">({cat._count.products})</span>
+                  <span className="text-text-light">({cat._count.products + (cat.children?.reduce((sum: number, c: { _count: { products: number } }) => sum + c._count.products, 0) || 0)})</span>
                 </Link>
                 {cat.children && cat.children.length > 0 && (
                   <ul className="ml-4 mt-1 mb-2 space-y-1 border-l-2 border-border pl-3">
