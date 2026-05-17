@@ -258,3 +258,13 @@ model EmailVerification {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
+
+model SearchSynonym {
+  id        String   @id @default(uuid())
+  word      String
+  synonym   String
+  createdAt DateTime @default(now())
+
+  @@index([word])
+  @@index([synonym])
+}

@@ -10,6 +10,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { SkeletonProductGrid } from "@/components/Skeleton";
+import { expandSearchQuery, searchFTS5, buildSearchConditions } from "@/lib/smartSearch";
 
 
 export const revalidate = 60;
@@ -42,12 +43,15 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
   const colors = searchParams.colors?.split(",").filter(Boolean);
 
   const where: Record<string, unknown> = {};
+  let ftsProductIds: string[] = [];
   if (search) {
-    where.OR = [
-      { name: { contains: search } },
-      { description: { contains: search } },
-      { brand: { contains: search } },
-    ];
+    const terms = await expandSearchQuery(search);
+    ftsProductIds = searchFTS5(terms, 200);
+    if (ftsProductIds.length > 0) {
+      where.id = { in: ftsProductIds };
+    } else {
+      where.OR = buildSearchConditions(terms);
+    }
   }
   if (priceFrom !== undefined || priceTo !== undefined) {
     where.price = {};

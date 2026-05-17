@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "npx tsx prisma/seed.ts"
+    "seed": "npx tsx prisma/seed.ts",
+    "seed:synonyms": "npx tsx prisma/seed-synonyms.ts",
+    "rebuild:fts": "npx tsx prisma/rebuild-fts.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

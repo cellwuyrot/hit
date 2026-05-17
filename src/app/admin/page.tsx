@@ -107,7 +107,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "callbacks" | "clients" | "settings" | "site-editor";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor";
 
 interface CallbackItem {
   id: string;
@@ -813,7 +813,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, callbacks: `Заявки на звонок`, clients: "Клиенты", "site-editor": "Редактирование сайта", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", settings: "Настройки",
   };
 
   return (
@@ -1610,6 +1610,9 @@ export default function AdminPage() {
         {/* Clients */}
         {activeTab === "clients" && <ClientsPanel token={token} />}
 
+        {/* Synonyms */}
+        {activeTab === "synonyms" && <SynonymsPanel token={token} />}
+
         {/* Settings */}
         {activeTab === "settings" && (
           <div className="max-w-lg">
@@ -2110,6 +2113,103 @@ function ClientsPanel({ token }: { token: string }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function SynonymsPanel({ token }: { token: string }) {
+  const [synonyms, setSynonyms] = useState<{ id: string; word: string; synonym: string }[]>([]);
+  const [word, setWord] = useState("");
+  const [synonym, setSynonym] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
+
+  const loadSynonyms = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/synonyms", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setSynonyms(await res.json());
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { loadSynonyms(); }, [loadSynonyms]);
+
+  const addSynonym = async () => {
+    if (!word.trim() || !synonym.trim()) return;
+    setMsg("");
+    const res = await fetch("/api/admin/synonyms", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ word: word.trim(), synonym: synonym.trim() }),
+    });
+    if (res.ok) {
+      setWord("");
+      setSynonym("");
+      setMsg("Добавлено");
+      loadSynonyms();
+    } else {
+      const err = await res.json();
+      setMsg(err.error || "Ошибка");
+    }
+  };
+
+  const deleteSynonym = async (id: string) => {
+    await fetch("/api/admin/synonyms", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    loadSynonyms();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-bg-white rounded-xl border border-border p-5">
+        <h2 className="font-bold text-text-dark mb-2">Синонимы поиска</h2>
+        <p className="text-sm text-text-gray mb-4">
+          Связывайте слова для умного поиска. Например: «энергетик» → «энергетический напиток», «monster» → «монстр».
+          При поиске любого слова из пары будут найдены товары, содержащие оба варианта.
+        </p>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          <input type="text" placeholder="Слово (напр. энергетик)" value={word}
+            onChange={(e) => setWord(e.target.value)}
+            className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary flex-1 min-w-[150px]" />
+          <input type="text" placeholder="Синоним (напр. энергетический напиток)" value={synonym}
+            onChange={(e) => setSynonym(e.target.value)}
+            className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary flex-1 min-w-[150px]" />
+          <button onClick={addSynonym}
+            className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            Добавить
+          </button>
+        </div>
+        {msg && <p className={`text-sm mb-3 ${msg === "Добавлено" ? "text-success" : "text-danger"}`}>{msg}</p>}
+      </div>
+
+      <div className="bg-bg-white rounded-xl border border-border p-5">
+        <h3 className="font-semibold text-text-dark mb-3">Текущие синонимы ({synonyms.length})</h3>
+        {loading ? (
+          <p className="text-sm text-text-gray">Загрузка...</p>
+        ) : synonyms.length === 0 ? (
+          <p className="text-sm text-text-gray">Синонимы не добавлены. Добавьте первый выше.</p>
+        ) : (
+          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+            {synonyms.map((s) => (
+              <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-bg-light">
+                <span className="text-sm">
+                  <span className="font-medium text-text-dark">{s.word}</span>
+                  <span className="text-text-gray mx-2">↔</span>
+                  <span className="font-medium text-text-dark">{s.synonym}</span>
+                </span>
+                <button onClick={() => deleteSynonym(s.id)}
+                  className="text-danger hover:bg-danger/10 p-1 rounded text-sm">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

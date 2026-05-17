@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest } from "next/server";
+import { expandSearchQuery, searchFTS5, buildSearchConditions } from "@/lib/smartSearch";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -22,12 +23,17 @@ export async function GET(request: NextRequest) {
 
   const where: Record<string, unknown> = {};
 
+  // Smart search: expand query with synonyms, transliteration, FTS5
+  let ftsProductIds: string[] = [];
   if (search) {
-    where.OR = [
-      { name: { contains: search } },
-      { description: { contains: search } },
-      { brand: { contains: search } },
-    ];
+    const terms = await expandSearchQuery(search);
+    ftsProductIds = searchFTS5(terms, 100);
+
+    if (ftsProductIds.length > 0) {
+      where.id = { in: ftsProductIds };
+    } else {
+      where.OR = buildSearchConditions(terms);
+    }
   }
 
   if (categorySlug) {
@@ -80,9 +86,16 @@ export async function GET(request: NextRequest) {
     include: { category: true },
   });
 
-  const products = sort === "name"
-    ? [...rawProducts].sort((a, b) => a.name.localeCompare(b.name, "ru"))
-    : rawProducts;
+  // If FTS5 was used and no explicit sort, preserve relevance order
+  let products;
+  if (ftsProductIds.length > 0 && sort === "popular") {
+    const orderMap = new Map(ftsProductIds.map((id, i) => [id, i]));
+    products = [...rawProducts].sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999));
+  } else if (sort === "name") {
+    products = [...rawProducts].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  } else {
+    products = rawProducts;
+  }
 
   return Response.json(products);
 }
