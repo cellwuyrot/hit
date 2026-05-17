@@ -94,6 +94,8 @@ interface Order {
   phone: string;
   address: string;
   comment: string;
+  trackNumber: string;
+  trackUrl: string;
   createdAt: string;
   user: { email: string; name: string };
   items: OrderItem[];
@@ -127,14 +129,18 @@ interface AnalyticsData {
 
 interface MsgItem { id: string; senderId: string; senderRole: string; text: string; createdAt: string; }
 
-function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, token }: {
+function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, token, fetchData }: {
   orders: Order[]; statusLabels: Record<string, string>;
-  updateOrderStatus: (id: string, status: string) => void; deleteOrder: (id: string) => void; token: string;
+  updateOrderStatus: (id: string, status: string) => void; deleteOrder: (id: string) => void; token: string; fetchData: () => void;
 }) {
   const [openChat, setOpenChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<MsgItem[]>([]);
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
+  const [editingTrack, setEditingTrack] = useState<string | null>(null);
+  const [trackNumberInput, setTrackNumberInput] = useState("");
+  const [trackUrlInput, setTrackUrlInput] = useState("");
+  const [savingTrack, setSavingTrack] = useState(false);
 
   const loadMessages = async (orderId: string) => {
     const res = await fetch(`/api/admin/messages?orderId=${orderId}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -161,6 +167,24 @@ function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, tok
     loadMessages(openChat);
   };
 
+  const startEditTrack = (order: Order) => {
+    setEditingTrack(order.id);
+    setTrackNumberInput(order.trackNumber || "");
+    setTrackUrlInput(order.trackUrl || "");
+  };
+
+  const saveTrack = async (orderId: string) => {
+    setSavingTrack(true);
+    await fetch("/api/admin/orders", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: orderId, trackNumber: trackNumberInput.trim(), trackUrl: trackUrlInput.trim() }),
+    });
+    setSavingTrack(false);
+    setEditingTrack(null);
+    fetchData();
+  };
+
   return (
     <div className="bg-bg-white rounded-xl border border-border p-5">
       <h2 className="font-bold text-text-dark mb-4">Заказы ({orders.length})</h2>
@@ -184,7 +208,7 @@ function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, tok
                   </select>
                   {(order.status === "cancelled" || order.status === "delivered") && (
                     <button onClick={() => deleteOrder(order.id)} className="text-sm px-3 py-1 rounded-lg border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
-                      🗑 Удалить
+                      Удалить
                     </button>
                   )}
                 </div>
@@ -202,6 +226,48 @@ function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, tok
                 <span className="font-bold text-primary">{order.total.toLocaleString("ru-RU")} ₽</span>
               </div>
               {order.comment && <p className="text-xs text-text-gray mt-1">Комментарий: {order.comment}</p>}
+
+              {/* Tracking section */}
+              <div className="mt-2 pt-2 border-t border-border/50">
+                {editingTrack === order.id ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <input type="text" value={trackNumberInput} onChange={(e) => setTrackNumberInput(e.target.value)}
+                        placeholder="Трек-номер" className="flex-1 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary" />
+                      <input type="text" value={trackUrlInput} onChange={(e) => setTrackUrlInput(e.target.value)}
+                        placeholder="Ссылка на отслеживание (необязательно)" className="flex-1 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => saveTrack(order.id)} disabled={savingTrack}
+                        className="text-sm px-3 py-1 rounded-lg bg-primary text-white hover:bg-primary-dark disabled:opacity-50">
+                        {savingTrack ? "Сохранение..." : "Сохранить трек"}
+                      </button>
+                      <button onClick={() => setEditingTrack(null)} className="text-sm px-3 py-1 rounded-lg border border-border text-text-gray hover:text-text-dark">
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm">
+                    {order.trackNumber ? (
+                      <>
+                        <span className="text-text-gray">Трек:</span>
+                        {order.trackUrl ? (
+                          <a href={order.trackUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">{order.trackNumber}</a>
+                        ) : (
+                          <span className="text-text-dark font-medium">{order.trackNumber}</span>
+                        )}
+                        <button onClick={() => startEditTrack(order)} className="text-xs text-primary hover:underline ml-1">Изменить</button>
+                      </>
+                    ) : (
+                      <button onClick={() => startEditTrack(order)} className="text-sm text-primary hover:underline flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                        Добавить трек-номер
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {openChat === order.id && (
                 <div className="mt-3 pt-3 border-t border-border">
@@ -1496,7 +1562,7 @@ export default function AdminPage() {
 
         {/* Orders */}
         {activeTab === "orders" && (
-          <OrdersPanel orders={orders} statusLabels={statusLabels} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} token={token} />
+          <OrdersPanel orders={orders} statusLabels={statusLabels} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} token={token} fetchData={fetchData} />
         )}
         {/* Popular Products */}
         {activeTab === "popular" && (
