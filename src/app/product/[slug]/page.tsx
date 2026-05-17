@@ -29,9 +29,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     include: { category: true },
   });
   if (!product) return {};
-  const title = `${product.name} — купить в ТОПХИТ`;
+  const suffix = " — купить в ТОПХИТ";
+  const maxNameLen = 70 - suffix.length;
+  const trimmedName = product.name.length > maxNameLen ? product.name.slice(0, maxNameLen - 1) + "…" : product.name;
+  const title = `${trimmedName}${suffix}`;
   const description = product.description
-    ? product.description.slice(0, 160)
+    ? product.description.slice(0, 155).replace(/\s+\S*$/, "") + "…"
     : `${product.name} по цене ${product.price} ₽. ${product.brand ? `Бренд: ${product.brand}.` : ""} Купить в интернет-магазине ТОПХИТ с доставкой.`;
   const keywords = product.tags
     ? product.tags

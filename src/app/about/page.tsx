@@ -17,6 +17,7 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     type: "website",
     url: "https://tophitt.ru/about",
+    images: [{ url: "https://tophitt.ru/opengraph-image", width: 1200, height: 630 }],
   },
   alternates: {
     canonical: "https://tophitt.ru/about",
