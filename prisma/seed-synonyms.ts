@@ -1,10 +1,9 @@
-import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import Database from "better-sqlite3";
 import path from "path";
+import { v4 as uuid } from "uuid";
 
 const dbPath = path.join(process.cwd(), "dev.db");
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
-const prisma = new PrismaClient({ adapter });
+const db = new Database(dbPath);
 
 const SYNONYMS: [string, string][] = [
   // Энергетики
@@ -89,25 +88,23 @@ const SYNONYMS: [string, string][] = [
   ["жвачка", "gum"],
 ];
 
-async function main() {
-  console.log("Seeding search synonyms...");
+console.log("Seeding search synonyms...");
 
-  let count = 0;
-  for (const [word, synonym] of SYNONYMS) {
-    const existing = await prisma.searchSynonym.findFirst({
-      where: { word, synonym },
-    });
-    if (!existing) {
-      await prisma.searchSynonym.create({
-        data: { word, synonym },
-      });
-      count++;
-    }
+const insert = db.prepare(
+  "INSERT INTO SearchSynonym (id, word, synonym, createdAt) VALUES (?, ?, ?, datetime('now'))"
+);
+const check = db.prepare(
+  "SELECT id FROM SearchSynonym WHERE word = ? AND synonym = ?"
+);
+
+let count = 0;
+for (const [word, synonym] of SYNONYMS) {
+  const existing = check.get(word, synonym);
+  if (!existing) {
+    insert.run(uuid(), word, synonym);
+    count++;
   }
-
-  console.log(`Added ${count} new synonyms (${SYNONYMS.length - count} already existed).`);
 }
 
-main()
-  .catch(console.error)
-  .finally(() => process.exit(0));
+console.log(`Added ${count} new synonyms (${SYNONYMS.length - count} already existed).`);
+db.close();
