@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
+import { addWatermark, isImageFile } from "@/lib/watermark";
 
 function checkAdmin(request: Request): boolean {
   const token = getTokenFromRequest(request);
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const skipWatermark = formData.get("skipWatermark") === "true";
 
     if (!file) return Response.json({ error: "Файл не выбран" }, { status: 400 });
 
@@ -28,7 +30,16 @@ export async function POST(request: Request) {
       return Response.json({ error: "Поддерживаемые форматы: JPG, PNG, GIF, WEBP, SVG" }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    let buffer: Uint8Array = Buffer.from(await file.arrayBuffer());
+
+    if (!skipWatermark && isImageFile(ext)) {
+      try {
+        buffer = await addWatermark(buffer);
+      } catch (wmErr) {
+        console.error("Watermark error (saving without):", wmErr);
+      }
+    }
+
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
     const uploadDir = path.join(process.cwd(), "public", "uploads");
 
