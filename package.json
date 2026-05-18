@@ -9,8 +9,7 @@
     "lint": "eslint",
     "seed": "npx tsx prisma/seed.ts",
     "seed:synonyms": "npx tsx prisma/seed-synonyms.ts",
-    "rebuild:fts": "npx tsx prisma/rebuild-fts.ts",
-    "watermark:apply": "npx tsx scripts/apply-watermarks.ts"
+    "rebuild:fts": "npx tsx prisma/rebuild-fts.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -27,7 +26,6 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.12.3",
-    "sharp": "^0.34.5",
     "uuid": "^14.0.0",
     "xlsx": "^0.18.5"
   },
