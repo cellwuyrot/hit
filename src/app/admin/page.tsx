@@ -1856,7 +1856,7 @@ function AnalyticsPanel({ token }: { token: string }) {
               Для детальной аналитики используйте внешние сервисы:
             </p>
             <div className="flex flex-wrap gap-3">
-              <a href="https://metrika.yandex.ru/dashboard?id=109025489" target="_blank" rel="noopener noreferrer"
+              <a href="https://metrika.yandex.ru/dashboard?id=109327312" target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-bg-light border border-border rounded-lg text-sm text-text-dark hover:text-primary hover:border-primary transition-colors">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
                 Яндекс.Метрика
