@@ -99,7 +99,7 @@ async function CategoryContent({
     prisma.product.findMany({ where, orderBy, include: { category: { include: { parent: true } } }, take: PER_PAGE, skip }),
     prisma.product.findMany({
       where: { categoryId: { in: catIds } },
-      select: { brand: true, productType: true, color: true, price: true },
+      select: { brand: true, productType: true, color: true, price: true, inStock: true },
     }),
   ]);
 
@@ -113,6 +113,38 @@ async function CategoryContent({
   const prices = catProducts.map((p) => p.price);
   const minPrice = Math.min(...prices, 0);
   const maxPrice = Math.max(...prices, 10000);
+
+  const minCatPrice = Math.min(...catProducts.map((p) => p.price));
+  const maxCatPrice = Math.max(...catProducts.map((p) => p.price));
+  const brandsInCat = [...new Set(catProducts.map((p) => p.brand).filter(Boolean))];
+  const inStockCount = catProducts.filter((p) => p.inStock > 0).length;
+
+  const faqItems: { q: string; a: string }[] = [
+    {
+      q: `Сколько стоит ${category.name.toLowerCase()} в ТОПХИТ?`,
+      a: `Цены на ${category.name.toLowerCase()} в нашем магазине — от ${minCatPrice} ₽ до ${maxCatPrice} ₽. Скидка 10% при покупке упаковкой.`,
+    },
+    {
+      q: `Какие бренды ${category.name.toLowerCase()} есть в наличии?`,
+      a: brandsInCat.length > 0
+        ? `В наличии ${inStockCount} товаров от брендов: ${brandsInCat.slice(0, 10).join(", ")}${brandsInCat.length > 10 ? ` и ещё ${brandsInCat.length - 10}` : ""}.`
+        : `В наличии ${inStockCount} товаров из категории ${category.name}.`,
+    },
+    {
+      q: `Как заказать ${category.name.toLowerCase()} с доставкой?`,
+      a: "Добавьте товары в корзину и оформите заказ. Доставка по Москве и МО бесплатно. Также доступен самовывоз со склада по адресу: ул. Складочная, д. 1, стр. 18.",
+    },
+  ];
+
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a },
+    })),
+  };
 
   const collectionLd = {
     "@context": "https://schema.org",
@@ -174,6 +206,7 @@ async function CategoryContent({
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <Breadcrumbs items={breadcrumbItems} />
 
       <h1 className="text-2xl font-bold text-text-dark mb-6">{category.name}</h1>
@@ -247,6 +280,21 @@ async function CategoryContent({
           <Pagination currentPage={page} totalItems={totalCount} baseParams={searchParams} />
         </div>
       </div>
+
+      {/* FAQ section — visible for SEO */}
+      <section className="mt-8 border-t border-border pt-6">
+        <h2 className="text-lg font-semibold text-text-dark mb-4">Часто задаваемые вопросы</h2>
+        <div className="space-y-4">
+          {faqItems.map((item, i) => (
+            <details key={i} className="bg-bg-white border border-border rounded-lg">
+              <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-text-dark hover:text-primary transition-colors">
+                {item.q}
+              </summary>
+              <p className="px-4 pb-3 text-sm text-text-gray leading-relaxed">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
     </>
   );
 }

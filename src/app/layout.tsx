@@ -59,6 +59,12 @@ export default function RootLayout({
   return (
     <html lang="ru" className={`h-full antialiased ${inter.variable} ${manrope.variable}`}>
       <head>
+        {/* Preconnect hints for faster third-party loads */}
+        <link rel="preconnect" href="https://mc.yandex.ru" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://mc.yandex.ru" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         {/* Google Analytics */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-GTTS4HE5R3" />
         <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-GTTS4HE5R3')` }} />
