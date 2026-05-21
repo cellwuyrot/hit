@@ -12,7 +12,9 @@
     "rebuild:fts": "npx tsx prisma/rebuild-fts.ts",
     "merchant:generate": "npx tsx scripts/generate-merchant-feed.ts",
     "merchant:upload": "npx tsx scripts/upload-merchant-feed.ts",
-    "merchant:sync": "npx tsx scripts/generate-merchant-feed.ts && npx tsx scripts/upload-merchant-feed.ts"
+    "merchant:sync": "npx tsx scripts/generate-merchant-feed.ts && npx tsx scripts/upload-merchant-feed.ts",
+    "yandex:generate": "npx tsx scripts/generate-yandex-feed.ts",
+    "feeds:generate": "npx tsx scripts/generate-merchant-feed.ts && npx tsx scripts/generate-yandex-feed.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
