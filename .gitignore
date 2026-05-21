@@ -50,3 +50,6 @@ next-env.d.ts
 # uploads
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# generated feeds
+/public/merchant-feed.xml
