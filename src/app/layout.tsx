@@ -3,6 +3,7 @@ import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import ClientShell from "@/components/ClientShell";
 import { InlineEditProvider } from "@/components/InlineEditContext";
+import { SiteSettingsProvider } from "@/components/SiteSettingsContext";
 import AdminEditToggle from "@/components/AdminEditToggle";
 
 const inter = Inter({
@@ -135,9 +136,11 @@ export default function RootLayout({
           }}
         />
         <InlineEditProvider>
-          {children}
-          <AdminEditToggle />
-          <ClientShell />
+          <SiteSettingsProvider>
+            {children}
+            <AdminEditToggle />
+            <ClientShell />
+          </SiteSettingsProvider>
         </InlineEditProvider>
       </body>
     </html>

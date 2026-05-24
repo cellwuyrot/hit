@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Ripple from "./Ripple";
+import InlineSetting from "./InlineSetting";
 
 interface SearchResult {
   id: string;
@@ -132,11 +133,11 @@ export default function Header() {
       <div className="bg-primary text-white">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-[11px] sm:text-sm">
           <div className="flex items-center gap-2 sm:gap-4">
-            <span>ПН-ПТ 09:00–18:00</span>
-            <span className="hidden sm:inline">СБ-ВС: Выходной</span>
+            <InlineSetting settingKey="header-hours" fallback="ПН-ПТ 09:00–18:00" className="" />
+            <span className="hidden sm:inline"><InlineSetting settingKey="header-weekend" fallback="СБ-ВС: Выходной" className="" /></span>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
-            <span>Москва и МО</span>
+            <InlineSetting settingKey="header-region" fallback="Москва и МО" className="" />
           </div>
         </div>
       </div>
@@ -150,7 +151,7 @@ export default function Header() {
               <Image src="/logo.png" alt="ТОПХИТ" width={56} height={56} className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-md" />
               <div>
                 <h1 className="text-xl sm:text-2xl font-extrabold text-primary leading-tight font-heading tracking-tight">ТОПХИТ</h1>
-                <p className="text-[10px] sm:text-xs text-text-gray leading-tight tracking-wide">интернет-магазин</p>
+                <InlineSetting settingKey="header-subtitle" fallback="интернет-магазин" as="p" className="text-[10px] sm:text-xs text-text-gray leading-tight tracking-wide" />
               </div>
             </div>
           </Link>

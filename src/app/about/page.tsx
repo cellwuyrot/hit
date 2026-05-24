@@ -4,6 +4,7 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { InlinePageTitle, InlinePageContent } from "@/components/InlinePageContent";
 
 
 export const revalidate = 60;
@@ -88,26 +89,30 @@ export default async function AboutPage() {
 
           {/* About text */}
           <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-3 sm:mb-4">{aboutPage?.title || "О нас"}</h2>
-            {aboutPage?.content ? (
-              <div className="text-text-gray leading-relaxed space-y-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: aboutPage.content }} />
+            {aboutPage ? (
+              <>
+                <InlinePageTitle id={aboutPage.id} title={aboutPage.title || "О нас"} />
+                <InlinePageContent id={aboutPage.id} content={aboutPage.content || ""} />
+              </>
             ) : (
-              <div className="text-text-gray leading-relaxed space-y-4">
-                <p>
-                  Мы уже предлагаем товары в популярных категориях — от продуктов питания и товаров для дома до одежды, техники и аксессуаров. В будущем ассортимент будет только расти, охватывая всё больше направлений — как для розничных покупателей, так и для оптовых клиентов.
-                </p>
-                <p>
-                  Продажи ведутся через онлайн-платформу с удобной системой доставок/самовывозов и возможностью оптового сотрудничества.
-                </p>
-              </div>
+              <>
+                <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-3 sm:mb-4">О нас</h2>
+                <div className="text-text-gray leading-relaxed space-y-4">
+                  <p>Мы уже предлагаем товары в популярных категориях...</p>
+                </div>
+              </>
             )}
           </div>
 
           {/* Delivery */}
           <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6 md:p-8 mb-6 sm:mb-8" id="delivery">
-            <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-2">{deliveryPage?.title || "Доставка"}</h2>
+            {deliveryPage ? (
+              <InlinePageTitle id={deliveryPage.id} title={deliveryPage.title || "Доставка"} />
+            ) : (
+              <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-2">Доставка</h2>
+            )}
             {deliveryPage?.content ? (
-              <div className="text-text-gray leading-relaxed space-y-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: deliveryPage.content }} />
+              <InlinePageContent id={deliveryPage.id} content={deliveryPage.content} />
             ) : (
               <>
                 <p className="text-text-gray mb-6">Ваши покупки — наша забота. Доставляем товары через проверенных партнёров по всей России.</p>
@@ -206,9 +211,13 @@ export default async function AboutPage() {
 
           {/* Contacts */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 sm:p-6 md:p-8" id="contacts">
-            <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-4 sm:mb-6">{contactsPage?.title || "Контакты"}</h2>
+            {contactsPage ? (
+              <InlinePageTitle id={contactsPage.id} title={contactsPage.title || "Контакты"} className="text-lg sm:text-xl font-bold text-text-dark mb-4 sm:mb-6" />
+            ) : (
+              <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-4 sm:mb-6">Контакты</h2>
+            )}
             {contactsPage?.content ? (
-              <div className="text-text-gray leading-relaxed space-y-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: contactsPage.content }} />
+              <InlinePageContent id={contactsPage.id} content={contactsPage.content} />
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
