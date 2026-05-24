@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import ClientShell from "@/components/ClientShell";
+import { InlineEditProvider } from "@/components/InlineEditContext";
+import AdminEditToggle from "@/components/AdminEditToggle";
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -132,8 +134,11 @@ export default function RootLayout({
             }),
           }}
         />
-        {children}
-        <ClientShell />
+        <InlineEditProvider>
+          {children}
+          <AdminEditToggle />
+          <ClientShell />
+        </InlineEditProvider>
       </body>
     </html>
   );

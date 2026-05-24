@@ -14,6 +14,7 @@ import StockAlertButton from "@/components/StockAlertButton";
 import ScrollReveal from "@/components/ScrollReveal";
 import ProductViewTracker from "@/components/ProductViewTracker";
 import RecentlyViewed from "@/components/RecentlyViewed";
+import { InlineProductName, InlineProductPrice, InlineProductDescription } from "@/components/InlineProductDetails";
 import type { Metadata } from "next";
 
 export const revalidate = 60;
@@ -219,7 +220,7 @@ export default async function ProductPage({ params }: PageProps) {
 
             {/* Info */}
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-dark mb-3 sm:mb-4">{product.name}</h1>
+              <InlineProductName id={product.id} name={product.name} />
 
               {/* Availability */}
               <div className="flex items-center gap-2 mb-4">
@@ -234,14 +235,7 @@ export default async function ProductPage({ params }: PageProps) {
               </div>
 
               {/* Price */}
-              <div className="mb-4 sm:mb-6">
-                <div className="flex items-baseline gap-2 sm:gap-3">
-                  <span className="text-2xl sm:text-3xl font-bold text-primary">{product.price.toLocaleString("ru-RU")} ₽</span>
-                  {product.oldPrice && (
-                    <span className="text-sm sm:text-lg text-text-light line-through">{product.oldPrice.toLocaleString("ru-RU")} ₽</span>
-                  )}
-                </div>
-              </div>
+              <InlineProductPrice id={product.id} price={product.price} oldPrice={product.oldPrice} />
 
               {/* Details */}
               <div className="space-y-2 mb-4 sm:mb-6 text-xs sm:text-sm">
@@ -281,12 +275,7 @@ export default async function ProductPage({ params }: PageProps) {
               </Link>
 
               {/* Description */}
-              {product.description && (
-                <div className="border-t border-border pt-6">
-                  <h2 className="text-lg font-bold text-text-dark mb-3">Описание</h2>
-                  <div className="text-text-gray leading-relaxed whitespace-pre-line">{product.description}</div>
-                </div>
-              )}
+              <InlineProductDescription id={product.id} description={product.description} />
             </div>
           </div>
 
