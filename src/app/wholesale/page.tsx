@@ -4,6 +4,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { InlinePageTitle, InlinePageContent } from "@/components/InlinePageContent";
 
 
 export const revalidate = 60;
@@ -30,12 +31,16 @@ export default async function WholesalePage() {
       <main className="flex-1 bg-bg-light">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
           <Breadcrumbs items={[{ label: "Оптовые продажи" }]} />
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-dark mb-2 sm:mb-3">{wholesalePage?.title || "Оптовые продажи — скидки от 5% до 20%"}</h1>
+          {wholesalePage ? (
+            <InlinePageTitle id={wholesalePage.id} title={wholesalePage.title || "Оптовые продажи — скидки от 5% до 20%"} as="h1" className="text-xl sm:text-2xl md:text-3xl font-bold text-text-dark mb-2 sm:mb-3" />
+          ) : (
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-dark mb-2 sm:mb-3">Оптовые продажи — скидки от 5% до 20%</h1>
+          )}
           <p className="text-text-gray text-sm sm:text-base mb-4 sm:mb-6">Специальные условия для ООО, ИП и физических лиц. Доставка по Москве, МО и всей России.</p>
 
           {wholesalePage?.content ? (
             <div className="bg-bg-white rounded-xl border border-border p-6 md:p-8 mb-8">
-              <div className="text-text-gray leading-relaxed space-y-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: wholesalePage.content }} />
+              <InlinePageContent id={wholesalePage.id} content={wholesalePage.content} />
             </div>
           ) : (
             <>
