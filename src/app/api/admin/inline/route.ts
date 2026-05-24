@@ -25,6 +25,10 @@ const ALLOWED_MODELS: Record<string, { table: string; fields: string[] }> = {
     table: "news",
     fields: ["title", "excerpt", "content"],
   },
+  sitepage: {
+    table: "sitePage",
+    fields: ["title", "content"],
+  },
 };
 
 export async function PATCH(request: Request) {

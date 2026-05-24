@@ -10,6 +10,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { getCategoryPath } from "@/lib/slugify";
+import { InlineCategoryName, InlineCategorySeoText } from "@/components/InlineCategoryHeader";
 
 
 export const revalidate = 60;
@@ -209,11 +210,8 @@ async function CategoryContent({
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <Breadcrumbs items={breadcrumbItems} />
 
-      <h1 className="text-2xl font-bold text-text-dark mb-6">{category.name}</h1>
-
-      {category.seoText && (
-        <div className="text-text-gray text-sm leading-relaxed mb-6 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: category.seoText }} />
-      )}
+      <InlineCategoryName id={category.id} name={category.name} />
+      <InlineCategorySeoText id={category.id} seoText={category.seoText || ""} />
 
       {category.children.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">

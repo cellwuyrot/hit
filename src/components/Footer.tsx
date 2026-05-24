@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import InlineSetting from "./InlineSetting";
 
 export default function Footer() {
   return (
@@ -12,14 +15,23 @@ export default function Footer() {
               <Image src="/logo.png" alt="ТОПХИТ" width={40} height={40} className="w-10 h-10 drop-shadow-md" />
               <span className="text-lg font-bold">ТОПХИТ</span>
             </div>
-            <p className="text-white/75 text-sm">
-              Динамично развивающаяся торговая компания с широким ассортиментом товаров для повседневной жизни, бизнеса и семьи.
-            </p>
+            <InlineSetting
+              settingKey="footer-description"
+              fallback="Динамично развивающаяся торговая компания с широким ассортиментом товаров для повседневной жизни, бизнеса и семьи."
+              as="p"
+              className="text-white/75 text-sm"
+              multiline
+            />
           </div>
 
           {/* Catalog */}
           <div>
-            <h3 className="font-bold mb-3 sm:mb-4 text-sm sm:text-base">Каталог</h3>
+            <InlineSetting
+              settingKey="footer-catalog-title"
+              fallback="Каталог"
+              as="h3"
+              className="font-bold mb-3 sm:mb-4 text-sm sm:text-base"
+            />
             <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/75">
               <li><Link href="/catalog" className="hover:text-white transition-colors">Все категории</Link></li>
               <li><Link href="/catalog/produkty-pitaniya" className="hover:text-white transition-colors">Продукты питания</Link></li>
@@ -31,7 +43,12 @@ export default function Footer() {
 
           {/* Info */}
           <div>
-            <h3 className="font-bold mb-3 sm:mb-4 text-sm sm:text-base">Информация</h3>
+            <InlineSetting
+              settingKey="footer-info-title"
+              fallback="Информация"
+              as="h3"
+              className="font-bold mb-3 sm:mb-4 text-sm sm:text-base"
+            />
             <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/75">
               <li><Link href="/about" className="hover:text-white transition-colors">О компании</Link></li>
               <li><Link href="/wholesale" className="hover:text-white transition-colors">Оптовые продажи</Link></li>
@@ -44,21 +61,73 @@ export default function Footer() {
 
           {/* Contacts */}
           <div className="col-span-2 md:col-span-1">
-            <h3 className="font-bold mb-3 sm:mb-4 text-sm sm:text-base">Контакты</h3>
+            <InlineSetting
+              settingKey="footer-contacts-title"
+              fallback="Контакты"
+              as="h3"
+              className="font-bold mb-3 sm:mb-4 text-sm sm:text-base"
+            />
             <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/75">
-              <p><a href="tel:+79362568950" className="hover:text-white transition-colors">📞 +7 (936) 256-89-50</a></p>
-              <p><a href="mailto:zakaz@tophitt.ru" className="hover:text-white transition-colors break-all">📧 zakaz@tophitt.ru</a></p>
-              <p><a href="mailto:opt@tophitt.ru" className="hover:text-white transition-colors break-all">📧 opt@tophitt.ru (опт)</a></p>
-              <p><a href="mailto:info@tophitt.ru" className="hover:text-white transition-colors break-all">📧 info@tophitt.ru (поставщики)</a></p>
-              <p>📍 127018, г. Москва, ул. Складочная д. 1 стр. 18</p>
-              <p>🕒 ПН-ПТ с 09:00 до 18:00</p>
+              <p>
+                📞{" "}
+                <InlineSetting
+                  settingKey="footer-phone"
+                  fallback="+7 (936) 256-89-50"
+                  className=""
+                />
+              </p>
+              <p>
+                📧{" "}
+                <InlineSetting
+                  settingKey="footer-email-1"
+                  fallback="zakaz@tophitt.ru"
+                  className="break-all"
+                />
+              </p>
+              <p>
+                📧{" "}
+                <InlineSetting
+                  settingKey="footer-email-2"
+                  fallback="opt@tophitt.ru (опт)"
+                  className="break-all"
+                />
+              </p>
+              <p>
+                📧{" "}
+                <InlineSetting
+                  settingKey="footer-email-3"
+                  fallback="info@tophitt.ru (поставщики)"
+                  className="break-all"
+                />
+              </p>
+              <p>
+                📍{" "}
+                <InlineSetting
+                  settingKey="footer-address"
+                  fallback="127018, г. Москва, ул. Складочная д. 1 стр. 18"
+                  className=""
+                />
+              </p>
+              <p>
+                🕒{" "}
+                <InlineSetting
+                  settingKey="footer-hours"
+                  fallback="ПН-ПТ с 09:00 до 18:00"
+                  className=""
+                />
+              </p>
             </div>
           </div>
         </div>
 
         {/* Social networks */}
         <div className="border-t border-white/10 mt-8 pt-6">
-          <h3 className="font-bold mb-3 sm:mb-4 text-center text-sm sm:text-base">Наши соцсети</h3>
+          <InlineSetting
+            settingKey="footer-social-title"
+            fallback="Наши соцсети"
+            as="h3"
+            className="font-bold mb-3 sm:mb-4 text-center text-sm sm:text-base"
+          />
           <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
             <a href="https://t.me/tophit_store" target="_blank" rel="nofollow noopener noreferrer"
               className="w-10 h-10 bg-white/10 hover:bg-primary rounded-lg flex items-center justify-center transition-colors" title="Telegram">
@@ -82,7 +151,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Yandex Map — Moscow, Skladochnaya 1/18 */}
+        {/* Yandex Map */}
         <div className="mt-6 rounded-lg overflow-hidden border border-white/10">
           <iframe
             src="https://yandex.ru/map-widget/v1/?ll=37.5937%2C55.8025&z=16&l=map&pt=37.5937%2C55.8025%2Cpm2rdm"
@@ -96,13 +165,29 @@ export default function Footer() {
 
         {/* Legal info */}
         <div className="border-t border-white/10 mt-8 pt-6 text-xs text-white/55 space-y-2">
-          <p>© {new Date().getFullYear()} ТОПХИТ. Все права защищены.</p>
-          <p>ИП Атаманова Н.О. ИНН 720302151142, ОГРНИП 323508100551579</p>
-          <p>Юридический адрес: 127018, г. Москва, ул. Складочная д. 1 стр. 18</p>
-          <p className="text-white/45">
-            Информация на сайте не является публичной офертой. Изображения товаров могут отличаться от фактического вида.
-            Все цены указаны в рублях и включают НДС.
+          <p>
+            © {new Date().getFullYear()}{" "}
+            <InlineSetting settingKey="footer-copyright" fallback="ТОПХИТ. Все права защищены." className="" />
           </p>
+          <InlineSetting
+            settingKey="footer-legal-1"
+            fallback="ИП Атаманова Н.О. ИНН 720302151142, ОГРНИП 323508100551579"
+            as="p"
+            className=""
+          />
+          <InlineSetting
+            settingKey="footer-legal-2"
+            fallback="Юридический адрес: 127018, г. Москва, ул. Складочная д. 1 стр. 18"
+            as="p"
+            className=""
+          />
+          <InlineSetting
+            settingKey="footer-disclaimer"
+            fallback="Информация на сайте не является публичной офертой. Изображения товаров могут отличаться от фактического вида. Все цены указаны в рублях и включают НДС."
+            as="p"
+            className="text-white/45"
+            multiline
+          />
         </div>
       </div>
     </footer>
