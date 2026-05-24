@@ -2,7 +2,10 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "ТОПХИТ <onboarding@resend.dev>";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "acoulbot@gmail.ru";
+const ADMIN_EMAILS = (process.env.ADMIN_EMAIL || "acoulbot@gmail.ru")
+  .split(",")
+  .map((e) => e.trim())
+  .filter(Boolean);
 
 interface OrderItem {
   quantity: number;
@@ -107,7 +110,7 @@ export async function sendOrderNotificationToAdmin(order: OrderEmailData, custom
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
+      to: ADMIN_EMAILS,
       subject: `Новый заказ #${order.id.slice(0, 8)} — ${order.total.toLocaleString("ru-RU")} ₽`,
       html: emailWrapper(`
         <div style="background: #dbeafe; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
