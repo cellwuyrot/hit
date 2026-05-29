@@ -85,9 +85,10 @@ export function slugify(text: string): string {
   return lower
     .replace(/[а-яё]+/g, (word) => {
       if (wordDict[word]) return wordDict[word];
-      return word.replace(/[а-яё]/g, (ch) => translitMap[ch] || ch);
+      return word.replace(/[а-яё]/g, (ch) => ch in translitMap ? translitMap[ch] : ch);
     })
-    .replace(/[^a-z0-9а-яё]+/g, "-")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-{2,}/g, "-")
     .replace(/^-|-$/g, "");
 }
 
