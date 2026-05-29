@@ -3,7 +3,8 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { slugify } from "@/lib/slugify";
 import AddToCartButton, { AddPackButton } from "@/components/AddToCartButton";
 import CompareButton from "@/components/CompareButton";
 import ProductGallery from "@/components/ProductGallery";
@@ -58,18 +59,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = await prisma.product.findFirst({
-    where: { slug },
-    include: {
-      category: { include: { parent: true } },
-      reviews: {
-        where: { published: true },
-        orderBy: { createdAt: "desc" },
-        include: { user: { select: { name: true, email: true } } },
-      },
+  const includeOpts = {
+    category: { include: { parent: true } },
+    reviews: {
+      where: { published: true },
+      orderBy: { createdAt: "desc" as const },
+      include: { user: { select: { name: true, email: true } } },
     },
+  };
+  let product = await prisma.product.findFirst({
+    where: { slug },
+    include: includeOpts,
   });
-  if (!product) notFound();
+  if (!product) {
+    const normalized = slugify(decodeURIComponent(slug));
+    if (normalized !== slug) {
+      const alt = await prisma.product.findFirst({ where: { slug: normalized } });
+      if (alt) redirect(`/product/${normalized}`);
+    }
+    notFound();
+  }
 
   const related = await prisma.product.findMany({
     where: { categoryId: product.categoryId, id: { not: product.id } },

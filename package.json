@@ -14,7 +14,8 @@
     "merchant:upload": "npx tsx scripts/upload-merchant-feed.ts",
     "merchant:sync": "npx tsx scripts/generate-merchant-feed.ts && npx tsx scripts/upload-merchant-feed.ts",
     "yandex:generate": "npx tsx scripts/generate-yandex-feed.ts",
-    "feeds:generate": "npx tsx scripts/generate-merchant-feed.ts && npx tsx scripts/generate-yandex-feed.ts"
+    "feeds:generate": "npx tsx scripts/generate-merchant-feed.ts && npx tsx scripts/generate-yandex-feed.ts",
+    "fix:slugs": "npx tsx scripts/fix-slugs.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
