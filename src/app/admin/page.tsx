@@ -40,6 +40,7 @@ interface Product {
   color: string;
   productType: string;
   isFeatured: boolean;
+  isWholesale: boolean;
   categoryId: string;
   category?: Category;
   packSize: number | null;
@@ -328,7 +329,7 @@ export default function AdminPage() {
 
   const [prodForm, setProdForm] = useState({
     name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "",
-    inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false, tags: "",
+    inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false, isWholesale: false, tags: "",
   });
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
@@ -466,7 +467,7 @@ export default function AdminPage() {
     const method = editingProd ? "PUT" : "POST";
     const body = editingProd ? { id: editingProd.id, ...prodForm } : prodForm;
     await fetch("/api/admin/products", { method, headers: hdrs(), body: JSON.stringify(body) });
-    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false, tags: "" });
+    setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false, isWholesale: false, tags: "" });
     setEditingProd(null); fetchData();
   };
 
@@ -1221,11 +1222,16 @@ export default function AdminPage() {
                 </div>
                 <div className="md:col-span-2 lg:col-span-3 flex items-center gap-4">
                   <button type="submit" className="bg-primary hover:bg-primary-dark text-white text-sm px-6 py-2 rounded-lg">{editingProd ? "Сохранить" : "Добавить"}</button>
-                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false, tags: "" }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+                  {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false, isWholesale: false, tags: "" }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
                   <label className="flex items-center gap-2 text-sm cursor-pointer ml-auto border border-yellow-300 bg-yellow-50 rounded-lg px-3 py-2">
                     <input type="checkbox" checked={prodForm.isFeatured} onChange={(e) => setProdForm({ ...prodForm, isFeatured: e.target.checked })} className="accent-yellow-500 w-4 h-4" />
                     <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                     <span className="text-yellow-700 font-medium">Популярный товар</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer border border-primary/40 bg-primary/5 rounded-lg px-3 py-2">
+                    <input type="checkbox" checked={prodForm.isWholesale} onChange={(e) => setProdForm({ ...prodForm, isWholesale: e.target.checked })} className="accent-primary w-4 h-4" />
+                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    <span className="text-primary font-medium">Оптовый товар</span>
                   </label>
                 </div>
               </form>
@@ -1319,6 +1325,7 @@ export default function AdminPage() {
                           </td>
                           <td className="py-2 px-2 text-text-dark">
                             {prod.isFeatured && <svg className="w-4 h-4 text-yellow-500 inline mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>}
+                            {prod.isWholesale && <svg className="w-4 h-4 text-primary inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><title>Оптовый товар</title><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
                             {!prod.tags && <span title="Нет мета-тегов" className="inline-flex items-center justify-center w-4 h-4 bg-orange-100 text-orange-600 rounded-full text-xs font-bold mr-1 cursor-help">!</span>}
                             {prod.name}
                           </td>
@@ -1331,7 +1338,7 @@ export default function AdminPage() {
                             <button onClick={() => searchProduct(prod.name)} className="text-accent hover:underline mr-2" title="Поиск в интернете">
                               <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </button>
-                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, image2: prod.image2 || "", image3: prod.image3 || "", image4: prod.image4 || "", inStock: String(prod.inStock), packSize: prod.packSize ? String(prod.packSize) : "", expirationDate: prod.expirationDate || "", brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: prod.isFeatured || false, tags: prod.tags || "" }); }} className="text-primary hover:underline mr-2">Изменить</button>
+                            <button onClick={() => { setEditingProd(prod); setProdForm({ name: prod.name, description: prod.description, price: String(prod.price), oldPrice: prod.oldPrice ? String(prod.oldPrice) : "", image: prod.image, image2: prod.image2 || "", image3: prod.image3 || "", image4: prod.image4 || "", inStock: String(prod.inStock), packSize: prod.packSize ? String(prod.packSize) : "", expirationDate: prod.expirationDate || "", brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: prod.isFeatured || false, isWholesale: prod.isWholesale || false, tags: prod.tags || "" }); }} className="text-primary hover:underline mr-2">Изменить</button>
                             <button onClick={() => deleteProduct(prod.id)} className="text-danger hover:underline">Удалить</button>
                           </td>
                         </tr>
