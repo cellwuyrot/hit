@@ -13,7 +13,7 @@ export default async function HomePage() {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const [slides, categories, featuredProducts, newProducts, saleProducts, reviews] = await Promise.all([
+  const [slides, categories, featuredProducts, newProducts, saleProducts, wholesaleProducts, reviews] = await Promise.all([
     prisma.sliderImage.findMany({ where: { active: true }, orderBy: { order: "asc" } }),
     prisma.category.findMany({
       where: { parentId: null },
@@ -35,6 +35,12 @@ export default async function HomePage() {
       take: 4,
       where: { oldPrice: { not: null } },
       orderBy: { updatedAt: "desc" },
+      include: { category: true, reviews: { select: { rating: true } } },
+    }),
+    prisma.product.findMany({
+      take: 8,
+      where: { isWholesale: true },
+      orderBy: { createdAt: "desc" },
       include: { category: true, reviews: { select: { rating: true } } },
     }),
     prisma.review.findMany({
@@ -186,6 +192,43 @@ export default async function HomePage() {
             </div>
           </section>
         </ScrollReveal>
+
+        {/* Wholesale catalog */}
+        {wholesaleProducts.length > 0 && (
+          <ScrollReveal>
+            <section className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+              <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-4 sm:p-6 border border-primary/20">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-xl sm:text-2xl">📦</span>
+                    <div>
+                      <h2 className="font-heading text-lg sm:text-2xl font-bold text-text-dark">Оптовый каталог</h2>
+                      <p className="text-text-gray text-xs sm:text-sm mt-0.5">Товары для оптовых клиентов — специальные цены</p>
+                    </div>
+                  </div>
+                  <Link href="/wholesale" className="text-primary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap">Условия опта →</Link>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+                  {wholesaleProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      id={product.id}
+                      name={product.name}
+                      slug={product.slug}
+                      price={product.price}
+                      oldPrice={product.oldPrice}
+                      image={product.image}
+                      inStock={product.inStock}
+                      categorySlug={product.category.slug}
+                      rating={getAvgRating(product.reviews)}
+                      reviewCount={product.reviews.length}
+                    />
+                  ))}
+                </div>
+              </div>
+            </section>
+          </ScrollReveal>
+        )}
 
         {/* New arrivals */}
         {newProducts.length > 0 && (
