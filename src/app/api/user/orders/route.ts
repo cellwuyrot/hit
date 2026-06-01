@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
-import { sendOrderNotificationToAdmin, sendOrderConfirmationToClient } from "@/lib/resend";
+import { sendOrderNotificationToAdmin, sendOrderConfirmationToClient } from "@/lib/email";
 
 function getUserId(request: Request): string | null {
   const token = getTokenFromRequest(request);

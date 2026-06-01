@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
-import { sendOrderStatusUpdate } from "@/lib/resend";
+import { sendOrderStatusUpdate } from "@/lib/email";
 
 function checkAdmin(request: Request): boolean {
   const token = getTokenFromRequest(request);
