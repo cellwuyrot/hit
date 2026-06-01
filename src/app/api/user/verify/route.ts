@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { sendVerificationCode } from "@/lib/resend";
+import { sendVerificationCode } from "@/lib/email";
 
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();

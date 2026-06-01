@@ -1,7 +1,25 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "ТОПХИТ <onboarding@resend.dev>";
+const smtpUser = process.env.SMTP_USER || "";
+const smtpPass = process.env.SMTP_PASS || "";
+
+const transportConfig: nodemailer.TransportOptions = {
+  host: process.env.SMTP_HOST || "localhost",
+  port: parseInt(process.env.SMTP_PORT || "587", 10),
+  secure: process.env.SMTP_SECURE === "true",
+  tls: { rejectUnauthorized: false },
+} as nodemailer.TransportOptions;
+
+if (smtpUser) {
+  (transportConfig as Record<string, unknown>).auth = {
+    user: smtpUser,
+    pass: smtpPass,
+  };
+}
+
+const transporter = nodemailer.createTransport(transportConfig);
+
+const FROM_EMAIL = process.env.SMTP_FROM || "ТОПХИТ <noreply@tophitt.ru>";
 const ADMIN_EMAILS = (process.env.ADMIN_EMAIL || "acoulbot@gmail.ru")
   .split(",")
   .map((e) => e.trim())
@@ -87,28 +105,28 @@ const statusLabels: Record<string, string> = {
 };
 
 export async function sendVerificationCode(email: string, code: string) {
-  const { error } = await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: `Код подтверждения: ${code}`,
-    html: emailWrapper(`
-      <p style="color: #334155; font-size: 16px; margin-top: 0; text-align: center;">Ваш код подтверждения:</p>
-      <div style="background: #f0f4f8; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
-        <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1a2332;">${code}</span>
-      </div>
-      <p style="color: #64748b; font-size: 13px; margin-bottom: 0; text-align: center;">Код действителен 10 минут.<br/>Если вы не запрашивали код, просто проигнорируйте это письмо.</p>
-    `),
-  });
-
-  if (error) {
-    console.error("Resend error:", error);
+  try {
+    await transporter.sendMail({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `Код подтверждения: ${code}`,
+      html: emailWrapper(`
+        <p style="color: #334155; font-size: 16px; margin-top: 0; text-align: center;">Ваш код подтверждения:</p>
+        <div style="background: #f0f4f8; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1a2332;">${code}</span>
+        </div>
+        <p style="color: #64748b; font-size: 13px; margin-bottom: 0; text-align: center;">Код действителен 10 минут.<br/>Если вы не запрашивали код, просто проигнорируйте это письмо.</p>
+      `),
+    });
+  } catch (error) {
+    console.error("SMTP send error:", error);
     throw new Error("Сервис отправки email временно недоступен. Попробуйте позже или обратитесь в поддержку.");
   }
 }
 
 export async function sendOrderNotificationToAdmin(order: OrderEmailData, customerEmail: string) {
   try {
-    await resend.emails.send({
+    await transporter.sendMail({
       from: FROM_EMAIL,
       to: ADMIN_EMAILS,
       subject: `Новый заказ #${order.id.slice(0, 8)} — ${order.total.toLocaleString("ru-RU")} ₽`,
@@ -127,7 +145,7 @@ export async function sendOrderNotificationToAdmin(order: OrderEmailData, custom
 
 export async function sendOrderConfirmationToClient(email: string, order: OrderEmailData) {
   try {
-    await resend.emails.send({
+    await transporter.sendMail({
       from: FROM_EMAIL,
       to: email,
       subject: `Заказ #${order.id.slice(0, 8)} оформлен — ТОПХИТ`,
@@ -158,7 +176,7 @@ export async function sendOrderStatusUpdate(email: string, orderId: string, stat
         </div>
       `;
     }
-    await resend.emails.send({
+    await transporter.sendMail({
       from: FROM_EMAIL,
       to: email,
       subject: `Заказ #${orderId.slice(0, 8)} — ${statusText} — ТОПХИТ`,
