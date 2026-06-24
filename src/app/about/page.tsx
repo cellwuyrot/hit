@@ -84,21 +84,120 @@ export default async function AboutPage() {
             </div>
           </div>
 
-          {/* About text */}
+          {/* Payment */}
           <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
-            {aboutPage ? (
-              <>
-                <InlinePageTitle id={aboutPage.id} title={aboutPage.title || "О нас"} />
-                <InlinePageContent id={aboutPage.id} content={aboutPage.content || ""} />
-              </>
-            ) : (
-              <>
-                <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-3 sm:mb-4">О нас</h2>
-                <div className="text-text-gray leading-relaxed space-y-4">
-                  <p>Мы уже предлагаем товары в популярных категориях...</p>
+            <h2 className="text-lg sm:text-xl font-bold text-text-dark mb-2">Порядок и способы оплаты</h2>
+            <p className="text-sm text-text-gray mb-6 leading-relaxed">
+              Все расчёты производятся в российских рублях в строгом соответствии с законодательством РФ.
+              Покупателю в обязательном порядке предоставляется кассовый чек.
+            </p>
+
+            <div className="space-y-4">
+              {/* Способ 1 */}
+              <div className="bg-bg-light rounded-xl p-4 md:p-5">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xl">&#128243;</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-text-dark">1. Безналичная оплата по QR-коду или платёжной ссылке</h3>
+                    <p className="text-xs text-primary font-medium mt-0.5">Доступно для всех регионов России</p>
+                  </div>
                 </div>
-              </>
-            )}
+                <ol className="space-y-2 text-sm text-text-gray pl-1">
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">1.</span>
+                    <span><strong className="text-text-dark">Оформление заказа:</strong> Вы формируете заказ на сайте.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">2.</span>
+                    <span><strong className="text-text-dark">Подтверждение:</strong> Наш менеджер связывается с вами по телефону для подтверждения заказа и проверки данных.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">3.</span>
+                    <span><strong className="text-text-dark">Комплектация:</strong> Мы собираем ваш заказ на складе и уведомляем о готовности к отгрузке.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">4.</span>
+                    <span><strong className="text-text-dark">Оплата:</strong> Менеджер направляет индивидуальную платёжную ссылку или QR-код для оплаты через Систему быстрых платежей (СБП).</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">5.</span>
+                    <span><strong className="text-text-dark">Фискальный чек:</strong> После оплаты электронный кассовый чек автоматически отправляется на ваш e-mail.</span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* Способ 2 */}
+              <div className="bg-bg-light rounded-xl p-4 md:p-5">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xl">&#128666;</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-text-dark">2. Оплата при получении (наложенный платёж)</h3>
+                    <p className="text-xs text-primary font-medium mt-0.5">Только для Москвы, Санкт-Петербурга, Московской и Ленинградской областей</p>
+                  </div>
+                </div>
+                <ol className="space-y-2 text-sm text-text-gray pl-1">
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">1.</span>
+                    <span><strong className="text-text-dark">Оформление заказа:</strong> Вы формируете заказ на сайте.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">2.</span>
+                    <span><strong className="text-text-dark">Подтверждение адреса:</strong> Менеджер связывается с вами, подтверждает приём заказа и согласовывает точный адрес и время доставки.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">3.</span>
+                    <span><strong className="text-text-dark">Расчёт стоимости:</strong> Мы комплектуем заказ, уведомляем о сборке и сообщаем итоговую стоимость с учётом тарифов курьерской службы.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">4.</span>
+                    <span><strong className="text-text-dark">Передача в службу доставки:</strong> Заказ передаётся курьерской компании.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">5.</span>
+                    <span><strong className="text-text-dark">Доставка:</strong> За 1 час до прибытия курьер связывается с вами по телефону.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary flex-shrink-0">6.</span>
+                    <span><strong className="text-text-dark">Приёмка и оплата:</strong> Вы проверяете целостность товара и оплачиваете курьеру наличными или картой через мобильный терминал. Курьер предоставляет кассовый чек.</span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* Ограничения */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 md:p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-amber-800 mb-3">Важные ограничения при расчётах</h3>
+                    <ul className="space-y-2 text-sm text-amber-700">
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold flex-shrink-0">&#8226;</span>
+                        <span>
+                          <strong>Ограничение по регионам:</strong> Отправка заказов в регионы России (за исключением Москвы, Санкт-Петербурга, МО и ЛО) наложенным платежом не осуществляется.
+                          Отгрузка в другие регионы — только после 100% предоплаты по QR-коду или ссылке.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold flex-shrink-0">&#8226;</span>
+                        <span><strong>Переводы с карты на карту</strong> (физическому лицу) не принимаются.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold flex-shrink-0">&#8226;</span>
+                        <span><strong>Оплата криптовалютой</strong> не принимается.</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Delivery */}
@@ -325,6 +424,14 @@ export default async function AboutPage() {
                   acceptedAnswer: {
                     "@type": "Answer",
                     text: "Возврат товара надлежащего качества возможен в течение 14 дней с момента получения. Подробные условия — на странице «Возврат и обмен».",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Какие способы оплаты доступны?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Доступна безналичная оплата по QR-коду или платёжной ссылке (СБП) для всех регионов России, а также оплата при получении (наложенный платёж) для Москвы, Санкт-Петербурга, МО и ЛО. Переводы с карты на карту и оплата криптовалютой не принимаются.",
                   },
                 },
               ],
