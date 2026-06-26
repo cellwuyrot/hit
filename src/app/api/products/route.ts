@@ -91,6 +91,27 @@ export async function GET(request: NextRequest) {
   if (ftsProductIds.length > 0 && sort === "popular") {
     const orderMap = new Map(ftsProductIds.map((id, i) => [id, i]));
     products = [...rawProducts].sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999));
+  } else if (sort === "popular") {
+    // Popularity = number of tracked views of the product page (/product/<slug>)
+    // recorded in the PageView analytics table. More clicks -> higher position.
+    const paths = rawProducts.map((p) => `/product/${p.slug}`);
+    const viewRows = paths.length
+      ? await prisma.pageView.groupBy({
+          by: ["path"],
+          where: { path: { in: paths } },
+          _count: { path: true },
+        })
+      : [];
+    const viewMap = new Map(
+      viewRows.map((row) => [row.path.replace(/^\/product\//, ""), row._count.path])
+    );
+    products = [...rawProducts].sort((a, b) => {
+      const va = viewMap.get(a.slug) ?? 0;
+      const vb = viewMap.get(b.slug) ?? 0;
+      if (vb !== va) return vb - va; // more views first
+      // tie-break: newer products first
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   } else if (sort === "name") {
     products = [...rawProducts].sort((a, b) => a.name.localeCompare(b.name, "ru"));
   } else {
