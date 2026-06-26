@@ -46,14 +46,14 @@ export async function POST(
         userId_productId_isPack: {
           userId,
           productId: item.productId,
-          isPack: item.isPack,
+          isPack: false,
         },
       },
       update: { quantity: item.quantity },
       create: {
         userId,
         productId: item.productId,
-        isPack: item.isPack,
+        isPack: false,
         quantity: item.quantity,
       },
     });
