@@ -82,6 +82,27 @@ export default function AccountPage() {
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [openChat, setOpenChat] = useState<string | null>(null);
+  const [repeatingId, setRepeatingId] = useState<string | null>(null);
+
+  async function repeatOrder(orderId: string) {
+    if (!token) { router.push("/account"); return; }
+    setRepeatingId(orderId);
+    try {
+      const res = await fetch(`/api/user/orders/${orderId}/repeat`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        router.push("/cart");
+      } else {
+        alert("Не удалось повторить заказ. Попробуйте позже.");
+      }
+    } catch {
+      alert("Не удалось повторить заказ. Попробуйте позже.");
+    } finally {
+      setRepeatingId(null);
+    }
+  }
   const [chatMessages, setChatMessages] = useState<{ id: string; senderRole: string; text: string; createdAt: string }[]>([]);
   const [chatText, setChatText] = useState("");
   const [chatSending, setChatSending] = useState(false);
@@ -621,8 +642,15 @@ export default function AccountPage() {
                   )}
 
                   <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <span className="font-medium">Итого: <span className="text-primary">{order.total.toLocaleString("ru-RU")} ₽</span></span>
+                      <button
+                        onClick={() => repeatOrder(order.id)}
+                        disabled={repeatingId === order.id}
+                        className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition disabled:opacity-60"
+                      >
+                        {repeatingId === order.id ? "Добавляем…" : "Повторить заказ"}
+                      </button>
                     </div>
                     <button onClick={() => {
                       if (openChat === order.id) { setOpenChat(null); return; }
