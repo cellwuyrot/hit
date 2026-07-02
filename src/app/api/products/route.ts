@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   const brands = searchParams.get("brands")?.split(",").filter(Boolean);
   const types = searchParams.get("types")?.split(",").filter(Boolean);
   const colors = searchParams.get("colors")?.split(",").filter(Boolean);
+  const imported = searchParams.get("imported");
 
   const where: Record<string, unknown> = {};
 
@@ -63,6 +64,9 @@ export async function GET(request: NextRequest) {
   }
   if (colors && colors.length > 0) {
     where.color = { in: colors };
+  }
+  if (imported === "true") {
+    where.isImported = true;
   }
 
   let orderBy: Record<string, string> = {};
