@@ -304,6 +304,7 @@ export default function Header() {
 
             <nav className="mt-3 flex flex-col">
               <Link href="/catalog" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg font-medium transition-colors" onClick={() => setMenuOpen(false)}>Каталог</Link>
+              <Link href="/import" className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 py-2.5 px-3 rounded-lg font-medium transition-colors" onClick={() => setMenuOpen(false)}>Импортные товары</Link>
               <Link href="/wholesale" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Оптовые продажи</Link>
               <Link href="/news" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Новости</Link>
               <Link href="/about#delivery" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Доставка</Link>
@@ -325,6 +326,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4">
           <ul className="flex items-center gap-4 lg:gap-6 text-sm py-3">
             <li><Link href="/catalog" className="text-text-dark hover:text-primary font-medium transition-colors">Каталог</Link></li>
+            <li><Link href="/import" className="text-indigo-600 hover:text-indigo-800 font-medium transition-colors">Импортные товары</Link></li>
             <li><Link href="/wholesale" className="text-text-gray hover:text-primary transition-colors">Оптовые продажи</Link></li>
             <li><Link href="/news" className="text-text-gray hover:text-primary transition-colors">Новости</Link></li>
             <li><Link href="/about#delivery" className="text-text-gray hover:text-primary transition-colors">Доставка</Link></li>
