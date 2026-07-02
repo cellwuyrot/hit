@@ -53,6 +53,7 @@ model Product {
   tags        String         @default("")
   isFeatured  Boolean        @default(false)
   isWholesale Boolean        @default(false)
+  isImported  Boolean        @default(false)
   categoryId  String
   category    Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   cartItems   CartItem[]
