@@ -273,10 +273,10 @@ export default async function HomePage() {
                   <div key={review.id} className="bg-bg-white rounded-xl border border-border p-4 sm:p-5 hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-bold text-primary">
-                        {(review.user.name || "?")[0].toUpperCase()}
+                        {(review.authorName || review.user?.name || "?")[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-text-dark">{review.user.name || "Покупатель"} {review.user.lastName?.[0] ? `${review.user.lastName[0]}.` : ""}</p>
+                        <p className="text-sm font-medium text-text-dark">{review.authorName || `${review.user?.name || "Покупатель"}${review.user?.lastName?.[0] ? ` ${review.user.lastName[0]}.` : ""}`}</p>
                         <div className="flex">
                           {[1, 2, 3, 4, 5].map((s) => (
                             <svg key={s} className={`w-3 h-3 ${s <= review.rating ? "text-accent fill-accent" : "text-gray-200 fill-gray-200"}`} viewBox="0 0 20 20">

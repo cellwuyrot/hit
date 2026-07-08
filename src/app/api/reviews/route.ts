@@ -34,6 +34,6 @@ export async function POST(request: Request) {
     rating: review.rating,
     text: review.text,
     createdAt: review.createdAt.toISOString(),
-    userName: review.user.name || review.user.email.split("@")[0],
+    userName: review.user?.name || review.user?.email.split("@")[0] || "Покупатель",
   }, { status: 201 });
 }
