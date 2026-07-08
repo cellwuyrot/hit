@@ -8,6 +8,7 @@ interface Review {
   text: string;
   createdAt: string;
   userName: string;
+  adminReply?: string;
 }
 
 interface ProductReviewsProps {
@@ -159,6 +160,12 @@ export default function ProductReviews({ productId, reviews, avgRating }: Produc
               </div>
               <Stars rating={review.rating} />
               {review.text && <p className="mt-2 text-sm text-text-gray leading-relaxed">{review.text}</p>}
+              {review.adminReply && (
+                <div className="mt-3 ml-4 pl-3 border-l-2 border-primary/30 bg-primary/5 rounded-r-lg py-2 pr-3">
+                  <p className="text-xs font-medium text-primary mb-0.5">Ответ магазина ТОПХИТ</p>
+                  <p className="text-sm text-text-gray leading-relaxed">{review.adminReply}</p>
+                </div>
+              )}
             </div>
           ))}
         </div>

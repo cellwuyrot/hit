@@ -160,7 +160,7 @@ export default async function ProductPage({ params }: PageProps) {
     review: product.reviews.length > 0
       ? product.reviews.slice(0, 5).map((r) => ({
           "@type": "Review",
-          author: { "@type": "Person", name: r.user.name || r.user.email.split("@")[0] },
+          author: { "@type": "Person", name: r.authorName || r.user?.name || r.user?.email.split("@")[0] || "Покупатель" },
           datePublished: r.createdAt.toISOString().split("T")[0],
           reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5, worstRating: 1 },
           reviewBody: r.text || undefined,
@@ -296,7 +296,8 @@ export default async function ProductPage({ params }: PageProps) {
               rating: r.rating,
               text: r.text,
               createdAt: r.createdAt.toISOString(),
-              userName: r.user.name || r.user.email.split("@")[0],
+              userName: r.authorName || r.user?.name || r.user?.email.split("@")[0] || "Покупатель",
+              adminReply: r.adminReply,
             }))}
             avgRating={avgRating}
           />

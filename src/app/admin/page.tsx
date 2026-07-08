@@ -110,7 +110,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "reviews" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor";
 
 interface CallbackItem {
   id: string;
@@ -880,7 +880,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, reviews: "Отзывы", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", settings: "Настройки",
   };
 
   return (
@@ -1571,6 +1571,10 @@ export default function AdminPage() {
         {activeTab === "orders" && (
           <OrdersPanel orders={orders} statusLabels={statusLabels} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} token={token} fetchData={fetchData} />
         )}
+
+        {/* Reviews */}
+        {activeTab === "reviews" && <ReviewsPanel token={token} />}
+
         {/* Popular Products */}
         {activeTab === "popular" && (
           <div className="bg-bg-white rounded-xl border border-border p-5">
@@ -2278,6 +2282,564 @@ function SynonymsPanel({ token }: { token: string }) {
                 </span>
                 <button onClick={() => deleteSynonym(s.id)}
                   className="text-danger hover:bg-danger/10 p-1 rounded text-sm">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface AdminReview {
+  id: string;
+  rating: number;
+  text: string;
+  authorName: string;
+  displayName: string;
+  adminReply: string;
+  published: boolean;
+  createdAt: string;
+  isFake: boolean;
+  product: { id: string; name: string; slug: string; image: string } | null;
+}
+
+interface ReviewProduct {
+  id: string;
+  name: string;
+  image: string;
+}
+
+const RU_FIRST_NAMES = [
+  "Александр", "Дмитрий", "Максим", "Сергей", "Андрей", "Алексей", "Иван", "Михаил",
+  "Никита", "Артём", "Егор", "Роман", "Павел", "Денис", "Кирилл", "Владимир",
+  "Анна", "Мария", "Елена", "Ольга", "Наталья", "Ирина", "Екатерина", "Татьяна",
+  "Юлия", "Светлана", "Дарья", "Виктория", "Полина", "Ксения", "Марина", "Алина",
+];
+const RU_LAST_INITIALS = [
+  "И", "С", "К", "П", "В", "Л", "М", "Н", "З", "Б", "Г", "Д", "Ф", "Р", "Т", "Ш", "Ч", "Е", "О", "А",
+];
+
+function randomName(): string {
+  const first = RU_FIRST_NAMES[Math.floor(Math.random() * RU_FIRST_NAMES.length)];
+  const initial = RU_LAST_INITIALS[Math.floor(Math.random() * RU_LAST_INITIALS.length)];
+  return `${first} ${initial}.`;
+}
+
+function ReviewStars({ rating, interactive, onChange }: { rating: number; interactive?: boolean; onChange?: (r: number) => void }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button key={star} type="button" disabled={!interactive} onClick={() => onChange?.(star)}
+          className={interactive ? "cursor-pointer" : "cursor-default"}>
+          <svg className={`w-5 h-5 ${star <= rating ? "text-yellow-400" : "text-gray-300"}`} fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface ReviewImportRow { index: number; product: string; author: string; text: string; rating: number }
+
+function ReviewsPanel({ token }: { token: string }) {
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [products, setProducts] = useState<ReviewProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Create form
+  const [prodQuery, setProdQuery] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<ReviewProduct | null>(null);
+  const [showProdList, setShowProdList] = useState(false);
+  const [authorName, setAuthorName] = useState("");
+  const [reviewText, setReviewText] = useState("");
+  const [rating, setRating] = useState(5);
+  const [saving, setSaving] = useState(false);
+  const [formMsg, setFormMsg] = useState("");
+
+  // List filters
+  const [search, setSearch] = useState("");
+  const [publishedFilter, setPublishedFilter] = useState<"all" | "published" | "hidden">("all");
+
+  // Inline admin reply editing
+  const [replyingId, setReplyingId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+
+  // Import
+  const [showImport, setShowImport] = useState(false);
+  const [impStep, setImpStep] = useState<"idle" | "mapping" | "preview">("idle");
+  const [impHeaders, setImpHeaders] = useState<string[]>([]);
+  const [impMap, setImpMap] = useState<Record<string, string>>({});
+  const [impSample, setImpSample] = useState<Record<string, string>[]>([]);
+  const [impRows, setImpRows] = useState<Record<string, string>[]>([]);
+  const [impPreview, setImpPreview] = useState<ReviewImportRow[]>([]);
+  const [impSelected, setImpSelected] = useState<Set<number>>(new Set());
+  const [impStatus, setImpStatus] = useState("");
+  const [impLoading, setImpLoading] = useState(false);
+
+  const authHeaders = useCallback(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` }), [token]);
+
+  const loadData = useCallback(async () => {
+    const [revRes, prodRes] = await Promise.all([
+      fetch("/api/admin/reviews", { headers: { Authorization: `Bearer ${token}` } }),
+      fetch("/api/admin/products", { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    if (revRes.ok) setReviews(await revRes.json());
+    if (prodRes.ok) {
+      const prods = await prodRes.json();
+      setProducts(prods.map((p: { id: string; name: string; image: string }) => ({ id: p.id, name: p.name, image: p.image })));
+    }
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const productMatches = prodQuery.trim()
+    ? products.filter((p) => p.name.toLowerCase().includes(prodQuery.toLowerCase())).slice(0, 30)
+    : products.slice(0, 30);
+
+  const pickProduct = (p: ReviewProduct) => {
+    setSelectedProduct(p);
+    setProdQuery(p.name);
+    setShowProdList(false);
+  };
+
+  // "Smart generation" — same idea as the AI product description: open a search engine so its
+  // neural network drafts a realistic review; the admin copies the result into the field.
+  const smartGenerate = () => {
+    if (!selectedProduct) { setFormMsg("Сначала выберите товар"); return; }
+    const query = `Напиши короткий реалистичный отзыв покупателя о товаре "${selectedProduct.name}" для интернет-магазина, 1-2 предложения, от первого лица, без даты и без имени`;
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank");
+  };
+
+  const createReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormMsg("");
+    if (!selectedProduct) { setFormMsg("Выберите товар для отзыва"); return; }
+    if (!reviewText.trim()) { setFormMsg("Введите текст отзыва"); return; }
+    setSaving(true);
+    const res = await fetch("/api/admin/reviews", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ productId: selectedProduct.id, authorName: authorName.trim(), text: reviewText.trim(), rating }),
+    });
+    setSaving(false);
+    if (res.ok) {
+      setReviewText("");
+      setAuthorName("");
+      setRating(5);
+      setFormMsg("Отзыв добавлен");
+      loadData();
+      setTimeout(() => setFormMsg(""), 3000);
+    } else {
+      const err = await res.json();
+      setFormMsg(err.error || "Ошибка");
+    }
+  };
+
+  const togglePublished = async (r: AdminReview) => {
+    await fetch("/api/admin/reviews", {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({ id: r.id, published: !r.published }),
+    });
+    loadData();
+  };
+
+  const saveReply = async (id: string) => {
+    await fetch("/api/admin/reviews", {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({ id, adminReply: replyText.trim() }),
+    });
+    setReplyingId(null);
+    setReplyText("");
+    loadData();
+  };
+
+  const deleteReview = async (id: string) => {
+    if (!confirm("Удалить отзыв?")) return;
+    await fetch("/api/admin/reviews", { method: "DELETE", headers: authHeaders(), body: JSON.stringify({ id }) });
+    loadData();
+  };
+
+  // ---- Import handlers ----
+  const reviewTargetFields: { value: string; label: string }[] = [
+    { value: "", label: "— Пропустить —" },
+    { value: "product", label: "Товар (название / артикул)" },
+    { value: "text", label: "Текст отзыва" },
+    { value: "author", label: "Имя покупателя" },
+    { value: "rating", label: "Оценка (необязательно)" },
+  ];
+
+  const resetImport = () => {
+    setImpStep("idle");
+    setImpHeaders([]);
+    setImpMap({});
+    setImpSample([]);
+    setImpRows([]);
+    setImpPreview([]);
+    setImpSelected(new Set());
+    setImpStatus("");
+  };
+
+  const handleImportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImpLoading(true);
+    setImpStatus("Обработка файла...");
+    resetImport();
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/reviews/import", { method: "PUT", headers: { Authorization: `Bearer ${token}` }, body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.headers) {
+        setImpStatus(`Ошибка: ${data.error || "Не удалось обработать файл"}`);
+      } else {
+        setImpHeaders(data.headers);
+        setImpMap(data.autoMap || {});
+        setImpSample(data.sample || []);
+        setImpRows(data.rows || []);
+        setImpStep("mapping");
+        setImpStatus(`Найдено ${data.totalRows} строк`);
+      }
+    } catch (err) {
+      setImpStatus(`Ошибка: ${err instanceof Error ? err.message : "неизвестная ошибка"}`);
+    }
+    setImpLoading(false);
+    e.target.value = "";
+  };
+
+  const buildImportPreview = () => {
+    const preview: ReviewImportRow[] = impRows.map((row, i) => {
+      const mapped: Record<string, string> = {};
+      for (const [col, field] of Object.entries(impMap)) {
+        if (field && row[col] !== undefined) mapped[field] = row[col];
+      }
+      return {
+        index: i,
+        product: mapped.product || "",
+        author: mapped.author || "",
+        text: mapped.text || "",
+        rating: mapped.rating ? Math.min(5, Math.max(1, Number(mapped.rating) || 5)) : 5,
+      };
+    }).filter((r) => r.product && r.text);
+    setImpPreview(preview);
+    setImpSelected(new Set(preview.map((r) => r.index)));
+    setImpStep("preview");
+  };
+
+  const toggleImpAll = () => {
+    if (impSelected.size === impPreview.length) setImpSelected(new Set());
+    else setImpSelected(new Set(impPreview.map((r) => r.index)));
+  };
+
+  const handleImportSelected = async () => {
+    if (impSelected.size === 0) return;
+    setImpLoading(true);
+    setImpStatus("Импорт...");
+    const payload = impPreview
+      .filter((r) => impSelected.has(r.index))
+      .map((r) => ({ product: r.product, author: r.author, text: r.text, rating: r.rating }));
+    const res = await fetch("/api/admin/reviews/import", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ reviews: payload }),
+    });
+    const data = await res.json();
+    setImpLoading(false);
+    if (res.ok) {
+      let msg = `Импортировано: ${data.imported} из ${data.total}`;
+      if (data.notFoundCount > 0) msg += `. Не найдено товаров: ${data.notFoundCount}`;
+      setImpStatus(msg);
+      resetImport();
+      loadData();
+    } else {
+      setImpStatus(`Ошибка: ${data.error}`);
+    }
+  };
+
+  const filteredReviews = reviews.filter((r) => {
+    if (publishedFilter === "published" && !r.published) return false;
+    if (publishedFilter === "hidden" && r.published) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return (
+        (r.product?.name.toLowerCase().includes(q) ?? false) ||
+        r.displayName.toLowerCase().includes(q) ||
+        r.text.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const canPreview = Object.values(impMap).includes("product") && Object.values(impMap).includes("text");
+
+  if (loading) return <p className="text-text-gray">Загрузка...</p>;
+
+  return (
+    <div className="space-y-6">
+      {/* Import */}
+      <div className="bg-bg-white rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-text-dark">Импорт отзывов из таблицы</h2>
+          <button onClick={() => setShowImport(!showImport)} className="text-sm text-primary hover:underline">
+            {showImport ? "Свернуть" : "Развернуть"}
+          </button>
+        </div>
+        {showImport && (
+          <div className="mt-3">
+            <p className="text-sm text-text-gray mb-3">
+              Загрузите CSV, XLSX или XLS с колонками: <b>товар</b> (название или артикул), <b>текст отзыва</b> и <b>имя покупателя</b>.
+              Дата отзыва не импортируется. Товар определяется по названию, артикулу или штрихкоду.
+            </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <label className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                {impStep !== "idle" ? "Загрузить другой файл" : "Выбрать файл"}
+                <input type="file" accept=".csv,.xlsx,.xls" onChange={handleImportUpload} className="hidden" />
+              </label>
+              {impStep !== "idle" && <button onClick={resetImport} className="text-sm text-danger hover:underline">Отмена</button>}
+              {impLoading && <span className="text-sm text-text-gray">Загрузка...</span>}
+              {impStatus && <span className={`text-sm ${impStatus.startsWith("Ошибка") ? "text-danger" : "text-success"}`}>{impStatus}</span>}
+            </div>
+
+            {impStep === "mapping" && impHeaders.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-sm font-bold text-text-dark mb-2">Шаг 1: Сопоставьте колонки</h3>
+                <div className="overflow-x-auto border border-border rounded-lg">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Колонка файла</th>
+                        <th className="px-3 py-2 text-left">Поле отзыва</th>
+                        <th className="px-3 py-2 text-left">Пример</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {impHeaders.map((header) => (
+                        <tr key={header} className="border-t border-border">
+                          <td className="px-3 py-2 font-medium">{header}</td>
+                          <td className="px-3 py-2">
+                            <select value={impMap[header] || ""} onChange={(e) => setImpMap({ ...impMap, [header]: e.target.value })}
+                              className="border border-border rounded px-2 py-1 text-sm w-full max-w-[220px] focus:outline-none focus:border-primary">
+                              {reviewTargetFields.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </td>
+                          <td className="px-3 py-2 text-text-gray text-xs max-w-[220px] truncate">
+                            {impSample.map((s, i) => <span key={i}>{i > 0 && " | "}{s[header] || "—"}</span>)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-3 flex gap-2 items-center">
+                  <button onClick={buildImportPreview} disabled={!canPreview}
+                    className="bg-primary hover:bg-primary-dark disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+                    Предпросмотр
+                  </button>
+                  {!canPreview && <span className="text-xs text-danger">Выберите колонки «Товар» и «Текст отзыва»</span>}
+                </div>
+              </div>
+            )}
+
+            {impStep === "preview" && (
+              <div className="mt-4">
+                <h3 className="text-sm font-bold text-text-dark mb-2">Шаг 2: Выберите отзывы для импорта</h3>
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                  <p className="text-sm text-text-dark">Готово к импорту: {impPreview.length} | Выбрано: {impSelected.size}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setImpStep("mapping")} className="text-sm text-primary hover:underline">Назад к маппингу</button>
+                    <button onClick={toggleImpAll} className="text-sm text-primary hover:underline">
+                      {impSelected.size === impPreview.length ? "Снять все" : "Выбрать все"}
+                    </button>
+                    <button onClick={handleImportSelected} disabled={impSelected.size === 0 || impLoading}
+                      className="bg-success hover:bg-green-600 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
+                      Импортировать ({impSelected.size})
+                    </button>
+                  </div>
+                </div>
+                {impPreview.length === 0 ? (
+                  <p className="text-sm text-danger">Нет строк с заполненными товаром и текстом отзыва.</p>
+                ) : (
+                  <div className="overflow-x-auto max-h-96 overflow-y-auto border border-border rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-2 py-2 text-left"><input type="checkbox" checked={impSelected.size === impPreview.length} onChange={toggleImpAll} /></th>
+                          <th className="px-2 py-2 text-left">Товар</th>
+                          <th className="px-2 py-2 text-left">Имя</th>
+                          <th className="px-2 py-2 text-left">Отзыв</th>
+                          <th className="px-2 py-2 text-center">Оценка</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {impPreview.map((row) => (
+                          <tr key={row.index} onClick={() => setImpSelected((prev) => { const n = new Set(prev); if (n.has(row.index)) n.delete(row.index); else n.add(row.index); return n; })}
+                            className={`border-t border-border hover:bg-gray-50 cursor-pointer ${impSelected.has(row.index) ? "bg-blue-50" : ""}`}>
+                            <td className="px-2 py-2"><input type="checkbox" checked={impSelected.has(row.index)} readOnly /></td>
+                            <td className="px-2 py-2 max-w-[200px] truncate">{row.product}</td>
+                            <td className="px-2 py-2">{row.author || <span className="text-text-light">—</span>}</td>
+                            <td className="px-2 py-2 max-w-[320px] truncate">{row.text}</td>
+                            <td className="px-2 py-2 text-center">{row.rating}★</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Create fictitious review */}
+      <div className="bg-bg-white rounded-xl border border-border p-5">
+        <h2 className="font-bold text-text-dark mb-1">Создать отзыв</h2>
+        <p className="text-sm text-text-gray mb-4">Придумайте случайного покупателя (имя и текст) и привяжите отзыв к товару. Дата проставляется автоматически.</p>
+        <form onSubmit={createReview} className="space-y-4">
+          <div className="relative">
+            <label className="text-xs text-text-gray mb-1 block">Товар *</label>
+            <input type="text" value={prodQuery}
+              onChange={(e) => { setProdQuery(e.target.value); setShowProdList(true); setSelectedProduct(null); }}
+              onFocus={() => setShowProdList(true)}
+              placeholder="Начните вводить название товара..."
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+            {selectedProduct && <span className="absolute right-3 top-8 text-success text-xs">✓ выбран</span>}
+            {showProdList && productMatches.length > 0 && !selectedProduct && (
+              <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto bg-bg-white border border-border rounded-lg shadow-lg">
+                {productMatches.map((p) => (
+                  <button key={p.id} type="button" onClick={() => pickProduct(p)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-bg-light">
+                    {p.image ? <img src={p.image} alt="" className="w-8 h-8 object-cover rounded" /> : <span className="w-8 h-8 rounded bg-bg-light flex items-center justify-center text-text-light">📦</span>}
+                    <span className="truncate">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-text-gray mb-1 block">Имя покупателя</label>
+              <div className="flex gap-2">
+                <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)}
+                  placeholder="Напр. Анна К."
+                  className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                <button type="button" title="Случайное имя" onClick={() => setAuthorName(randomName())}
+                  className="px-3 py-2 bg-bg-light border border-border rounded-lg text-sm hover:bg-primary/5">🎲</button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-text-gray mb-1 block">Оценка</label>
+              <div className="pt-1.5"><ReviewStars rating={rating} interactive onChange={setRating} /></div>
+            </div>
+          </div>
+
+          <div className="relative">
+            <label className="text-xs text-text-gray mb-1 block">Текст отзыва *</label>
+            <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={3}
+              placeholder="Текст отзыва..."
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary pr-10" />
+            <button type="button" title="Сгенерировать отзыв через ИИ-поиск" onClick={smartGenerate}
+              className="absolute top-7 right-2 w-7 h-7 flex items-center justify-center rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-md transition-all hover:scale-110 cursor-pointer">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" /></svg>
+            </button>
+            <p className="text-xs text-text-gray mt-1">Кнопка ✦ открывает ИИ-поиск и предлагает готовый отзыв — скопируйте его сюда.</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={saving}
+              className="bg-primary hover:bg-primary-dark text-white text-sm px-6 py-2 rounded-lg disabled:opacity-50">
+              {saving ? "Сохранение..." : "Добавить отзыв"}
+            </button>
+            {formMsg && <span className={`text-sm ${formMsg === "Отзыв добавлен" ? "text-success" : "text-danger"}`}>{formMsg}</span>}
+          </div>
+        </form>
+      </div>
+
+      {/* Reviews list */}
+      <div className="bg-bg-white rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className="font-bold text-text-dark">Все отзывы ({filteredReviews.length}{filteredReviews.length !== reviews.length ? ` из ${reviews.length}` : ""})</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по товару, имени, тексту..."
+              className="border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary min-w-[220px]" />
+            <select value={publishedFilter} onChange={(e) => setPublishedFilter(e.target.value as "all" | "published" | "hidden")}
+              className="border border-border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-primary">
+              <option value="all">Все</option>
+              <option value="published">Опубликованные</option>
+              <option value="hidden">Скрытые</option>
+            </select>
+          </div>
+        </div>
+
+        {filteredReviews.length === 0 ? (
+          <p className="text-text-gray text-sm">Отзывов пока нет.</p>
+        ) : (
+          <div className="space-y-3">
+            {filteredReviews.map((r) => (
+              <div key={r.id} className="p-4 bg-bg-light rounded-lg">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-start gap-3 min-w-0">
+                    {r.product?.image
+                      ? <img src={r.product.image} alt="" className="w-12 h-12 object-cover rounded border border-border" />
+                      : <span className="w-12 h-12 rounded bg-bg-white border border-border flex items-center justify-center text-text-light">📦</span>}
+                    <div className="min-w-0">
+                      {r.product
+                        ? <Link href={`/product/${r.product.slug}`} target="_blank" className="text-sm font-medium text-primary hover:underline line-clamp-1">{r.product.name}</Link>
+                        : <span className="text-sm text-text-light">Товар удалён</span>}
+                      <div className="flex items-center gap-2 mt-1">
+                        <ReviewStars rating={r.rating} />
+                        <span className="text-sm font-medium text-text-dark">{r.displayName}</span>
+                        {r.isFake && <span className="text-[10px] uppercase tracking-wide bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">сгенерирован</span>}
+                        {!r.published && <span className="text-[10px] uppercase tracking-wide bg-gray-200 text-text-gray px-1.5 py-0.5 rounded">скрыт</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => togglePublished(r)}
+                      className={`text-xs px-3 py-1 rounded-lg border ${r.published ? "border-border text-text-gray hover:text-text-dark" : "border-success text-success hover:bg-success hover:text-white"}`}>
+                      {r.published ? "Скрыть" : "Опубликовать"}
+                    </button>
+                    <button onClick={() => deleteReview(r.id)}
+                      className="text-xs px-3 py-1 rounded-lg border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
+                      Удалить
+                    </button>
+                  </div>
+                </div>
+
+                {r.text && <p className="text-sm text-text-gray mt-2 leading-relaxed">{r.text}</p>}
+
+                {/* Admin reply */}
+                <div className="mt-2 pt-2 border-t border-border/50">
+                  {replyingId === r.id ? (
+                    <div className="space-y-2">
+                      <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} rows={2}
+                        placeholder="Ответ от имени администрации магазина..."
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                      <div className="flex gap-2">
+                        <button onClick={() => saveReply(r.id)} className="text-sm px-3 py-1 rounded-lg bg-primary text-white hover:bg-primary-dark">Сохранить ответ</button>
+                        <button onClick={() => { setReplyingId(null); setReplyText(""); }} className="text-sm px-3 py-1 rounded-lg border border-border text-text-gray">Отмена</button>
+                      </div>
+                    </div>
+                  ) : r.adminReply ? (
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                      <p className="text-xs font-medium text-primary mb-0.5">Ответ магазина ТОПХИТ:</p>
+                      <p className="text-sm text-text-gray">{r.adminReply}</p>
+                      <button onClick={() => { setReplyingId(r.id); setReplyText(r.adminReply); }} className="text-xs text-primary hover:underline mt-1">Изменить ответ</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setReplyingId(r.id); setReplyText(""); }} className="text-sm text-primary hover:underline flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                      Ответить от имени администрации
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
