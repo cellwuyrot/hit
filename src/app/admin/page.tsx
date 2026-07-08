@@ -2388,7 +2388,14 @@ function ReviewsPanel({ token }: { token: string }) {
     if (revRes.ok) setReviews(await revRes.json());
     if (prodRes.ok) {
       const prods = await prodRes.json();
-      setProducts(prods.map((p: { id: string; name: string; image: string }) => ({ id: p.id, name: p.name, image: p.image })));
+      // Sort alphabetically so the picker browses the whole catalogue evenly. The products API
+      // returns newest-first, which let recently-added (e.g. imported) goods crowd out everything
+      // else in the default list — a review can be attached to ANY product, not just those.
+      setProducts(
+        prods
+          .map((p: { id: string; name: string; image: string }) => ({ id: p.id, name: p.name, image: p.image }))
+          .sort((a: ReviewProduct, b: ReviewProduct) => a.name.localeCompare(b.name, "ru")),
+      );
     }
     setLoading(false);
   }, [token]);
