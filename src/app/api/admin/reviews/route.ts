@@ -78,8 +78,8 @@ export async function POST(request: Request) {
 
   const review = await prisma.review.create({
     data: {
+      // userId is left unset (NULL) — this is an admin-authored review with no linked account.
       productId,
-      userId: null,
       authorName: (authorName || "").trim(),
       text: String(text).trim(),
       rating: ratingNum,

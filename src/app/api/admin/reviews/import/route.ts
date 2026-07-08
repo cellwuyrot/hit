@@ -187,9 +187,10 @@ export async function POST(request: Request) {
 
   let imported = 0;
   for (const r of toCreate) {
+    // userId is left unset (NULL) — these are admin-imported reviews with no linked account.
     // No createdAt is passed on purpose — the review date is left to the database default.
     await prisma.review.create({
-      data: { productId: r.productId, userId: null, authorName: r.authorName, text: r.text, rating: r.rating, published: true },
+      data: { productId: r.productId, authorName: r.authorName, text: r.text, rating: r.rating, published: true },
     });
     imported++;
   }
