@@ -4,6 +4,7 @@ import HeroSlider from "@/components/HeroSlider";
 import ProductCard from "@/components/ProductCard";
 import ScrollReveal from "@/components/ScrollReveal";
 import CategoryGrid from "@/components/CategoryGrid";
+import InlineSetting from "@/components/InlineSetting";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
@@ -103,16 +104,16 @@ export default async function HomePage() {
           <section className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
               {[
-                { icon: "🚚", title: "Бесплатная доставка", desc: "При заказе от 5 000 ₽" },
-                { icon: "🛡️", title: "Гарантия качества", desc: "Только оригинальная продукция" },
-                { icon: "💬", title: "Поддержка 24/7", desc: "Ответим на любые вопросы" },
-                { icon: "↩️", title: "Возврат 14 дней", desc: "Без лишних вопросов" },
+                { icon: "🚚", key: "home-benefit-1", title: "Бесплатная доставка", desc: "При заказе от 5 000 ₽" },
+                { icon: "🛡️", key: "home-benefit-2", title: "Гарантия качества", desc: "Проверенные поставщики, документы на товар" },
+                { icon: "💬", key: "home-benefit-3", title: "Быстрая поддержка", desc: "Ответим в рабочее время: ПН-ПТ с 09:00 до 18:00" },
+                { icon: "↩️", key: "home-benefit-4", title: "Возврат 14 дней", desc: "Согласно закону «О защите прав потребителей»" },
               ].map((item) => (
-                <div key={item.title} className="bg-bg-white rounded-xl border border-border p-3 sm:p-4 flex items-start gap-2.5 sm:gap-3 hover:shadow-md transition-shadow">
+                <div key={item.key} className="bg-bg-white rounded-xl border border-border p-3 sm:p-4 flex items-start gap-2.5 sm:gap-3 hover:shadow-md transition-shadow">
                   <span className="text-xl sm:text-2xl flex-shrink-0">{item.icon}</span>
                   <div>
-                    <h3 className="font-heading text-xs sm:text-sm font-bold text-text-dark">{item.title}</h3>
-                    <p className="text-[10px] sm:text-xs text-text-gray mt-0.5">{item.desc}</p>
+                    <InlineSetting settingKey={`${item.key}-title`} fallback={item.title} as="h3" className="font-heading text-xs sm:text-sm font-bold text-text-dark" />
+                    <InlineSetting settingKey={`${item.key}-desc`} fallback={item.desc} as="p" className="text-[10px] sm:text-xs text-text-gray mt-0.5" />
                   </div>
                 </div>
               ))}

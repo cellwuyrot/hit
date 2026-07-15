@@ -110,7 +110,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "reviews" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "reviews" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
 
 interface CallbackItem {
   id: string;
@@ -880,7 +880,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, reviews: "Отзывы", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, reviews: "Отзывы", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
   };
 
   return (
@@ -1680,6 +1680,9 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {/* Company info / site settings */}
+        {activeTab === "company" && <CompanySettingsPanel token={token} />}
 
         {/* Callbacks */}
         {activeTab === "callbacks" && <CallbacksPanel token={token} />}
@@ -2852,6 +2855,158 @@ function ReviewsPanel({ token }: { token: string }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+const COMPANY_SETTING_GROUPS: {
+  title: string;
+  hint?: string;
+  fields: { key: string; label: string; multiline?: boolean }[];
+}[] = [
+  {
+    title: "Шапка сайта",
+    fields: [
+      { key: "header-hours", label: "График работы (будни)" },
+      { key: "header-weekend", label: "График работы (выходные)" },
+      { key: "header-region", label: "Регион работы" },
+      { key: "header-subtitle", label: "Подпись под логотипом" },
+    ],
+  },
+  {
+    title: "Преимущества на главной странице",
+    hint: "Указывайте только то, что соответствует действительности (например, не пишите «поддержка 24/7» при графике ПН-ПТ). Противоречия на сайте — частая причина блокировки «Искажение фактов» в Google Merchant Center.",
+    fields: [
+      { key: "home-benefit-1-title", label: "Преимущество 1 — заголовок" },
+      { key: "home-benefit-1-desc", label: "Преимущество 1 — описание" },
+      { key: "home-benefit-2-title", label: "Преимущество 2 — заголовок" },
+      { key: "home-benefit-2-desc", label: "Преимущество 2 — описание" },
+      { key: "home-benefit-3-title", label: "Преимущество 3 — заголовок" },
+      { key: "home-benefit-3-desc", label: "Преимущество 3 — описание" },
+      { key: "home-benefit-4-title", label: "Преимущество 4 — заголовок" },
+      { key: "home-benefit-4-desc", label: "Преимущество 4 — описание" },
+    ],
+  },
+  {
+    title: "Контакты (футер)",
+    hint: "Эти данные должны совпадать с данными в разделе «Сведения о компании» аккаунта Google Merchant Center.",
+    fields: [
+      { key: "footer-phone", label: "Телефон" },
+      { key: "footer-hours", label: "График работы" },
+      { key: "footer-email-1", label: "E-mail для заказов" },
+      { key: "footer-email-2", label: "E-mail для опта" },
+      { key: "footer-email-3", label: "E-mail для поставщиков" },
+      { key: "footer-address", label: "Адрес" },
+    ],
+  },
+  {
+    title: "О компании и реквизиты",
+    fields: [
+      { key: "footer-description", label: "Описание компании (футер)", multiline: true },
+      { key: "footer-legal-1", label: "Реквизиты (ИП, ИНН, ОГРНИП)" },
+      { key: "footer-legal-2", label: "Юридический адрес" },
+      { key: "footer-copyright", label: "Копирайт (после знака © и года)" },
+      { key: "footer-disclaimer", label: "Правовая оговорка внизу сайта", multiline: true },
+    ],
+  },
+  {
+    title: "Заголовки колонок футера",
+    fields: [
+      { key: "footer-catalog-title", label: "Колонка каталога" },
+      { key: "footer-info-title", label: "Колонка информации" },
+      { key: "footer-contacts-title", label: "Колонка контактов" },
+      { key: "footer-social-title", label: "Блок соцсетей" },
+    ],
+  },
+];
+
+function CompanySettingsPanel({ token }: { token: string }) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    fetch("/api/site-settings")
+      .then((r) => r.json())
+      .then((data: Record<string, { id: string; value: string }>) => {
+        const v: Record<string, string> = {};
+        for (const [slug, entry] of Object.entries(data)) v[slug] = entry.value;
+        setValues(v);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/site-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ values }),
+      });
+      if (res.ok) {
+        setMsg("Сохранено — изменения уже отображаются на сайте");
+      } else {
+        const d = await res.json().catch(() => null);
+        setMsg(d?.error ? `Ошибка: ${d.error}` : "Ошибка сохранения");
+      }
+    } catch {
+      setMsg("Ошибка сохранения");
+    }
+    setSaving(false);
+  };
+
+  if (loading) return <div className="text-center py-12 text-text-gray">Загрузка...</div>;
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-xl font-bold text-text-dark">Сведения о компании</h2>
+        {msg && (
+          <span className={`text-sm font-medium ${msg.startsWith("Ошибка") ? "text-danger" : "text-success"}`}>{msg}</span>
+        )}
+      </div>
+      <p className="text-sm text-text-gray">
+        Эти данные отображаются в шапке, футере и на главной странице сайта. Указывайте только достоверную информацию — она должна совпадать с данными в Google Merchant Center и других внешних сервисах.
+      </p>
+      {COMPANY_SETTING_GROUPS.map((group) => (
+        <div key={group.title} className="bg-bg-white rounded-xl border border-border p-5">
+          <h3 className="font-bold text-text-dark mb-1">{group.title}</h3>
+          {group.hint && <p className="text-xs text-text-gray">{group.hint}</p>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            {group.fields.map((field) => (
+              <div key={field.key} className={field.multiline ? "md:col-span-2" : ""}>
+                <label className="text-sm text-text-gray mb-1 block">{field.label}</label>
+                {field.multiline ? (
+                  <textarea
+                    value={values[field.key] ?? ""}
+                    onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+                    rows={3}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={values[field.key] ?? ""}
+                    onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button
+        onClick={save}
+        disabled={saving}
+        className="bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-lg transition-colors font-medium disabled:opacity-50"
+      >
+        {saving ? "Сохранение..." : "Сохранить изменения"}
+      </button>
     </div>
   );
 }
