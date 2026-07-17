@@ -93,6 +93,27 @@ export default function CartPage() {
     }
   };
 
+  const commitQtyInput = (item: CartItem, input: HTMLInputElement, isPack: boolean) => {
+    const currentDisplay = isPack
+      ? (item.product.packSize ? Math.round(item.quantity / item.product.packSize) : 1)
+      : item.quantity;
+    const parsed = parseInt(input.value, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      input.value = String(currentDisplay);
+      return;
+    }
+    if (parsed === currentDisplay) {
+      input.value = String(currentDisplay);
+      return;
+    }
+    if (isPack) {
+      const ps = item.product.packSize || item.quantity;
+      updateQty(item.productId, parsed * ps, true);
+    } else {
+      updateQty(item.productId, parsed, false);
+    }
+  };
+
   const removeItem = async (productId: string, isPack: boolean) => {
     if (!token) return;
     await fetch("/api/user/cart", {
@@ -195,9 +216,18 @@ export default function CartPage() {
                             const ps = item.product.packSize || item.quantity;
                             updateQty(item.productId, item.quantity - ps, true);
                           }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-green-300 flex items-center justify-center hover:bg-green-50 text-sm text-green-600">−</button>
-                          <span className="w-8 sm:w-10 text-center font-medium text-sm text-green-700">
-                            {item.product.packSize ? Math.round(item.quantity / item.product.packSize) : 1} уп.
-                          </span>
+                          <input
+                            key={`pack-qty-${item.quantity}`}
+                            type="number"
+                            min={1}
+                            inputMode="numeric"
+                            defaultValue={item.product.packSize ? Math.round(item.quantity / item.product.packSize) : 1}
+                            onBlur={(e) => commitQtyInput(item, e.currentTarget, true)}
+                            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                            className="w-12 sm:w-14 h-7 sm:h-8 text-center font-medium text-sm text-green-700 border border-green-300 rounded-lg focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            aria-label="Количество упаковок"
+                          />
+                          <span className="text-sm font-medium text-green-700">уп.</span>
                           <button onClick={() => {
                             const ps = item.product.packSize || item.quantity;
                             updateQty(item.productId, item.quantity + ps, true);
@@ -206,7 +236,17 @@ export default function CartPage() {
                       ) : (
                         <div className="flex items-center gap-2">
                           <button onClick={() => updateQty(item.productId, item.quantity - 1, false)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light text-sm">−</button>
-                          <span className="w-6 sm:w-8 text-center font-medium text-sm">{item.quantity}</span>
+                          <input
+                            key={`qty-${item.quantity}`}
+                            type="number"
+                            min={1}
+                            inputMode="numeric"
+                            defaultValue={item.quantity}
+                            onBlur={(e) => commitQtyInput(item, e.currentTarget, false)}
+                            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                            className="w-12 sm:w-14 h-7 sm:h-8 text-center font-medium text-sm border border-border rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            aria-label="Количество"
+                          />
                           <button onClick={() => updateQty(item.productId, item.quantity + 1, false)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-border flex items-center justify-center hover:bg-bg-light text-sm">+</button>
                         </div>
                       )}
