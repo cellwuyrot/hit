@@ -170,6 +170,67 @@ async function main() {
     }
   }
 
+  // Presentation page blocks (/presentation) — 8 configurable blocks
+  const existingBlocks = await prisma.presentationBlock.count();
+  if (existingBlocks === 0) {
+    const blocks = [
+      {
+        order: 1, layout: "hero", bgColor: "gradient", align: "center",
+        eyebrow: "Добро пожаловать в ТОПХИТ",
+        title: "Товары для дома, бизнеса и семьи — по ценам от производителя",
+        subtitle: "Продукты, бытовая химия и товары для дома оптом и в розницу. Доставка по Москве и МО, самовывоз со склада.",
+        buttonText: "Перейти в каталог", buttonLink: "/catalog",
+      },
+      {
+        order: 2, layout: "split-right", bgColor: "white", align: "left",
+        eyebrow: "О компании",
+        title: "Динамично развивающаяся торговая компания",
+        text: "Широкий ассортимент проверенных товаров для повседневной жизни. Работаем напрямую с производителями, поэтому предлагаем честные цены.\nСобственный склад в Москве и отлаженная логистика позволяют быстро собирать и доставлять заказы любого объёма.",
+        buttonText: "Подробнее о нас", buttonLink: "/about",
+      },
+      {
+        order: 3, layout: "stats", bgColor: "primary", align: "center",
+        title: "ТОПХИТ в цифрах",
+        subtitle: "Нам доверяют тысячи покупателей и оптовых партнёров",
+        text: "10 000+ | товаров в каталоге\n5 лет | успешной работы\n50 000+ | выполненных заказов\n24 ч | средний срок доставки",
+      },
+      {
+        order: 4, layout: "features", bgColor: "light", align: "center",
+        eyebrow: "Почему выбирают нас",
+        title: "Наши преимущества",
+        text: "🚚 | Быстрая доставка | По Москве и МО — от одного дня\n🛡️ | Гарантия качества | Проверенные поставщики и документы на товар\n💬 | Живая поддержка | Отвечаем в рабочее время ПН–ПТ 09:00–18:00\n↩️ | Возврат 14 дней | Согласно закону «О защите прав потребителей»",
+      },
+      {
+        order: 5, layout: "split-left", bgColor: "white", align: "left",
+        eyebrow: "Оптовым клиентам",
+        title: "Специальные условия для бизнеса",
+        text: "Гибкие скидки в зависимости от объёма заказа и персональный менеджер для сопровождения сделок.\nОтгрузка со склада, полный пакет документов и удобные способы оплаты для юридических лиц.",
+        buttonText: "Условия опта", buttonLink: "/wholesale",
+      },
+      {
+        order: 6, layout: "quote", bgColor: "gradient", align: "center",
+        title: "«Заказываю здесь регулярно — всегда свежий товар и быстрая доставка. Отдельное спасибо за поддержку и внимательное отношение!»",
+        subtitle: "— Анна, постоянный клиент",
+      },
+      {
+        order: 7, layout: "banner", bgColor: "accent", align: "center",
+        eyebrow: "Выгодное предложение",
+        title: "Скидка 10% при покупке упаковкой",
+        subtitle: "Берите товары упаковками и экономьте на каждой позиции",
+        buttonText: "Смотреть акции", buttonLink: "/catalog?sort=price_asc",
+      },
+      {
+        order: 8, layout: "cta", bgColor: "dark", align: "center",
+        title: "Готовы сделать заказ?",
+        subtitle: "Перейдите в каталог или свяжитесь с нами — поможем подобрать товары под вашу задачу.",
+        buttonText: "В каталог", buttonLink: "/catalog",
+      },
+    ];
+    for (const block of blocks) {
+      await prisma.presentationBlock.create({ data: block });
+    }
+  }
+
   // Sample news
   const newsItems = [
     {

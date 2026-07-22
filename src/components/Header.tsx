@@ -307,6 +307,7 @@ export default function Header() {
               <Link href="/import" className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 py-2.5 px-3 rounded-lg font-medium transition-colors" onClick={() => setMenuOpen(false)}>Импортные товары</Link>
               <Link href="/wholesale" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Оптовые продажи</Link>
               <Link href="/news" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Новости</Link>
+              <Link href="/presentation" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg font-medium transition-colors" onClick={() => setMenuOpen(false)}>Презентация</Link>
               <Link href="/about#delivery" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Доставка</Link>
               <Link href="/about" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>О компании</Link>
               <Link href="/about#contacts" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Контакты</Link>
@@ -329,6 +330,7 @@ export default function Header() {
             <li><Link href="/import" className="text-indigo-600 hover:text-indigo-800 font-medium transition-colors">Импортные товары</Link></li>
             <li><Link href="/wholesale" className="text-text-gray hover:text-primary transition-colors">Оптовые продажи</Link></li>
             <li><Link href="/news" className="text-text-gray hover:text-primary transition-colors">Новости</Link></li>
+            <li><Link href="/presentation" className="text-text-gray hover:text-primary transition-colors">Презентация</Link></li>
             <li><Link href="/about#delivery" className="text-text-gray hover:text-primary transition-colors">Доставка</Link></li>
             <li><Link href="/about" className="text-text-gray hover:text-primary transition-colors">О компании</Link></li>
             <li><Link href="/about#contacts" className="text-text-gray hover:text-primary transition-colors">Контакты</Link></li>

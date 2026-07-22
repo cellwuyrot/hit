@@ -110,7 +110,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "news" | "orders" | "reviews" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "presentation" | "news" | "orders" | "reviews" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
 
 interface CallbackItem {
   id: string;
@@ -880,7 +880,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", news: "Новости", orders: `Заказы (${orders.length})`, reviews: "Отзывы", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, reviews: "Отзывы", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
   };
 
   return (
@@ -1472,6 +1472,9 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* Presentation */}
+        {activeTab === "presentation" && <PresentationPanel token={token} />}
 
         {/* News */}
         {activeTab === "news" && (
@@ -3007,6 +3010,334 @@ function CompanySettingsPanel({ token }: { token: string }) {
       >
         {saving ? "Сохранение..." : "Сохранить изменения"}
       </button>
+    </div>
+  );
+}
+
+interface PresBlock {
+  id: string;
+  order: number;
+  layout: string;
+  bgColor: string;
+  align: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  text: string;
+  imageUrl: string;
+  buttonText: string;
+  buttonLink: string;
+  active: boolean;
+}
+
+type PresForm = Omit<PresBlock, "id" | "order">;
+
+const PRES_EMPTY: PresForm = {
+  layout: "split-right", bgColor: "white", align: "left", eyebrow: "", title: "",
+  subtitle: "", text: "", imageUrl: "", buttonText: "", buttonLink: "", active: true,
+};
+
+const PRES_LAYOUTS: { value: string; label: string }[] = [
+  { value: "hero", label: "Hero — крупный вступительный экран" },
+  { value: "split-right", label: "Текст слева / изображение справа" },
+  { value: "split-left", label: "Изображение слева / текст справа" },
+  { value: "features", label: "Преимущества (сетка карточек)" },
+  { value: "stats", label: "Цифры / статистика" },
+  { value: "quote", label: "Цитата / отзыв" },
+  { value: "banner", label: "Баннер с кнопкой" },
+  { value: "cta", label: "Призыв к действию" },
+];
+
+const PRES_BG: { value: string; label: string }[] = [
+  { value: "white", label: "Белый" },
+  { value: "light", label: "Светло-серый" },
+  { value: "gradient", label: "Градиент (анимированный)" },
+  { value: "primary", label: "Синий (фирменный)" },
+  { value: "accent", label: "Оранжевый (акцент)" },
+  { value: "dark", label: "Тёмный" },
+];
+
+const PRES_ALIGN: { value: string; label: string }[] = [
+  { value: "left", label: "По левому краю" },
+  { value: "center", label: "По центру" },
+];
+
+function presLayoutLabel(value: string): string {
+  return PRES_LAYOUTS.find((l) => l.value === value)?.label ?? value;
+}
+
+function presTextHint(layout: string): { label: string; hint: string; placeholder: string } {
+  if (layout === "features") {
+    return {
+      label: "Карточки преимуществ",
+      hint: "Каждая строка — отдельная карточка в формате: эмодзи | заголовок | описание",
+      placeholder: "🚚 | Быстрая доставка | По Москве и МО от одного дня\n🛡️ | Гарантия качества | Проверенные поставщики",
+    };
+  }
+  if (layout === "stats") {
+    return {
+      label: "Цифры",
+      hint: "Каждая строка — отдельная цифра в формате: значение | подпись",
+      placeholder: "10 000+ | товаров в каталоге\n5 лет | на рынке",
+    };
+  }
+  return {
+    label: "Основной текст",
+    hint: "Каждая новая строка отображается как отдельный абзац.",
+    placeholder: "Текст блока…",
+  };
+}
+
+function PresentationPanel({ token }: { token: string }) {
+  const [blocks, setBlocks] = useState<PresBlock[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState<PresForm>(PRES_EMPTY);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/presentation", { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setBlocks(await res.json());
+    } catch {
+      /* ignore */
+    }
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/presentation", { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok && !cancelled) setBlocks(await res.json());
+      } catch {
+        /* ignore */
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setForm(PRES_EMPTY);
+  };
+
+  const startEdit = (block: PresBlock) => {
+    setEditingId(block.id);
+    setForm({
+      layout: block.layout, bgColor: block.bgColor, align: block.align, eyebrow: block.eyebrow,
+      title: block.title, subtitle: block.subtitle, text: block.text, imageUrl: block.imageUrl,
+      buttonText: block.buttonText, buttonLink: block.buttonLink, active: block.active,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setMsg("");
+    try {
+      const method = editingId ? "PUT" : "POST";
+      const body = editingId
+        ? { id: editingId, ...form }
+        : { ...form, order: blocks.length };
+      const res = await fetch("/api/admin/presentation", {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setMsg(editingId ? "Блок сохранён" : "Блок добавлен");
+        resetForm();
+        await load();
+      } else {
+        const d = await res.json().catch(() => null);
+        setMsg(d?.error ? `Ошибка: ${d.error}` : "Ошибка сохранения");
+      }
+    } catch {
+      setMsg("Ошибка соединения с сервером");
+    }
+    setSaving(false);
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Удалить блок?")) return;
+    await fetch("/api/admin/presentation", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id }),
+    });
+    if (editingId === id) resetForm();
+    await load();
+  };
+
+  const toggleActive = async (block: PresBlock) => {
+    await fetch("/api/admin/presentation", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...block, active: !block.active }),
+    });
+    await load();
+  };
+
+  const move = async (idx: number, dir: "up" | "down") => {
+    const sorted = [...blocks].sort((a, b) => a.order - b.order);
+    const target = dir === "up" ? idx - 1 : idx + 1;
+    if (target < 0 || target >= sorted.length) return;
+    [sorted[idx], sorted[target]] = [sorted[target], sorted[idx]];
+    setBlocks(sorted.map((b, i) => ({ ...b, order: i })));
+    await fetch("/api/admin/presentation", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ orderedIds: sorted.map((b) => b.id) }),
+    });
+    await load();
+  };
+
+  const uploadImage = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Максимальный размер файла: 10 МБ");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+      if (res.ok) {
+        const data = await res.json();
+        setForm((prev) => ({ ...prev, imageUrl: data.url }));
+      } else {
+        alert("Ошибка загрузки изображения");
+      }
+    } catch {
+      alert("Ошибка соединения с сервером");
+    }
+    setUploading(false);
+  };
+
+  const sorted = [...blocks].sort((a, b) => a.order - b.order);
+  const textHint = presTextHint(form.layout);
+  const usesImage = form.layout === "split-left" || form.layout === "split-right";
+
+  if (loading) return <div className="text-center py-12 text-text-gray">Загрузка...</div>;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+        <div>
+          <h2 className="text-xl font-bold text-text-dark">Презентация — страница /presentation</h2>
+          <p className="text-sm text-text-gray mt-1">
+            Блоки анимированной презентационной страницы. Меняйте содержимое, макет, цвет фона и порядок.{" "}
+            <a href="/presentation" target="_blank" rel="noreferrer" className="text-primary hover:underline">Открыть страницу →</a>
+          </p>
+        </div>
+        {msg && <span className={`text-sm font-medium ${msg.startsWith("Ошибка") ? "text-danger" : "text-success"}`}>{msg}</span>}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-bg-white rounded-xl border border-border p-5 lg:sticky lg:top-4 self-start">
+          <h3 className="font-bold text-text-dark mb-4">{editingId ? "Редактировать блок" : "Добавить блок"}</h3>
+          <form onSubmit={save} className="space-y-3">
+            <div>
+              <label className="text-xs text-text-gray mb-1 block">Макет блока</label>
+              <select value={form.layout} onChange={(e) => setForm({ ...form, layout: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                {PRES_LAYOUTS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-text-gray mb-1 block">Цвет фона</label>
+                <select value={form.bgColor} onChange={(e) => setForm({ ...form, bgColor: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                  {PRES_BG.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-text-gray mb-1 block">Выравнивание</label>
+                <select value={form.align} onChange={(e) => setForm({ ...form, align: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                  {PRES_ALIGN.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <input type="text" placeholder="Надзаголовок (маленькая метка)" value={form.eyebrow} onChange={(e) => setForm({ ...form, eyebrow: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+            <input type="text" placeholder="Заголовок" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+            <textarea placeholder="Подзаголовок" value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} rows={2} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+            <div>
+              <label className="text-xs text-text-gray mb-1 block">{textHint.label}</label>
+              <textarea placeholder={textHint.placeholder} value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} rows={4} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+              <p className="text-xs text-text-light mt-1">{textHint.hint}</p>
+            </div>
+            {usesImage && (
+              <div>
+                <div className="flex gap-2">
+                  <input type="text" placeholder="URL изображения" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                  <label className={`px-3 py-2 border border-border rounded-lg text-sm cursor-pointer transition-colors flex items-center gap-1 ${uploading ? "bg-primary/10 text-primary border-primary" : "bg-bg-light text-text-gray hover:text-primary"}`}>
+                    {uploading ? "Загрузка..." : "Файл"}
+                    <input type="file" accept=".jpg,.jpeg,.png,.webp,.svg" className="hidden" disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); e.target.value = ""; }} />
+                  </label>
+                </div>
+                <p className="text-xs text-text-light mt-1">Показывается только в макетах с изображением. Форматы: JPG, PNG, WEBP, SVG. Макс. 10 МБ</p>
+                {form.imageUrl && (
+                  <div className="mt-2 rounded-lg overflow-hidden border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={form.imageUrl} alt="Превью" className="w-full h-24 object-cover" />
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <input type="text" placeholder="Текст кнопки" value={form.buttonText} onChange={(e) => setForm({ ...form, buttonText: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+              <input type="text" placeholder="Ссылка кнопки (/catalog)" value={form.buttonLink} onChange={(e) => setForm({ ...form, buttonLink: e.target.value })} className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-text-gray">
+              <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="accent-primary" /> Показывать на сайте
+            </label>
+            <div className="flex gap-2">
+              <button type="submit" disabled={saving} className="flex-1 bg-primary hover:bg-primary-dark text-white text-sm py-2 rounded-lg disabled:opacity-50">{editingId ? "Сохранить" : "Добавить"}</button>
+              {editingId && <button type="button" onClick={resetForm} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
+            </div>
+          </form>
+        </div>
+
+        <div className="lg:col-span-2 bg-bg-white rounded-xl border border-border p-5">
+          <h3 className="font-bold text-text-dark mb-4">Блоки презентации ({sorted.length})</h3>
+          <p className="text-xs text-text-gray mb-3">Стрелками меняйте порядок блоков сверху вниз.</p>
+          {sorted.length === 0 ? (
+            <p className="text-text-gray text-sm">Блоков пока нет. Добавьте первый блок слева.</p>
+          ) : (
+            <div className="space-y-2">
+              {sorted.map((block, idx) => (
+                <div key={block.id} className={`flex items-center gap-3 p-3 rounded-lg border ${block.active ? "bg-bg-light border-border" : "bg-red-50/50 border-red-200/50"}`}>
+                  <div className="flex flex-col gap-1 flex-shrink-0">
+                    <button onClick={() => move(idx, "up")} disabled={idx === 0} className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${idx === 0 ? "text-border cursor-not-allowed" : "text-text-gray hover:bg-primary hover:text-white"}`} title="Вверх">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                    </button>
+                    <button onClick={() => move(idx, "down")} disabled={idx === sorted.length - 1} className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${idx === sorted.length - 1 ? "text-border cursor-not-allowed" : "text-text-gray hover:bg-primary hover:text-white"}`} title="Вниз">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                  </div>
+                  <span className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">{idx + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-text-dark text-sm truncate">{block.title || block.eyebrow || "Без заголовка"}</p>
+                    <p className="text-xs text-text-gray truncate">{presLayoutLabel(block.layout)}</p>
+                    <button onClick={() => toggleActive(block)} className={`text-xs ${block.active ? "text-success" : "text-danger"} hover:underline`}>{block.active ? "Активен" : "Скрыт"}</button>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button onClick={() => startEdit(block)} className="text-primary hover:underline text-sm">Изменить</button>
+                    <button onClick={() => remove(block.id)} className="text-danger hover:underline text-sm">Удалить</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

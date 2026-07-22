@@ -226,3 +226,57 @@ input[type="range"]::-webkit-slider-thumb {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ===== Presentation landing (/presentation) ===== */
+@keyframes pres-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pres-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+
+@keyframes pres-float-slow {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(22px) translateX(12px); }
+}
+
+@keyframes pres-scroll-down {
+  0% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(9px); opacity: 0.35; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Scroll-reveal variants (toggled by IntersectionObserver) */
+.pres-reveal { opacity: 0; transform: translateY(42px); transition: opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.pres-reveal-left { opacity: 0; transform: translateX(-52px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.pres-reveal-right { opacity: 0; transform: translateX(52px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.pres-reveal-scale { opacity: 0; transform: scale(0.93); transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.pres-reveal.is-visible,
+.pres-reveal-left.is-visible,
+.pres-reveal-right.is-visible,
+.pres-reveal-scale.is-visible { opacity: 1; transform: none; }
+
+/* Decorative motion */
+.pres-animated-gradient {
+  background: linear-gradient(120deg, #EAF2FB, #FFFFFF, #FDF3E2, #EAF2FB);
+  background-size: 300% 300%;
+  animation: pres-gradient-shift 16s ease infinite;
+}
+.pres-float { animation: pres-float 6s ease-in-out infinite; }
+.pres-float-slow { animation: pres-float-slow 9s ease-in-out infinite; }
+.pres-scroll-indicator { animation: pres-scroll-down 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pres-reveal,
+  .pres-reveal-left,
+  .pres-reveal-right,
+  .pres-reveal-scale { transition: none; opacity: 1; transform: none; }
+  .pres-animated-gradient,
+  .pres-float,
+  .pres-float-slow,
+  .pres-scroll-indicator { animation: none; }
+}

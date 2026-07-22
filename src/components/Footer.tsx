@@ -51,6 +51,7 @@ export default function Footer() {
             />
             <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/75">
               <li><Link href="/about" className="hover:text-white transition-colors">О компании</Link></li>
+              <li><Link href="/presentation" className="hover:text-white transition-colors">Презентация</Link></li>
               <li><Link href="/wholesale" className="hover:text-white transition-colors">Оптовые продажи</Link></li>
               <li><Link href="/news" className="hover:text-white transition-colors">Новости</Link></li>
               <li><Link href="/returns" className="hover:text-white transition-colors">Возврат и обмен</Link></li>
