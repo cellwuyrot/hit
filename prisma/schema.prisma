@@ -73,6 +73,22 @@ model SliderImage {
   active   Boolean @default(true)
 }
 
+model PresentationBlock {
+  id         String  @id @default(uuid())
+  order      Int     @default(0)
+  layout     String  @default("split-right")
+  bgColor    String  @default("white")
+  align      String  @default("left")
+  eyebrow    String  @default("")
+  title      String  @default("")
+  subtitle   String  @default("")
+  text       String  @default("")
+  imageUrl   String  @default("")
+  buttonText String  @default("")
+  buttonLink String  @default("")
+  active     Boolean @default(true)
+}
+
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
