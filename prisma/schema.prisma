@@ -202,6 +202,36 @@ model Message {
   @@index([orderId])
 }
 
+// Живой чат поддержки с неавторизованными посетителями сайта.
+// Гость не имеет учётной записи: он представляется именем и получает
+// секретный guestToken, по которому продолжает переписку.
+model SupportChat {
+  id            String           @id @default(uuid())
+  guestName     String           @default("")
+  guestToken    String           @unique
+  status        String           @default("open") // open | closed
+  lastMessageAt DateTime         @default(now())
+  createdAt     DateTime         @default(now())
+  messages      SupportMessage[]
+
+  @@index([status])
+  @@index([lastMessageAt])
+}
+
+model SupportMessage {
+  id          String      @id @default(uuid())
+  chatId      String
+  chat        SupportChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderRole  String      @default("guest") // guest | admin
+  text        String
+  readByAdmin Boolean     @default(false)
+  readByGuest Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+
+  @@index([chatId])
+  @@index([createdAt])
+}
+
 model PageView {
   id        String   @id @default(uuid())
   path      String
