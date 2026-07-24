@@ -31,6 +31,8 @@ const DEFAULTS: Record<string, string> = {
   "footer-legal-2": "Юридический адрес: 127018, г. Москва, ул. Складочная д. 1 стр. 18",
   "footer-disclaimer":
     "Изображения товаров могут отличаться от фактического вида. Все цены указаны в рублях. Условия оплаты, доставки и возврата описаны в соответствующих разделах сайта.",
+  // Виджет чата поддержки: "1" — показывать плавающую кнопку, "0" — скрыть.
+  "chat-widget-enabled": "1",
 };
 
 // Устаревшие формулировки, которые автоматически заменяются на новые.
@@ -43,7 +45,7 @@ const LEGACY_VALUES: Record<string, { from: string; to: string }> = {
   },
 };
 
-const SETTING_PREFIXES = ["header-", "footer-", "home-benefit-"];
+const SETTING_PREFIXES = ["header-", "footer-", "home-benefit-", "chat-"];
 
 export async function GET() {
   const all = await prisma.sitePage.findMany({

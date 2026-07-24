@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, startTransition } from "react";
+import { useState, useEffect, useRef, useCallback, startTransition } from "react";
 import Link from "next/link";
+import { useLiveMessages } from "@/components/useLiveMessages";
 
 interface Category {
   id: string;
@@ -110,7 +111,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "presentation" | "news" | "orders" | "reviews" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "presentation" | "news" | "orders" | "chats" | "reviews" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
 
 interface CallbackItem {
   id: string;
@@ -300,12 +301,267 @@ function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, tok
   );
 }
 
+interface ChatListItem {
+  id: string;
+  guestName: string;
+  status: string;
+  createdAt: string;
+  lastMessageAt: string;
+  lastMessage: { text: string; senderRole: string; createdAt: string } | null;
+  unread: number;
+}
+
+function ChatsPanel({ token }: { token: string }) {
+  const [view, setView] = useState<"open" | "closed">("open");
+  const [chats, setChats] = useState<ChatListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [widgetEnabled, setWidgetEnabled] = useState(true);
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  const loadChats = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/chat?status=${view}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setChats(await res.json());
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
+  }, [token, view]);
+
+  // Список диалогов обновляется автоматически (новые чаты и счётчики).
+  useEffect(() => {
+    startTransition(() => setLoading(true));
+    loadChats();
+    const timer = setInterval(loadChats, 4000);
+    return () => clearInterval(timer);
+  }, [loadChats]);
+
+  // Текущее состояние виджета чата на сайте.
+  useEffect(() => {
+    fetch("/api/site-settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && data["chat-widget-enabled"]) setWidgetEnabled(data["chat-widget-enabled"].value !== "0");
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggleWidget = async () => {
+    const next = !widgetEnabled;
+    setWidgetEnabled(next);
+    await fetch("/api/site-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ values: { "chat-widget-enabled": next ? "1" : "0" } }),
+    });
+  };
+
+  const streamUrl = selectedId ? `/api/admin/chat/stream?chatId=${selectedId}&token=${encodeURIComponent(token)}` : null;
+  const listUrl = selectedId ? `/api/admin/chat/messages?chatId=${selectedId}` : null;
+  const { messages, upsert, reload } = useLiveMessages({ streamUrl, listUrl, authToken: token });
+
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [messages]);
+
+  const selectedChat = chats.find((c) => c.id === selectedId) || null;
+
+  // Открываем диалог и сразу гасим счётчик непрочитанных (не ждём опроса).
+  const selectChat = (id: string) => {
+    setSelectedId(id);
+    setChats((prev) => prev.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
+  };
+
+  const sendReply = async () => {
+    const trimmed = text.trim();
+    if (!trimmed || !selectedId) return;
+    setSending(true);
+    setText("");
+    try {
+      const res = await fetch("/api/admin/chat/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ chatId: selectedId, text: trimmed }),
+      });
+      if (res.ok) {
+        upsert([await res.json()]);
+        loadChats();
+      } else {
+        setText(trimmed);
+        void reload();
+      }
+    } catch {
+      setText(trimmed);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const changeStatus = async (id: string, status: "open" | "closed") => {
+    await fetch("/api/admin/chat", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id, status }),
+    });
+    if (selectedId === id) setSelectedId(null);
+    loadChats();
+  };
+
+  const deleteChat = async (id: string) => {
+    if (!confirm("Удалить диалог со всей историей?")) return;
+    await fetch("/api/admin/chat", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id }),
+    });
+    if (selectedId === id) setSelectedId(null);
+    loadChats();
+  };
+
+  return (
+    <div className="bg-bg-white rounded-xl border border-border p-5">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+        <h2 className="font-bold text-text-dark">Чаты с посетителями</h2>
+        <label className="flex items-center gap-2 text-sm text-text-gray cursor-pointer select-none">
+          <span>Виджет на сайте</span>
+          <button
+            type="button"
+            onClick={toggleWidget}
+            className={`relative w-11 h-6 rounded-full transition-colors ${widgetEnabled ? "bg-success" : "bg-border"}`}
+            aria-pressed={widgetEnabled}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${widgetEnabled ? "translate-x-5" : ""}`} />
+          </button>
+          <span className={widgetEnabled ? "text-success font-medium" : "text-text-light"}>{widgetEnabled ? "Вкл" : "Выкл"}</span>
+        </label>
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => { setView("open"); setSelectedId(null); }}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${view === "open" ? "bg-primary text-white border-primary" : "border-border text-text-gray hover:text-text-dark"}`}>
+          Активные
+        </button>
+        <button onClick={() => { setView("closed"); setSelectedId(null); }}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${view === "closed" ? "bg-primary text-white border-primary" : "border-border text-text-gray hover:text-text-dark"}`}>
+          История
+        </button>
+      </div>
+
+      <div className="grid md:grid-cols-[320px_1fr] gap-4 min-h-[420px]">
+        {/* Список диалогов */}
+        <div className="border border-border rounded-lg overflow-hidden">
+          {loading ? (
+            <p className="text-text-gray text-sm p-4">Загрузка…</p>
+          ) : chats.length === 0 ? (
+            <p className="text-text-gray text-sm p-4">{view === "open" ? "Активных диалогов нет" : "История пуста"}</p>
+          ) : (
+            <div className="divide-y divide-border max-h-[520px] overflow-y-auto">
+              {chats.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => selectChat(c.id)}
+                  className={`w-full text-left px-3 py-3 hover:bg-bg-light transition-colors ${selectedId === c.id ? "bg-bg-light" : ""}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-text-dark truncate">{c.guestName || "Гость"}</span>
+                    <span className="text-xs text-text-light shrink-0">
+                      {new Date(c.lastMessageAt).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mt-0.5">
+                    <span className="text-xs text-text-gray truncate">
+                      {c.lastMessage ? `${c.lastMessage.senderRole === "admin" ? "Вы: " : ""}${c.lastMessage.text}` : "Нет сообщений"}
+                    </span>
+                    {c.unread > 0 && (
+                      <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                        {c.unread}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Переписка */}
+        <div className="border border-border rounded-lg flex flex-col">
+          {!selectedChat ? (
+            <div className="flex-1 flex items-center justify-center text-text-gray text-sm p-6 text-center">
+              Выберите диалог слева, чтобы прочитать переписку и ответить.
+            </div>
+          ) : (
+            <>
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <p className="font-medium text-text-dark">{selectedChat.guestName || "Гость"}</p>
+                  <p className="text-xs text-text-light">Начат {new Date(selectedChat.createdAt).toLocaleString("ru-RU")}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedChat.status === "open" ? (
+                    <button onClick={() => changeStatus(selectedChat.id, "closed")}
+                      className="text-xs px-3 py-1 rounded-lg border border-border text-text-gray hover:text-text-dark">
+                      В архив
+                    </button>
+                  ) : (
+                    <button onClick={() => changeStatus(selectedChat.id, "open")}
+                      className="text-xs px-3 py-1 rounded-lg border border-border text-text-gray hover:text-text-dark">
+                      Вернуть в активные
+                    </button>
+                  )}
+                  <button onClick={() => deleteChat(selectedChat.id)}
+                    className="text-xs px-3 py-1 rounded-lg border border-danger text-danger hover:bg-danger hover:text-white transition-colors">
+                    Удалить
+                  </button>
+                </div>
+              </div>
+
+              <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-bg-light max-h-[420px]">
+                {messages.length === 0 && <p className="text-center text-xs text-text-gray italic mt-4">Нет сообщений</p>}
+                {messages.map((m) => (
+                  <div key={m.id}
+                    className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm ${m.senderRole === "admin" ? "bg-primary text-white ml-auto rounded-br-sm" : "bg-bg-white border border-border text-text-dark rounded-bl-sm"}`}>
+                    <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                    <p className={`text-[10px] mt-1 ${m.senderRole === "admin" ? "text-white/70" : "text-text-light"}`}>
+                      {m.senderRole === "admin" ? "Вы" : selectedChat.guestName || "Гость"} — {new Date(m.createdAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-2.5 border-t border-border flex gap-2 bg-bg-white">
+                <input
+                  type="text"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
+                  placeholder="Ответить клиенту…"
+                  className="flex-1 border border-border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary"
+                />
+                <button onClick={sendReply} disabled={sending || !text.trim()}
+                  className="bg-primary hover:bg-primary-dark text-white px-5 rounded-full text-sm disabled:opacity-40">
+                  {sending ? "…" : "Отправить"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [token, setToken] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("categories");
+  const [chatUnread, setChatUnread] = useState(0);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -393,6 +649,26 @@ export default function AdminPage() {
     const saved = localStorage.getItem("admin_token");
     if (saved) startTransition(() => setToken(saved));
   }, []);
+
+  // Счётчик непрочитанных сообщений в чатах для бейджа на вкладке.
+  useEffect(() => {
+    if (!token) return;
+    let stop = false;
+    const loadUnread = async () => {
+      try {
+        const res = await fetch("/api/admin/chat?status=all", { headers: { Authorization: `Bearer ${token}` } });
+        if (!stop && res.ok) {
+          const chats: { unread: number }[] = await res.json();
+          setChatUnread(chats.reduce((sum, c) => sum + (c.unread || 0), 0));
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    loadUnread();
+    const timer = setInterval(loadUnread, 8000);
+    return () => { stop = true; clearInterval(timer); };
+  }, [token, activeTab]);
 
   useEffect(() => {
     startTransition(() => { fetchData(); });
@@ -880,7 +1156,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, reviews: "Отзывы", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, chats: chatUnread > 0 ? `Чаты (${chatUnread})` : "Чаты", reviews: "Отзывы", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
   };
 
   return (
@@ -1574,6 +1850,9 @@ export default function AdminPage() {
         {activeTab === "orders" && (
           <OrdersPanel orders={orders} statusLabels={statusLabels} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} token={token} fetchData={fetchData} />
         )}
+
+        {/* Chats */}
+        {activeTab === "chats" && <ChatsPanel token={token} />}
 
         {/* Reviews */}
         {activeTab === "reviews" && <ReviewsPanel token={token} />}
