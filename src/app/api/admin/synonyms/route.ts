@@ -1,18 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
+import { isAdminRequest } from "@/lib/auth";
 
-const SECRET = process.env.JWT_SECRET || "tophit-secret-key-2024";
-
+// Единая проверка: валидный токен И роль admin.
+// Раньше здесь дублировалась локальная логика, которая проверяла только подпись,
+// из-за чего токен обычного покупателя открывал админские данные.
 function checkAdmin(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (!auth) return false;
-  try {
-    jwt.verify(auth.replace("Bearer ", ""), SECRET);
-    return true;
-  } catch {
-    return false;
-  }
+  return isAdminRequest(req);
 }
 
 export async function GET(req: NextRequest) {

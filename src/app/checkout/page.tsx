@@ -23,6 +23,7 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [promo, setPromo] = useState<{ code: string; discountType: string; discountValue: number; minOrder: number } | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("userToken");
@@ -41,10 +42,45 @@ export default function CheckoutPage() {
       });
   }, [token]);
 
-  const total = items.reduce((sum, item) => {
+  useEffect(() => {
+    const code = localStorage.getItem("promoCode");
+    if (!code) return;
+    fetch("/api/promo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.valid) {
+          startTransition(() => setPromo({
+            code: data.code,
+            discountType: data.discountType,
+            discountValue: data.discountValue,
+            minOrder: data.minOrder ?? 0,
+          }));
+        } else {
+          localStorage.removeItem("promoCode");
+        }
+      })
+      .catch(() => localStorage.removeItem("promoCode"));
+  }, []);
+
+  const subtotal = items.reduce((sum, item) => {
     if (item.isPack) return sum + Math.round(item.product.price * item.quantity * 0.9);
     return sum + item.product.price * item.quantity;
   }, 0);
+
+  // Те же правила, что и на сервере: скидка не применяется ниже минимальной суммы.
+  const discount = promo && subtotal >= promo.minOrder
+    ? Math.min(
+        promo.discountType === "percent"
+          ? Math.round((subtotal * promo.discountValue) / 100)
+          : promo.discountValue,
+        subtotal
+      )
+    : 0;
+  const total = Math.max(0, subtotal - discount);
 
   const handleSubmit = async () => {
     setError("");
@@ -59,11 +95,12 @@ export default function CheckoutPage() {
     const res = await fetch("/api/user/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, promoCode: promo?.code ?? "" }),
     });
     const data = await res.json();
     setLoading(false);
-    if (!res.ok) { setError(data.error); return; }
+    if (!res.ok) { setError(data.error || "Не удалось оформить заказ"); return; }
+    localStorage.removeItem("promoCode");
     setOrderId(data.id);
   };
 
@@ -275,10 +312,16 @@ export default function CheckoutPage() {
                   {items.map((item) => (
                     <div key={item.productId} className="flex justify-between text-text-gray">
                       <span className="truncate mr-2">{item.product.name} × {item.quantity}</span>
-                      <span className="flex-shrink-0">{(item.product.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
+                      <span className="flex-shrink-0">{(item.isPack ? Math.round(item.product.price * item.quantity * 0.9) : item.product.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
                     </div>
                   ))}
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600 mb-2">
+                    <span>Промокод «{promo?.code}»</span>
+                    <span>−{discount.toLocaleString("ru-RU")} ₽</span>
+                  </div>
+                )}
                 <div className="border-t border-border pt-3 flex justify-between font-bold text-lg">
                   <span>Итого:</span>
                   <span className="text-primary">{total.toLocaleString("ru-RU")} ₽</span>

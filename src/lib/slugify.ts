@@ -82,7 +82,7 @@ export function slugify(text: string): string {
     return wordDict[lower];
   }
 
-  return lower
+  const slug = lower
     .replace(/[а-яё]+/g, (word) => {
       if (wordDict[word]) return wordDict[word];
       return word.replace(/[а-яё]/g, (ch) => ch in translitMap ? translitMap[ch] : ch);
@@ -90,6 +90,10 @@ export function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/-{2,}/g, "-")
     .replace(/^-|-$/g, "");
+
+  // Названия из одних мягких/твёрдых знаков или знаков препинания давали пустую
+  // строку — она нарушала @unique и порождала URL вида /catalog/-2.
+  return slug || "item";
 }
 
 export function getCategoryPath(

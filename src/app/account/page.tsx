@@ -265,8 +265,7 @@ export default function AccountPage() {
     const data = await res.json();
     if (res.ok) {
       setResetStep("code");
-      if (data.resetToken) setResetToken(data.resetToken);
-      setSuccess("Код восстановления сгенерирован");
+      setSuccess(data.message || "Если email зарегистрирован, код восстановления отправлен на почту");
     } else {
       setError(data.error || "Ошибка");
     }
@@ -372,7 +371,7 @@ export default function AccountPage() {
                     </>
                   ) : (
                     <>
-                      <p className="text-sm text-text-gray mb-4">Введите код восстановления и новый пароль</p>
+                      <p className="text-sm text-text-gray mb-4">Введите код восстановления из письма и новый пароль</p>
                       <input type="text" placeholder="Код восстановления" value={resetToken} onChange={(e) => setResetToken(e.target.value)}
                         className="w-full bg-white border border-border rounded-xl px-4 py-3 mb-3 text-text-dark placeholder-text-light focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
                       <input type="password" placeholder="Новый пароль (мин. 6 символов)" value={resetNewPassword} onChange={(e) => setResetNewPassword(e.target.value)}

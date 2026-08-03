@@ -19,6 +19,17 @@ export async function GET(request: Request) {
   return Response.json(categories);
 }
 
+/** Подбирает свободный слаг: base, base-2, base-3 … (excludeId — при обновлении). */
+async function uniqueCategorySlug(base: string, excludeId?: string): Promise<string> {
+  let slug = base;
+  let counter = 2;
+  while (true) {
+    const existing = await prisma.category.findFirst({ where: { slug } });
+    if (!existing || existing.id === excludeId) return slug;
+    slug = `${base}-${counter++}`;
+  }
+}
+
 export async function POST(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 
@@ -27,7 +38,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Название обязательно" }, { status: 400 });
   }
 
-  const slug = slugify(name);
+  const slug = await uniqueCategorySlug(slugify(name));
   const category = await prisma.category.create({
     data: {
       name, slug, icon: icon || "", order: order || 0, parentId: parentId || null,
@@ -45,7 +56,7 @@ export async function PUT(request: Request) {
     return Response.json({ error: "ID и название обязательны" }, { status: 400 });
   }
 
-  const slug = slugify(name);
+  const slug = await uniqueCategorySlug(slugify(name), id);
   const category = await prisma.category.update({
     where: { id },
     data: {

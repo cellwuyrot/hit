@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminRequest } from "@/lib/auth";
 
-export async function GET() {
+const unauthorized = () => NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+export async function GET(req: NextRequest) {
+  if (!isAdminRequest(req)) return unauthorized();
+
   const promos = await prisma.promoCode.findMany({ orderBy: { createdAt: "desc" } });
   return NextResponse.json(promos);
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdminRequest(req)) return unauthorized();
+
   const data = await req.json();
   
   if (data.id) {
@@ -41,6 +48,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!isAdminRequest(req)) return unauthorized();
+
   const { id } = await req.json();
   await prisma.promoCode.delete({ where: { id } });
   return NextResponse.json({ success: true });

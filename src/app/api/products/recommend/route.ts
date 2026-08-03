@@ -6,7 +6,9 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("recommend") || "random";
   const categoriesParam = searchParams.get("categories") || "";
   const excludeIds = searchParams.get("exclude")?.split(",").filter(Boolean) || [];
-  const limit = Math.min(Number(searchParams.get("limit") || "1"), 8);
+  // Number("abc") === NaN, а take: NaN роняет Prisma в 500.
+  const parsedLimit = Number.parseInt(searchParams.get("limit") || "1", 10);
+  const limit = Math.min(Math.max(Number.isFinite(parsedLimit) ? parsedLimit : 1, 1), 8);
 
   const where: Record<string, unknown> = { inStock: { gt: 0 } };
   if (excludeIds.length > 0) {

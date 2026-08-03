@@ -22,7 +22,12 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const filePath = path.join(process.cwd(), "public", "uploads", fileName);
+  // Защита от выхода за пределы каталога загрузок (../../).
+  const baseDir = path.join(process.cwd(), "public", "uploads");
+  const filePath = path.resolve(baseDir, fileName);
+  if (filePath !== baseDir && !filePath.startsWith(baseDir + path.sep)) {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   try {
     const buffer = await readFile(filePath);

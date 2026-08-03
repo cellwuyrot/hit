@@ -42,7 +42,7 @@ export default function CartPage() {
   const [token, setToken] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
   const [promoCode, setPromoCode] = useState("");
-  const [promoDiscount, setPromoDiscount] = useState<{ code: string; discountType: string; discountValue: number } | null>(null);
+  const [promoDiscount, setPromoDiscount] = useState<{ code: string; discountType: string; discountValue: number; minOrder: number } | null>(null);
   const [promoError, setPromoError] = useState("");
 
   useEffect(() => {
@@ -132,10 +132,14 @@ export default function CartPage() {
 
   const subtotal = items.reduce((sum, item) => sum + getItemPrice(item), 0);
   const packDiscount = items.filter(i => i.isPack).reduce((sum, item) => sum + Math.round(item.product.price * item.quantity * 0.1), 0);
-  const discountAmount = promoDiscount
-    ? promoDiscount.discountType === "percent"
-      ? Math.round(subtotal * promoDiscount.discountValue / 100)
-      : promoDiscount.discountValue
+  // minOrder учитываем так же, как сервер при оформлении заказа.
+  const discountAmount = promoDiscount && subtotal >= promoDiscount.minOrder
+    ? Math.min(
+        promoDiscount.discountType === "percent"
+          ? Math.round(subtotal * promoDiscount.discountValue / 100)
+          : promoDiscount.discountValue,
+        subtotal
+      )
     : 0;
   const total = Math.max(0, subtotal - discountAmount);
 
@@ -150,11 +154,15 @@ export default function CartPage() {
       });
       const data = await res.json();
       if (res.ok && data.valid) {
-        setPromoDiscount({ code: data.code, discountType: data.discountType, discountValue: data.discountValue });
+        setPromoDiscount({ code: data.code, discountType: data.discountType, discountValue: data.discountValue, minOrder: data.minOrder ?? 0 });
+        // Пробрасываем код на страницу оформления — иначе скидка показывалась
+        // в корзине, но в заказ не попадала.
+        localStorage.setItem("promoCode", data.code);
         showToast("Промокод применён!");
       } else {
         setPromoError(data.error || "Недействительный промокод");
         setPromoDiscount(null);
+        localStorage.removeItem("promoCode");
       }
     } catch {
       setPromoError("Ошибка проверки промокода");
@@ -273,7 +281,7 @@ export default function CartPage() {
                 {promoDiscount && (
                   <div className="flex items-center justify-between mt-2 text-sm">
                     <span className="text-success">Промокод «{promoDiscount.code}» применён</span>
-                    <button onClick={() => { setPromoDiscount(null); setPromoCode(""); }} className="text-text-gray hover:text-danger text-xs">Убрать</button>
+                    <button onClick={() => { setPromoDiscount(null); setPromoCode(""); localStorage.removeItem("promoCode"); }} className="text-text-gray hover:text-danger text-xs">Убрать</button>
                   </div>
                 )}
               </div>

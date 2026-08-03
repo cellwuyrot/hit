@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
+import { sendVerificationCode } from "@/lib/email";
+
+// Ответ одинаков независимо от того, зарегистрирован email или нет,
+// чтобы эндпоинт нельзя было использовать для перебора базы пользователей.
+const GENERIC_REQUEST_RESPONSE = {
+  success: true,
+  message: "Если email зарегистрирован, код восстановления отправлен на почту",
+};
+
+const CODE_TTL_MS = 30 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   const { action, email, token, newPassword } = await req.json();
@@ -11,25 +21,33 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return NextResponse.json({ success: true, message: "Если email зарегистрирован, инструкция отправлена" });
+      return NextResponse.json(GENERIC_REQUEST_RESPONSE);
     }
 
+    // 128 бит энтропии — код нельзя подобрать перебором,
+    // поэтому отдельный счётчик попыток не требуется.
     const resetToken = randomUUID().replace(/-/g, "");
-    const resetExpires = new Date(Date.now() + 3600000);
+    const resetExpires = new Date(Date.now() + CODE_TTL_MS);
 
     await prisma.user.update({
       where: { id: user.id },
       data: { resetToken, resetExpires },
     });
 
-    // In production, send email with reset link
+    // Код уходит ТОЛЬКО на почту владельца аккаунта.
+    // Раньше он возвращался прямо в теле ответа: зная чужой email, кто угодно
+    // мог получить код и захватить чужой аккаунт.
+    try {
+      await sendVerificationCode(user.email, resetToken);
+    } catch (error) {
+      console.error("Не удалось отправить код восстановления:", error);
+      return NextResponse.json(
+        { error: "Не удалось отправить письмо. Попробуйте позже." },
+        { status: 502 }
+      );
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: "Код восстановления сгенерирован. Введите его ниже.",
-      // In dev mode, return token; remove in production
-      resetToken,
-    });
+    return NextResponse.json(GENERIC_REQUEST_RESPONSE);
   }
 
   if (action === "reset") {
@@ -43,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token,
+        resetToken: String(token),
         resetExpires: { gte: new Date() },
       },
     });

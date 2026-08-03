@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import jwt from "jsonwebtoken";
+import { getUserIdFromRequest } from "@/lib/auth";
 
-const SECRET = process.env.JWT_SECRET || "tophit-secret-key-2024";
-
+// Раньше здесь читалось поле decoded.userId, которого в токене нет (signToken
+// кладёт id), поэтому эндпоинт всегда отвечал 401. Плюс использовался
+// захардкоженный запасной секрет.
 function getUserId(req: NextRequest): string | null {
-  const auth = req.headers.get("authorization");
-  if (!auth) return null;
-  try {
-    const decoded = jwt.verify(auth.replace("Bearer ", ""), SECRET) as { userId: string };
-    return decoded.userId;
-  } catch {
-    return null;
-  }
+  return getUserIdFromRequest(req);
 }
 
 export async function POST(req: NextRequest) {
