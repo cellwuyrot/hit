@@ -59,6 +59,7 @@ model Product {
   cartItems   CartItem[]
   orderItems  OrderItem[]
   reviews     Review[]
+  videos      ProductVideo[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 }
@@ -188,6 +189,28 @@ model Review {
   adminReply String   @default("")
   published  Boolean  @default(true)
   createdAt  DateTime @default(now())
+}
+
+// Видео с YouTube, прикреплённое к товару.
+// Админ вставляет обычную ссылку (watch / youtu.be / shorts / embed),
+// а `videoId` — извлечённый из неё идентификатор, по которому строятся
+// плеер (embed) и превью (img.youtube.com). Храним оба поля: исходную
+// ссылку для редактирования в админке и videoId для рендера без парсинга.
+model ProductVideo {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title       String   @default("")
+  description String   @default("")
+  url         String
+  videoId     String
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+  @@index([active])
 }
 
 model Message {

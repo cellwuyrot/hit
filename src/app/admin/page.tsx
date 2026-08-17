@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, startTransition } from "react";
 import Link from "next/link";
 import { useLiveMessages } from "@/components/useLiveMessages";
+import { extractYouTubeId } from "@/lib/youtube";
 
 interface Category {
   id: string;
@@ -111,7 +112,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "presentation" | "news" | "orders" | "chats" | "reviews" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
+type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "presentation" | "news" | "orders" | "chats" | "reviews" | "videos" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
 
 interface CallbackItem {
   id: string;
@@ -1156,7 +1157,7 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, chats: chatUnread > 0 ? `Чаты (${chatUnread})` : "Чаты", reviews: "Отзывы", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
+    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, chats: chatUnread > 0 ? `Чаты (${chatUnread})` : "Чаты", reviews: "Отзывы", videos: "Видео", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
   };
 
   return (
@@ -1857,11 +1858,14 @@ export default function AdminPage() {
         {/* Reviews */}
         {activeTab === "reviews" && <ReviewsPanel token={token} />}
 
+        {/* Videos — видео с YouTube, прикреплённые к товарам */}
+        {activeTab === "videos" && <VideosPanel token={token} />}
+
         {/* Popular Products */}
         {activeTab === "popular" && (
           <div className="bg-bg-white rounded-xl border border-border p-5">
             <h2 className="font-bold text-text-dark mb-4">Популярные товары (до 8 штук)</h2>
-            <p className="text-text-gray text-sm mb-4">Выберите товары, которые будут отображаться на главной странице в разделе «Популярные товары».</p>
+            <p className="text-text-gray text-sm mb-4">Выберите товары, которые будут отображаться на главной странице в разделе «Популярн��е товары».</p>
             <div className="space-y-3 mb-6">
               {products.filter(p => p.isFeatured).length === 0 && <p className="text-text-gray text-sm italic">Пока не выбрано ни одного популярного товара</p>}
               {products.filter(p => p.isFeatured).map((prod) => (
@@ -3616,6 +3620,580 @@ function PresentationPanel({ token }: { token: string }) {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================================
+   Раздел «Видео» — привязка роликов YouTube к товарам.
+   Видео не загружается на сервер: админ вставляет ссылку, мы храним её и videoId,
+   а на сайте показываем плеер YouTube в карточке товара над блоком отзывов.
+   ========================================================================== */
+
+interface AdminVideo {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  videoId: string;
+  order: number;
+  active: boolean;
+  createdAt: string;
+  product: { id: string; name: string; slug: string; image: string; code: string } | null;
+}
+
+interface VideoProduct {
+  id: string;
+  name: string;
+  slug: string;
+  image: string;
+  code: string;
+  categoryName: string;
+}
+
+function VideosPanel({ token }: { token: string }) {
+  const [videos, setVideos] = useState<AdminVideo[]>([]);
+  const [products, setProducts] = useState<VideoProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Форма добавления / редактирования
+  const [prodQuery, setProdQuery] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<VideoProduct | null>(null);
+  const [showProdList, setShowProdList] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoTitle, setVideoTitle] = useState("");
+  const [videoDesc, setVideoDesc] = useState("");
+  const [videoActive, setVideoActive] = useState(true);
+  const [editing, setEditing] = useState<AdminVideo | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formMsg, setFormMsg] = useState("");
+
+  // Фильтры списка
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "hidden">("all");
+
+  const authHeaders = useCallback(
+    () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` }),
+    [token],
+  );
+
+  const loadData = useCallback(async () => {
+    const [vidRes, prodRes] = await Promise.all([
+      fetch("/api/admin/videos", { headers: { Authorization: `Bearer ${token}` } }),
+      fetch("/api/admin/products", { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    if (vidRes.ok) setVideos(await vidRes.json());
+    if (prodRes.ok) {
+      const prods = await prodRes.json();
+      // Сортируем по алфавиту: API отдаёт сначала новые, и тогда в списке без запроса
+      // видны только последние импортированные товары, а видео можно прикрепить к любому.
+      setProducts(
+        prods
+          .map((p: { id: string; name: string; slug: string; image: string; code?: string; category?: { name: string } }) => ({
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            image: p.image,
+            code: p.code || "",
+            categoryName: p.category?.name || "",
+          }))
+          .sort((a: VideoProduct, b: VideoProduct) => a.name.localeCompare(b.name, "ru")),
+      );
+    }
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Поиск товара по названию, артикулу и категории — все три поля сразу, чтобы не приходилось
+  // угадывать точное название из прайс-листа.
+  const productMatches = (() => {
+    const q = prodQuery.trim().toLowerCase();
+    if (!q) return products.slice(0, 30);
+    return products
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.code.toLowerCase().includes(q) ||
+          p.categoryName.toLowerCase().includes(q),
+      )
+      .slice(0, 30);
+  })();
+
+  const pickProduct = (p: VideoProduct) => {
+    setSelectedProduct(p);
+    setProdQuery(p.name);
+    setShowProdList(false);
+  };
+
+  // Сколько видео уже у товара — показываем в строке поиска, чтобы было видно,
+  // у каких товаров видео ещё нет.
+  const videoCountByProduct = videos.reduce<Record<string, number>>((acc, v) => {
+    if (v.product) acc[v.product.id] = (acc[v.product.id] || 0) + 1;
+    return acc;
+  }, {});
+
+  const previewId = extractYouTubeId(videoUrl);
+
+  const resetForm = () => {
+    setEditing(null);
+    setSelectedProduct(null);
+    setProdQuery("");
+    setVideoUrl("");
+    setVideoTitle("");
+    setVideoDesc("");
+    setVideoActive(true);
+    setFormMsg("");
+  };
+
+  const startEdit = (v: AdminVideo) => {
+    setEditing(v);
+    setVideoUrl(v.url);
+    setVideoTitle(v.title);
+    setVideoDesc(v.description);
+    setVideoActive(v.active);
+    setFormMsg("");
+    if (v.product) {
+      const full = products.find((p) => p.id === v.product?.id);
+      setSelectedProduct(
+        full || { id: v.product.id, name: v.product.name, slug: v.product.slug, image: v.product.image, code: v.product.code, categoryName: "" },
+      );
+      setProdQuery(v.product.name);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const saveVideo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormMsg("");
+    if (!selectedProduct) {
+      setFormMsg("Выберите товар");
+      return;
+    }
+    if (!videoUrl.trim()) {
+      setFormMsg("Вставьте ссылку на видео YouTube");
+      return;
+    }
+    if (!previewId) {
+      setFormMsg("Ссылка не похожа на видео YouTube");
+      return;
+    }
+
+    setSaving(true);
+    const payload = {
+      productId: selectedProduct.id,
+      url: videoUrl.trim(),
+      title: videoTitle.trim(),
+      description: videoDesc.trim(),
+      active: videoActive,
+    };
+    const res = await fetch("/api/admin/videos", {
+      method: editing ? "PUT" : "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(editing ? { id: editing.id, ...payload } : payload),
+    });
+    setSaving(false);
+
+    if (res.ok) {
+      const wasEditing = !!editing;
+      resetForm();
+      setFormMsg(wasEditing ? "Видео обновлено" : "Видео прикреплено к товару");
+      loadData();
+      setTimeout(() => setFormMsg(""), 3000);
+    } else {
+      const err = await res.json();
+      setFormMsg(err.error || "Ошибка");
+    }
+  };
+
+  const toggleActive = async (v: AdminVideo) => {
+    await fetch("/api/admin/videos", {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({ id: v.id, active: !v.active }),
+    });
+    loadData();
+  };
+
+  const removeVideo = async (id: string) => {
+    if (!confirm("Удалить видео?")) return;
+    await fetch("/api/admin/videos", { method: "DELETE", headers: authHeaders(), body: JSON.stringify({ id }) });
+    if (editing?.id === id) resetForm();
+    loadData();
+  };
+
+  // Порядок меняется только внутри одного товара: в карточке товара видео выводятся
+  // именно в этом порядке, а глобальной очерёдности у видео нет.
+  const moveVideo = async (group: AdminVideo[], index: number, dir: "up" | "down") => {
+    const target = dir === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= group.length) return;
+    const reordered = [...group];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    await fetch("/api/admin/videos", {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ orderedIds: reordered.map((v) => v.id) }),
+    });
+    loadData();
+  };
+
+  const filteredVideos = videos.filter((v) => {
+    if (activeFilter === "active" && !v.active) return false;
+    if (activeFilter === "hidden" && v.active) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return (
+        (v.product?.name.toLowerCase().includes(q) ?? false) ||
+        (v.product?.code.toLowerCase().includes(q) ?? false) ||
+        v.title.toLowerCase().includes(q) ||
+        v.url.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  // Группировка по товарам: админу удобнее видеть «товар → его видео», а не плоский список.
+  const groups = (() => {
+    const map = new Map<string, { product: AdminVideo["product"]; items: AdminVideo[] }>();
+    for (const v of filteredVideos) {
+      const key = v.product?.id || "—";
+      if (!map.has(key)) map.set(key, { product: v.product, items: [] });
+      map.get(key)!.items.push(v);
+    }
+    return Array.from(map.values())
+      .map((g) => ({ ...g, items: g.items.sort((a, b) => a.order - b.order) }))
+      .sort((a, b) => (a.product?.name || "").localeCompare(b.product?.name || "", "ru"));
+  })();
+
+  if (loading) return <p className="text-text-gray">Загрузка...</p>;
+
+  return (
+    <div className="space-y-6">
+      {/* Форма привязки видео к товару */}
+      <div className="bg-bg-white rounded-xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-text-dark">
+            {editing ? "Изменить видео" : "Прикрепить видео с YouTube к товару"}
+          </h2>
+          {editing && (
+            <button onClick={resetForm} className="text-sm text-text-gray hover:text-danger">
+              Отменить редактирование
+            </button>
+          )}
+        </div>
+
+        <form onSubmit={saveVideo} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Левая колонка: товар + ссылка */}
+          <div className="space-y-3">
+            <div className="relative">
+              <label className="text-sm text-text-gray mb-1 block">Товар — поиск по названию, артикулу или категории</label>
+              <input
+                type="text"
+                value={prodQuery}
+                onChange={(e) => {
+                  setProdQuery(e.target.value);
+                  setSelectedProduct(null);
+                  setShowProdList(true);
+                }}
+                onFocus={() => setShowProdList(true)}
+                placeholder="Начните вводить название товара..."
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              />
+              {showProdList && (
+                <div className="absolute z-20 left-0 right-0 mt-1 max-h-72 overflow-y-auto bg-bg-white border border-border rounded-lg shadow-lg">
+                  {productMatches.length === 0 ? (
+                    <p className="px-3 py-2 text-sm text-text-gray">Товары не найдены</p>
+                  ) : (
+                    productMatches.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => pickProduct(p)}
+                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-bg-light text-left"
+                      >
+                        <span className="w-9 h-9 flex-shrink-0 bg-bg-light rounded overflow-hidden flex items-center justify-center">
+                          {p.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.image} alt="" className="w-full h-full object-contain" />
+                          ) : (
+                            <span className="text-text-light text-sm">📦</span>
+                          )}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm text-text-dark truncate">{p.name}</span>
+                          <span className="block text-xs text-text-gray truncate">
+                            {p.code ? `Арт. ${p.code}` : p.categoryName}
+                            {videoCountByProduct[p.id] ? ` · видео: ${videoCountByProduct[p.id]}` : ""}
+                          </span>
+                        </span>
+                      </button>
+                    ))
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowProdList(false)}
+                    className="w-full px-3 py-2 text-xs text-text-gray hover:text-text-dark border-t border-border"
+                  >
+                    Закрыть список
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Карточка выбранного товара — визуальное подтверждение, что выбран нужный товар */}
+            {selectedProduct && (
+              <div className="flex items-center gap-3 p-3 bg-bg-light rounded-lg border border-border">
+                <span className="w-14 h-14 flex-shrink-0 bg-bg-white rounded overflow-hidden flex items-center justify-center">
+                  {selectedProduct.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={selectedProduct.image} alt="" className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-text-light text-xl">📦</span>
+                  )}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text-dark truncate">{selectedProduct.name}</p>
+                  <p className="text-xs text-text-gray truncate">
+                    {selectedProduct.code ? `Арт. ${selectedProduct.code} · ` : ""}
+                    видео у товара: {videoCountByProduct[selectedProduct.id] || 0}
+                  </p>
+                  <a
+                    href={`/product/${selectedProduct.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Открыть карточку товара
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-sm text-text-gray mb-1 block">Ссылка на видео YouTube</label>
+              <input
+                type="text"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              />
+              <p className="text-xs text-text-gray mt-1">
+                Поддерживаются ссылки watch, youtu.be, shorts, embed и live.
+              </p>
+              {videoUrl.trim() && !previewId && (
+                <p className="text-xs text-danger mt-1">Ссылка не распознана как видео YouTube</p>
+              )}
+            </div>
+
+            <input
+              type="text"
+              value={videoTitle}
+              onChange={(e) => setVideoTitle(e.target.value)}
+              placeholder="Название видео (необязательно)"
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+            />
+            <textarea
+              value={videoDesc}
+              onChange={(e) => setVideoDesc(e.target.value)}
+              rows={3}
+              placeholder="Краткое описание под видео (необязательно)"
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary resize-none"
+            />
+            <label className="flex items-center gap-2 text-sm text-text-gray">
+              <input type="checkbox" checked={videoActive} onChange={(e) => setVideoActive(e.target.checked)} />
+              Показывать покупателям в карточке товара
+            </label>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-dark transition-colors disabled:opacity-50"
+              >
+                {saving ? "Сохранение..." : editing ? "Сохранить" : "Прикрепить видео"}
+              </button>
+              {formMsg && (
+                <span
+                  className={`text-sm ${
+                    formMsg.includes("прикреплено") || formMsg.includes("обновлено") ? "text-success" : "text-danger"
+                  }`}
+                >
+                  {formMsg}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Правая колонка: предпросмотр ролика */}
+          <div>
+            <label className="text-sm text-text-gray mb-1 block">Предпросмотр</label>
+            {previewId ? (
+              <div className="rounded-lg overflow-hidden border border-border bg-black aspect-video">
+                <iframe
+                  src={`{{https://www.youtube-nocookie.com/embed/${previewId}}}?rel=0&modestbranding=1`}
+                  title="Предпросмотр видео"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-border bg-bg-light aspect-video flex items-center justify-center text-center px-4">
+                <p className="text-sm text-text-gray">
+                  Вставьте ссылку на видео — здесь появится предпросмотр плеера
+                </p>
+              </div>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Список видео по товарам */}
+      <div className="bg-bg-white rounded-xl border border-border p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <h2 className="font-bold text-text-dark">
+            Видео ({filteredVideos.length}
+            {filteredVideos.length !== videos.length ? ` из ${videos.length}` : ""})
+          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск по товару, артикулу или названию видео"
+              className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary w-full sm:w-72"
+            />
+            <select
+              value={activeFilter}
+              onChange={(e) => setActiveFilter(e.target.value as "all" | "active" | "hidden")}
+              className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+            >
+              <option value="all">Все</option>
+              <option value="active">Показываются</option>
+              <option value="hidden">Скрытые</option>
+            </select>
+          </div>
+        </div>
+
+        {groups.length === 0 ? (
+          <p className="text-text-gray text-sm">
+            {videos.length === 0 ? "Видео пока не прикреплены." : "Ничего не найдено по заданным условиям."}
+          </p>
+        ) : (
+          <div className="space-y-6">
+            {groups.map((group) => (
+              <div key={group.product?.id || "none"}>
+                <div className="flex items-center gap-3 mb-3 pb-2 border-b border-border">
+                  <span className="w-9 h-9 flex-shrink-0 bg-bg-light rounded overflow-hidden flex items-center justify-center">
+                    {group.product?.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={group.product.image} alt="" className="w-full h-full object-contain" />
+                    ) : (
+                      <span className="text-text-light text-sm">📦</span>
+                    )}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-text-dark truncate">
+                      {group.product?.name || "Товар удалён"}
+                    </p>
+                    {group.product && (
+                      <a
+                        href={`/product/${group.product.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Открыть карточку
+                      </a>
+                    )}
+                  </div>
+                  <span className="text-xs text-text-gray flex-shrink-0">{group.items.length} видео</span>
+                </div>
+
+                <div className="space-y-3">
+                  {group.items.map((v, idx) => (
+                    <div
+                      key={v.id}
+                      className="flex flex-col sm:flex-row gap-3 p-3 bg-bg-light rounded-lg border border-border"
+                    >
+                      <a
+                        href={`https://www.youtube.com/watch?v=${v.videoId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full sm:w-40 flex-shrink-0 aspect-video rounded overflow-hidden bg-black"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`{{https://img.youtube.com/vi/${v.videoId}}}/hqdefault.jpg`}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      </a>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-text-dark">{v.title || "Без названия"}</p>
+                        {v.description && (
+                          <p className="text-xs text-text-gray mt-0.5 line-clamp-2">{v.description}</p>
+                        )}
+                        <p className="text-xs text-text-light mt-1 break-all">{v.url}</p>
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          <button
+                            onClick={() => toggleActive(v)}
+                            className={`text-xs ${v.active ? "text-success" : "text-danger"} hover:underline`}
+                          >
+                            {v.active ? "Показывается" : "Скрыто"}
+                          </button>
+                          <button onClick={() => startEdit(v)} className="text-xs text-primary hover:underline">
+                            Изменить
+                          </button>
+                          <button onClick={() => removeVideo(v.id)} className="text-xs text-danger hover:underline">
+                            Удалить
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Порядок показа в карточке товара */}
+                      {group.items.length > 1 && (
+                        <div className="flex sm:flex-col gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => moveVideo(group.items, idx, "up")}
+                            disabled={idx === 0}
+                            title="Выше"
+                            className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${
+                              idx === 0 ? "text-border cursor-not-allowed" : "text-text-gray hover:bg-primary hover:text-white"
+                            }`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => moveVideo(group.items, idx, "down")}
+                            disabled={idx === group.items.length - 1}
+                            title="Ниже"
+                            className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${
+                              idx === group.items.length - 1
+                                ? "text-border cursor-not-allowed"
+                                : "text-text-gray hover:bg-primary hover:text-white"
+                            }`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
