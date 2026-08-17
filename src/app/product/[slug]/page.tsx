@@ -10,6 +10,7 @@ import CompareButton from "@/components/CompareButton";
 import ProductGallery from "@/components/ProductGallery";
 import CategoryTracker from "@/components/CategoryTracker";
 import ProductReviews from "@/components/ProductReviews";
+import ProductVideos from "@/components/ProductVideos";
 import QuickOrderButton from "@/components/QuickOrderButton";
 import StockAlertButton from "@/components/StockAlertButton";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -65,6 +66,12 @@ export default async function ProductPage({ params }: PageProps) {
       where: { published: true },
       orderBy: { createdAt: "desc" as const },
       include: { user: { select: { name: true, email: true } } },
+    },
+    // Видео с YouTube, прикреплённые к товару в админке (раздел «Видео»).
+    // Скрытые (active: false) не показываем покупателям.
+    videos: {
+      where: { active: true },
+      orderBy: [{ order: "asc" as const }, { createdAt: "asc" as const }],
     },
   };
   let product = await prisma.product.findFirst({
@@ -287,6 +294,16 @@ export default async function ProductPage({ params }: PageProps) {
               <InlineProductDescription id={product.id} description={product.description} />
             </div>
           </div>
+
+          {/* Videos — блок с видео с YouTube, расположен над отзывами */}
+          <ProductVideos
+            videos={product.videos.map((v) => ({
+              id: v.id,
+              title: v.title,
+              description: v.description,
+              videoId: v.videoId,
+            }))}
+          />
 
           {/* Reviews */}
           <ProductReviews
