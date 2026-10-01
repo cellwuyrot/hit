@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, startTransition } from "react";
 import { useInlineEdit } from "./InlineEditContext";
 
 interface InlineEditableProps {
@@ -45,7 +45,7 @@ export default function InlineEditable({
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setCurrentValue(value);
+    startTransition(() => setCurrentValue(value));
   }, [value]);
 
   useEffect(() => {

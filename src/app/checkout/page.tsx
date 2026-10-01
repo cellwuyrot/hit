@@ -4,9 +4,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
 import { useState, useEffect, startTransition } from "react";
-
-interface CartProduct { name: string; price: number; image?: string; }
-interface CartItem { productId: string; quantity: number; isPack?: boolean; product: CartProduct; }
+import { useCheckoutCart } from "@/components/useCheckoutCart";
+import { readGuestCart, writeGuestCart } from "@/lib/guest-cart";
 
 const steps = [
   { id: 1, label: "Корзина" },
@@ -15,72 +14,22 @@ const steps = [
 ];
 
 export default function CheckoutPage() {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [token, setToken] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", phone: "", address: "", comment: "" });
+  const { items, token, loading: cartLoading, error: cartError, subtotal, discount, total, promoCode: appliedCode, applyPromo, removePromo } = useCheckoutCart();
+  const [promoCode, setPromoCode] = useState("");
+  const [form, setForm] = useState({ name: "", phone: "", address: "", comment: "", email: "" });
   const [isPickup, setIsPickup] = useState(false);
   const [error, setError] = useState("");
   const [orderId, setOrderId] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [promo, setPromo] = useState<{ code: string; discountType: string; discountValue: number; minOrder: number } | null>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("userToken");
-    startTransition(() => setToken(saved));
-  }, []);
-
   useEffect(() => {
     if (!token) return;
-    fetch("/api/user/cart", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.ok ? r.json() : [])
-      .then((data) => startTransition(() => setItems(data)));
     fetch("/api/user/profile", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data) startTransition(() => setForm((f) => ({ ...f, name: data.name || "", phone: data.phone || "", address: data.address || "" })));
-      });
+        if (data) startTransition(() => setForm((f) => ({ ...f, name: data.name || "", phone: data.phone || "", address: data.address || "", email: data.email || "" })));
+      }).catch(() => {});
   }, [token]);
-
-  useEffect(() => {
-    const code = localStorage.getItem("promoCode");
-    if (!code) return;
-    fetch("/api/promo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.valid) {
-          startTransition(() => setPromo({
-            code: data.code,
-            discountType: data.discountType,
-            discountValue: data.discountValue,
-            minOrder: data.minOrder ?? 0,
-          }));
-        } else {
-          localStorage.removeItem("promoCode");
-        }
-      })
-      .catch(() => localStorage.removeItem("promoCode"));
-  }, []);
-
-  const subtotal = items.reduce((sum, item) => {
-    if (item.isPack) return sum + Math.round(item.product.price * item.quantity * 0.9);
-    return sum + item.product.price * item.quantity;
-  }, 0);
-
-  // Те же правила, что и на сервере: скидка не применяется ниже минимальной суммы.
-  const discount = promo && subtotal >= promo.minOrder
-    ? Math.min(
-        promo.discountType === "percent"
-          ? Math.round((subtotal * promo.discountValue) / 100)
-          : promo.discountValue,
-        subtotal
-      )
-    : 0;
-  const total = Math.max(0, subtotal - discount);
 
   const handleSubmit = async () => {
     setError("");
@@ -92,32 +41,21 @@ export default function CheckoutPage() {
       setError("Укажите полный адрес (город, улица, дом)"); setStep(2); return;
     }
     setLoading(true);
-    const res = await fetch("/api/user/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ...form, promoCode: promo?.code ?? "" }),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) { setError(data.error || "Не удалось оформить заказ"); return; }
-    localStorage.removeItem("promoCode");
-    setOrderId(data.id);
+    try {
+      const res = await fetch("/api/user/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ ...form, isPickup, items: readGuestCart(), promoCode: appliedCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Не удалось оформить заказ"); return; }
+      localStorage.removeItem("promoCode");
+      if (!token) writeGuestCart([]);
+      window.dispatchEvent(new Event("cart-updated"));
+      setOrderId(data.id);
+    } catch { setError("Ошибка связи с сервером. Попробуйте ещё раз"); }
+    finally { setLoading(false); }
   };
-
-  if (!token) {
-    return (
-      <>
-        <Header />
-        <main className="flex-1 bg-bg-light">
-          <div className="max-w-md mx-auto px-4 py-10 text-center">
-            <p className="text-text-gray mb-4">Для оформления заказа необходимо войти</p>
-            <Link href="/account" className="inline-block bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark font-medium">Войти</Link>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
 
   if (orderId) {
     return (
@@ -132,10 +70,10 @@ export default function CheckoutPage() {
                 </svg>
               </div>
               <h1 className="text-2xl font-bold text-text-dark mb-2">Заказ оформлен!</h1>
-              <p className="text-text-gray mb-4">Номер заказа: #{orderId.slice(0, 8)}</p>
+              <p className="text-text-gray mb-4">Номер заказа: #{orderId}</p>
               <p className="text-sm text-text-gray mb-6">Мы свяжемся с вами для подтверждения</p>
               <div className="flex gap-3 justify-center">
-                <Link href="/account" className="bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark font-medium">Мои заказы</Link>
+                <Link href="/account" className="bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark font-medium">{token ? "Мои заказы" : "Зарегистрироваться — по желанию"}</Link>
                 <Link href="/catalog" className="border border-border px-6 py-2.5 rounded-lg hover:bg-bg-light font-medium text-text-dark">В каталог</Link>
               </div>
             </div>
@@ -152,6 +90,8 @@ export default function CheckoutPage() {
       <main className="flex-1 bg-bg-light">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
           <h1 className="text-xl sm:text-2xl font-bold text-text-dark mb-4 sm:mb-6">Оформление заказа</h1>
+          {cartError && <p role="alert" className="text-danger mb-4">{cartError}</p>}
+          {cartLoading && <p className="text-text-gray mb-4">Загрузка корзины...</p>}
 
           {/* Steps indicator */}
           <div className="flex items-center justify-center mb-6 sm:mb-8">
@@ -189,12 +129,12 @@ export default function CheckoutPage() {
                     <>
                       <div className="space-y-3">
                         {items.map((item) => (
-                          <div key={item.productId} className="flex items-center gap-4 p-3 bg-bg-light rounded-lg">
+                          <div key={item.id} className="flex items-center gap-4 p-3 bg-bg-light rounded-lg">
                             <div className="flex-1">
                               <p className="text-sm font-medium text-text-dark">{item.product.name}</p>
                               <p className="text-xs text-text-gray">{item.quantity} шт. × {item.product.price.toLocaleString("ru-RU")} ₽</p>
                             </div>
-                            <span className="font-medium text-text-dark">{(item.product.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
+                            <span className="font-medium text-text-dark">{item.lineTotal.toLocaleString("ru-RU")} ₽</span>
                           </div>
                         ))}
                       </div>
@@ -230,23 +170,28 @@ export default function CheckoutPage() {
                       </div>
                     )}
                     <div>
-                      <label className="text-sm text-text-gray mb-1 block">Имя получателя *</label>
-                      <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      <label className="text-sm text-text-gray mb-1 block" htmlFor="checkout-name">Имя получателя *</label>
+                      <input id="checkout-name" type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                         className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
                     </div>
                     <div>
-                      <label className="text-sm text-text-gray mb-1 block">Телефон *</label>
-                      <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      <label className="text-sm text-text-gray mb-1 block" htmlFor="checkout-phone">Телефон *</label>
+                      <input id="checkout-phone" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
                         placeholder="+7 (___) ___-__-__"
                         className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
                     </div>
                     {!isPickup && (
                     <div>
-                      <label className="text-sm text-text-gray mb-1 block">Адрес доставки *</label>
-                      <textarea value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      <label className="text-sm text-text-gray mb-1 block" htmlFor="checkout-address">Адрес доставки *</label>
+                      <textarea id="checkout-address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })}
                         className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" rows={3} />
                     </div>
                     )}
+                    <div>
+                      <label className="text-sm text-text-gray mb-1 block" htmlFor="checkout-email">Email (необязательно)</label>
+                      <input id="checkout-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                        className="w-full border border-border rounded-lg px-4 py-2.5" />
+                    </div>
                     <div>
                       <label className="text-sm text-text-gray mb-1 block">Комментарий</label>
                       <textarea value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })}
@@ -285,9 +230,9 @@ export default function CheckoutPage() {
                     <div className="p-4 bg-bg-light rounded-lg">
                       <h3 className="text-sm font-medium text-text-gray mb-2">Товары ({items.length})</h3>
                       {items.map((item) => (
-                        <div key={item.productId} className="flex justify-between text-sm text-text-dark py-1">
+                        <div key={item.id} className="flex justify-between text-sm text-text-dark py-1">
                           <span>{item.product.name} × {item.quantity}</span>
-                          <span>{(item.product.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
+                          <span>{item.lineTotal.toLocaleString("ru-RU")} ₽</span>
                         </div>
                       ))}
                       <button onClick={() => setStep(1)} className="text-primary text-sm hover:underline mt-2">Изменить</button>
@@ -295,7 +240,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex gap-3 mt-4">
                     <button onClick={() => setStep(2)} className="px-6 py-3 border border-border rounded-lg hover:bg-bg-light text-text-dark font-medium">Назад</button>
-                    <button onClick={handleSubmit} disabled={loading || items.length === 0}
+                    <button onClick={handleSubmit} disabled={loading || cartLoading || items.length === 0}
                       className="flex-1 bg-primary text-white py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium disabled:opacity-50">
                       {loading ? "Оформляем..." : "Подтвердить заказ"}
                     </button>
@@ -310,15 +255,24 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-bold text-text-dark mb-4">Ваш заказ</h2>
                 <div className="space-y-2 text-sm mb-4">
                   {items.map((item) => (
-                    <div key={item.productId} className="flex justify-between text-text-gray">
+                    <div key={item.id} className="flex justify-between text-text-gray">
                       <span className="truncate mr-2">{item.product.name} × {item.quantity}</span>
-                      <span className="flex-shrink-0">{(item.isPack ? Math.round(item.product.price * item.quantity * 0.9) : item.product.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
+                      <span className="flex-shrink-0">{item.lineTotal.toLocaleString("ru-RU")} ₽</span>
                     </div>
                   ))}
                 </div>
+                <div className="mb-4">
+                  <label htmlFor="checkout-promo" className="block font-medium mb-2">Промокод</label>
+                  <div className="flex gap-2">
+                    <input id="checkout-promo" value={promoCode} onChange={e => setPromoCode(e.target.value)} placeholder="Введите промокод" className="min-w-0 flex-1 border border-border rounded-lg px-3 py-2 text-sm" />
+                    <button disabled={cartLoading || !promoCode.trim()} onClick={() => void applyPromo(promoCode.trim())} className="bg-primary text-white px-3 py-2 rounded-lg text-sm disabled:opacity-50">Применить</button>
+                  </div>
+                  {appliedCode && <button onClick={() => { void removePromo(); setPromoCode(""); }} className="text-primary text-sm mt-2">Убрать «{appliedCode}»</button>}
+                </div>
+                <div className="flex justify-between text-sm mb-2"><span>Сумма товаров:</span><span>{subtotal.toLocaleString("ru-RU")} ₽</span></div>
                 {discount > 0 && (
                   <div className="flex justify-between text-sm text-green-600 mb-2">
-                    <span>Промокод «{promo?.code}»</span>
+                    <span>Скидка по промокоду</span>
                     <span>−{discount.toLocaleString("ru-RU")} ₽</span>
                   </div>
                 )}

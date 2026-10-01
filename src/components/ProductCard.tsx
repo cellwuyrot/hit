@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef, startTransition } from "react";
 import { showToast } from "@/components/Toast";
 import { useInlineEdit } from "./InlineEditContext";
+import { addCartItem } from "@/lib/guest-cart";
 import InlineEditable from "./InlineEditable";
 
 interface ProductCardProps {
@@ -51,13 +52,8 @@ export default function ProductCard({
   }, [id]);
 
   const addToCart = async () => {
-    const token = localStorage.getItem("userToken");
-    if (!token) { window.location.href = "/account"; return; }
-    await fetch("/api/user/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ productId: id, quantity: 1 }),
-    });
+    try { await addCartItem(id); }
+    catch (e) { showToast(e instanceof Error ? e.message : "Ошибка корзины"); return; }
     if (cartBtnRef.current) {
       const cartIcon = document.getElementById("cart-icon");
       if (cartIcon) {

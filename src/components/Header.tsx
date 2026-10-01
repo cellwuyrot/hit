@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import Ripple from "./Ripple";
+import { readGuestCart } from "@/lib/guest-cart";
 import InlineSetting from "./InlineSetting";
 
 interface SearchResult {
@@ -33,7 +34,7 @@ export default function Header() {
   useEffect(() => {
     const fetchCart = async () => {
       const token = localStorage.getItem("userToken");
-      if (!token) return;
+      if (!token) { setCartCount(readGuestCart().reduce((sum, i) => sum + i.quantity, 0)); return; }
       try {
         const res = await fetch("/api/user/cart", { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
@@ -47,15 +48,16 @@ export default function Header() {
 
     const handleCartUpdate = () => fetchCart();
     window.addEventListener("cart-updated", handleCartUpdate);
+    window.addEventListener("storage", handleCartUpdate);
 
-    return () => { clearInterval(interval); window.removeEventListener("cart-updated", handleCartUpdate); };
+    return () => { clearInterval(interval); window.removeEventListener("cart-updated", handleCartUpdate); window.removeEventListener("storage", handleCartUpdate); };
   }, []);
 
   useEffect(() => {
     const adminToken = localStorage.getItem("admin_token");
     const userToken = localStorage.getItem("userToken");
     if (adminToken) {
-      setUserLabel("Админ");
+      startTransition(() => setUserLabel("Админ"));
     } else if (userToken) {
       fetch("/api/user/profile", { headers: { Authorization: `Bearer ${userToken}` } })
         .then((r) => r.ok ? r.json() : null)

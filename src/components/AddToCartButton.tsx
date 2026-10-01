@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { addCartItem } from "@/lib/guest-cart";
+import { showToast } from "@/components/Toast";
 
 function flyToCart(buttonEl: HTMLElement) {
   const cartIcon = document.getElementById("cart-icon");
@@ -27,13 +29,8 @@ export default function AddToCartButton({ productId, inStock }: { productId: str
   const btnRef = useRef<HTMLButtonElement>(null);
 
   const addToCart = async () => {
-    const token = localStorage.getItem("userToken");
-    if (!token) { window.location.href = "/account"; return; }
-    await fetch("/api/user/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ productId, quantity: 1 }),
-    });
+    try { await addCartItem(productId); }
+    catch (e) { showToast(e instanceof Error ? e.message : "Ошибка корзины"); return; }
     if (btnRef.current) flyToCart(btnRef.current);
     window.dispatchEvent(new Event("cart-updated"));
     setAdded(true);
@@ -55,13 +52,8 @@ export function AddPackButton({ productId, inStock, packSize, price }: { product
   const btnRef = useRef<HTMLButtonElement>(null);
 
   const addPack = async () => {
-    const token = localStorage.getItem("userToken");
-    if (!token) { window.location.href = "/account"; return; }
-    await fetch("/api/user/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ productId, quantity: packSize, isPack: true }),
-    });
+    try { await addCartItem(productId, packSize, true); }
+    catch (e) { showToast(e instanceof Error ? e.message : "Ошибка корзины"); return; }
     if (btnRef.current) flyToCart(btnRef.current);
     window.dispatchEvent(new Event("cart-updated"));
     setAddedPack(true);
@@ -70,7 +62,7 @@ export function AddPackButton({ productId, inStock, packSize, price }: { product
 
   const packTotal = Math.round(price * packSize * 0.9);
 
-  if (!packSize || packSize <= 1 || inStock === 0) return null;
+  if (!packSize || packSize <= 1 || inStock < packSize) return null;
 
   return (
     <button ref={btnRef} onClick={addPack}

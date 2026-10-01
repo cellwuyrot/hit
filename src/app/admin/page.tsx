@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, startTransition } from "react";
 import Link from "next/link";
 import { useLiveMessages } from "@/components/useLiveMessages";
+import PromoCodesPanel from "@/components/PromoCodesPanel";
 import { extractYouTubeId } from "@/lib/youtube";
 
 interface Category {
@@ -100,7 +101,10 @@ interface Order {
   trackNumber: string;
   trackUrl: string;
   createdAt: string;
-  user: { email: string; name: string };
+  user: { email: string; name: string } | null;
+  email: string;
+  promoCode: string;
+  discount: number;
   items: OrderItem[];
 }
 
@@ -199,7 +203,7 @@ function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, tok
                 <div>
                   <span className="font-medium text-text-dark">#{order.id.slice(0, 8)}</span>
                   <span className="text-sm text-text-gray ml-2">{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
-                  <span className="text-sm text-text-gray ml-2">— {order.user.name} ({order.user.email})</span>
+                  <span className="text-sm text-text-gray ml-2">— {order.user?.name || order.name} ({order.email || order.user?.email || "гостевой заказ"})</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => toggleChat(order.id)} className={`text-sm px-3 py-1 rounded-lg border ${openChat === order.id ? "bg-primary text-white border-primary" : "border-border text-text-gray hover:text-primary"}`}>
@@ -228,6 +232,7 @@ function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, tok
                 <span className="text-text-gray">Адрес: {order.address} | Тел: {order.phone}</span>
                 <span className="font-bold text-primary">{order.total.toLocaleString("ru-RU")} ₽</span>
               </div>
+              {order.promoCode && <p className="text-sm text-green-600 mt-2">Промокод: {order.promoCode} · Скидка: −{order.discount.toLocaleString("ru-RU")} ₽ · Итого: {order.total.toLocaleString("ru-RU")} ₽</p>}
               {order.comment && <p className="text-xs text-text-gray mt-1">Комментарий: {order.comment}</p>}
 
               {/* Tracking section */}
@@ -336,7 +341,7 @@ function ChatsPanel({ token }: { token: string }) {
   // Список диалогов обновляется автоматически (новые чаты и счётчики).
   useEffect(() => {
     startTransition(() => setLoading(true));
-    loadChats();
+    startTransition(() => { void loadChats(); });
     const timer = setInterval(loadChats, 4000);
     return () => clearInterval(timer);
   }, [loadChats]);
@@ -1981,7 +1986,8 @@ export default function AdminPage() {
 
         {/* Settings */}
         {activeTab === "settings" && (
-          <div className="max-w-lg">
+          <div className="max-w-3xl">
+            <PromoCodesPanel token={token} />
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <h2 className="font-bold text-text-dark mb-4">Настройки аккаунта</h2>
               {adminSettingsMsg && (
@@ -2024,7 +2030,7 @@ function AnalyticsPanel({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
+    startTransition(() => setLoading(true));
     fetch(`/api/admin/analytics?period=${period}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -2186,7 +2192,7 @@ function CallbacksPanel({ token }: { token: string }) {
     setLoading(false);
   };
 
-  useEffect(() => { loadCallbacks(); }, []);
+  useEffect(() => { startTransition(() => { void loadCallbacks(); }); }, []);
 
   const updateStatus = async (id: string, status: string) => {
     await fetch("/api/admin/callbacks", {
@@ -2289,7 +2295,7 @@ function ClientsPanel({ token }: { token: string }) {
     setLoading(false);
   };
 
-  useEffect(() => { loadClients(); }, []);
+  useEffect(() => { startTransition(() => { void loadClients(); }); }, []);
 
   const deleteClient = async (id: string, email: string) => {
     if (!confirm(`Удалить аккаунт клиента ${email}? Это действие необратимо — будут удалены все данные, заказы и отзывы.`)) return;
@@ -2500,7 +2506,7 @@ function SynonymsPanel({ token }: { token: string }) {
     setLoading(false);
   }, [token]);
 
-  useEffect(() => { loadSynonyms(); }, [loadSynonyms]);
+  useEffect(() => { startTransition(() => { void loadSynonyms(); }); }, [loadSynonyms]);
 
   const addSynonym = async () => {
     if (!word.trim() || !synonym.trim()) return;
@@ -2689,7 +2695,7 @@ function ReviewsPanel({ token }: { token: string }) {
     setLoading(false);
   }, [token]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { startTransition(() => { void loadData(); }); }, [loadData]);
 
   const productMatches = prodQuery.trim()
     ? products.filter((p) => p.name.toLowerCase().includes(prodQuery.toLowerCase())).slice(0, 30)
@@ -3705,7 +3711,7 @@ function VideosPanel({ token }: { token: string }) {
   }, [token]);
 
   useEffect(() => {
-    loadData();
+    startTransition(() => { void loadData(); });
   }, [loadData]);
 
   // Поиск товара по названию, артикулу и категории — все три поля сразу, чтобы не приходилось

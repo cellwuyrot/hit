@@ -1,0 +1,137 @@
+
+> shop@0.1.0 test:checkout
+> node scripts/test-checkout.mjs
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+Datasource "db": SQLite database "test.db" at "file:/tmp/tophitt-checkout-AQwIsw/test.db"
+
+SQLite database test.db created at file:/tmp/tophitt-checkout-AQwIsw/test.db
+
+27 migrations found in prisma/migrations
+
+Applying migration `20260430143627_init`
+Applying migration `20260430173944_v2_subcategories_users_orders_news`
+Applying migration `20260501125406_add_lastname_newstype`
+Applying migration `20260502215330_add_product_fields`
+Applying migration `20260503135918_add_product_images`
+Applying migration `20260503145228_add_seo_and_site_pages`
+Applying migration `20260503171039_add_reviews`
+Applying migration `20260504082222_add_page_views`
+Applying migration `20260504124213_add_featured_and_excerpt`
+Applying migration `20260504133326_add_messages`
+Applying migration `20260505225851_add_wishlist_promo_stockalert_quickorder_tracking_reset`
+Applying migration `20260506101936_add_expiration_date`
+Applying migration `20260506134841_add_visitor_id`
+Applying migration `20260506225118_add_callback_email_verification`
+Applying migration `20260507100721_add_address_fields`
+Applying migration `20260507121017_add_cart_is_pack`
+Applying migration `20260508150122_add_hour_to_pageview`
+Applying migration `20260509171901_add_product_tags`
+Applying migration `20260510202832_analytics_unique_index`
+Applying migration `20260517132739_add_search_synonym`
+Applying migration `20260531234651_add_product_is_wholesale`
+Applying migration `20260601000000_add_product_is_imported`
+Applying migration `20260708130000_add_review_author_admin_reply`
+Applying migration `20260722120000_add_presentation_block`
+Applying migration `20260724000000_add_support_chat`
+Applying migration `20260817120000_add_product_video`
+Applying migration `20261001130000_guest_checkout_promo_starts`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260430143627_init/
+    └─ migration.sql
+  └─ 20260430173944_v2_subcategories_users_orders_news/
+    └─ migration.sql
+  └─ 20260501125406_add_lastname_newstype/
+    └─ migration.sql
+  └─ 20260502215330_add_product_fields/
+    └─ migration.sql
+  └─ 20260503135918_add_product_images/
+    └─ migration.sql
+  └─ 20260503145228_add_seo_and_site_pages/
+    └─ migration.sql
+  └─ 20260503171039_add_reviews/
+    └─ migration.sql
+  └─ 20260504082222_add_page_views/
+    └─ migration.sql
+  └─ 20260504124213_add_featured_and_excerpt/
+    └─ migration.sql
+  └─ 20260504133326_add_messages/
+    └─ migration.sql
+  └─ 20260505225851_add_wishlist_promo_stockalert_quickorder_tracking_reset/
+    └─ migration.sql
+  └─ 20260506101936_add_expiration_date/
+    └─ migration.sql
+  └─ 20260506134841_add_visitor_id/
+    └─ migration.sql
+  └─ 20260506225118_add_callback_email_verification/
+    └─ migration.sql
+  └─ 20260507100721_add_address_fields/
+    └─ migration.sql
+  └─ 20260507121017_add_cart_is_pack/
+    └─ migration.sql
+  └─ 20260508150122_add_hour_to_pageview/
+    └─ migration.sql
+  └─ 20260509171901_add_product_tags/
+    └─ migration.sql
+  └─ 20260510202832_analytics_unique_index/
+    └─ migration.sql
+  └─ 20260517132739_add_search_synonym/
+    └─ migration.sql
+  └─ 20260531234651_add_product_is_wholesale/
+    └─ migration.sql
+  └─ 20260601000000_add_product_is_imported/
+    └─ migration.sql
+  └─ 20260708130000_add_review_author_admin_reply/
+    └─ migration.sql
+  └─ 20260722120000_add_presentation_block/
+    └─ migration.sql
+  └─ 20260724000000_add_support_chat/
+    └─ migration.sql
+  └─ 20260817120000_add_product_video/
+    └─ migration.sql
+  └─ 20261001130000_guest_checkout_promo_starts/
+    └─ migration.sql
+
+All migrations have been successfully applied.
+✔ Гостевой заказ: без регистрации, обязательного email и пользователя (253.814248ms)
+✔ Гость: проверка и применение 15%, 1000 → 850; подмена цены и скидки игнорируется (32.061709ms)
+✔ Авторизованный checkout использует только серверную корзину и применяет фиксированную скидку (23.942683ms)
+✔ Отклонение промокода MISSING: без заказа, списания остатков и использования (8.873506ms)
+✔ Отклонение промокода EXPIRED: без заказа, списания остатков и использования (6.444873ms)
+✔ Отклонение промокода DISABLED: без заказа, списания остатков и использования (7.363357ms)
+✔ Отклонение промокода FUTURE: без заказа, списания остатков и использования (5.377345ms)
+✔ Отклонение промокода MINIMUM: без заказа, списания остатков и использования (5.375761ms)
+✔ Отклонение промокода EXHAUSTED: без заказа, списания остатков и использования (5.609591ms)
+✔ Лимит 1: второй заказ отклоняется (12.840264ms)
+✔ Параллельные заказы: последний промокод и остаток не расходуются дважды (25.882903ms)
+✔ Сбой после резервирования: транзакция откатывает и промокод, и склад (27.513701ms)
+✔ Дубликаты позиций и обычный товар + упаковка проверяются по суммарному остатку (4.661155ms)
+✔ Поддельная упаковка, отрицательные/дробные количества и обязательные поля (2.278068ms)
+✔ Самовывоз без адреса и скидка не больше суммы заказа (7.71808ms)
+✔ Администратор создаёт, отключает промокод, видит счётчик и гостевой заказ (24.567577ms)
+✔ Админская валидация промокодов: дубликат, процент >100 и обратный период (4.488736ms)
+✔ Гостю недоступны чужие заказы; плохой токен не превращается в гостя (0.492408ms)
+✔ Некорректное тело и пустой/плохой Authorization отклоняются понятной ошибкой (0.904146ms)
+✔ Миграция сохраняет старые заказы, позиции, сообщения, суммы и поисковый индекс (29.959286ms)
+Failed to send admin order notification: Error: connect ECONNREFUSED 127.0.0.1:587
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ESOCKET',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 587,
+  command: 'CONN'
+}
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 916.133257

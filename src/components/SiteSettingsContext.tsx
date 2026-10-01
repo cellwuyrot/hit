@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, startTransition } from "react";
 
 interface SettingEntry {
   id: string;
@@ -49,7 +49,7 @@ export function SiteSettingsProvider({
   }, []);
 
   useEffect(() => {
-    fetchSettings();
+    startTransition(() => { void fetchSettings(); });
   }, [fetchSettings]);
 
   const get = useCallback(

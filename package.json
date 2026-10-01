@@ -15,7 +15,9 @@
     "merchant:sync": "npx tsx scripts/generate-merchant-feed.ts && npx tsx scripts/upload-merchant-feed.ts",
     "yandex:generate": "npx tsx scripts/generate-yandex-feed.ts",
     "feeds:generate": "npx tsx scripts/generate-merchant-feed.ts && npx tsx scripts/generate-yandex-feed.ts",
-    "fix:slugs": "npx tsx scripts/fix-slugs.ts"
+    "fix:slugs": "npx tsx scripts/fix-slugs.ts",
+    "test:checkout": "node scripts/test-checkout.mjs",
+    "test:e2e": "node scripts/test-e2e.mjs"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -37,6 +39,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",

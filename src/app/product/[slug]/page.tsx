@@ -74,7 +74,7 @@ export default async function ProductPage({ params }: PageProps) {
       orderBy: [{ order: "asc" as const }, { createdAt: "asc" as const }],
     },
   };
-  let product = await prisma.product.findFirst({
+  const product = await prisma.product.findFirst({
     where: { slug },
     include: includeOpts,
   });

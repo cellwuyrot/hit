@@ -98,3 +98,8 @@ prisma/
 - Акцент: `#3D7FC2`
 - Фон: `#F0F4F8` / `#FFFFFF`
 - Текст: `#1A2332`
+
+## Гостевой checkout и промокоды
+
+Инструкция по обновлению, двум командам Git/PM2 и запуску тестов: [docs/GUEST_CHECKOUT_DEPLOY.md](docs/GUEST_CHECKOUT_DEPLOY.md).
+Результаты проверки обновлённой версии: [docs/TEST_REPORT.md](docs/TEST_REPORT.md).

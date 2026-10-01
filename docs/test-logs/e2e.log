@@ -1,0 +1,157 @@
+
+> shop@0.1.0 test:e2e
+> node scripts/test-e2e.mjs
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+Datasource "db": SQLite database "test.db" at "file:/tmp/tophitt-e2e-v5MvkH/test.db"
+
+SQLite database test.db created at file:/tmp/tophitt-e2e-v5MvkH/test.db
+
+27 migrations found in prisma/migrations
+
+Applying migration `20260430143627_init`
+Applying migration `20260430173944_v2_subcategories_users_orders_news`
+Applying migration `20260501125406_add_lastname_newstype`
+Applying migration `20260502215330_add_product_fields`
+Applying migration `20260503135918_add_product_images`
+Applying migration `20260503145228_add_seo_and_site_pages`
+Applying migration `20260503171039_add_reviews`
+Applying migration `20260504082222_add_page_views`
+Applying migration `20260504124213_add_featured_and_excerpt`
+Applying migration `20260504133326_add_messages`
+Applying migration `20260505225851_add_wishlist_promo_stockalert_quickorder_tracking_reset`
+Applying migration `20260506101936_add_expiration_date`
+Applying migration `20260506134841_add_visitor_id`
+Applying migration `20260506225118_add_callback_email_verification`
+Applying migration `20260507100721_add_address_fields`
+Applying migration `20260507121017_add_cart_is_pack`
+Applying migration `20260508150122_add_hour_to_pageview`
+Applying migration `20260509171901_add_product_tags`
+Applying migration `20260510202832_analytics_unique_index`
+Applying migration `20260517132739_add_search_synonym`
+Applying migration `20260531234651_add_product_is_wholesale`
+Applying migration `20260601000000_add_product_is_imported`
+Applying migration `20260708130000_add_review_author_admin_reply`
+Applying migration `20260722120000_add_presentation_block`
+Applying migration `20260724000000_add_support_chat`
+Applying migration `20260817120000_add_product_video`
+Applying migration `20261001130000_guest_checkout_promo_starts`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260430143627_init/
+    └─ migration.sql
+  └─ 20260430173944_v2_subcategories_users_orders_news/
+    └─ migration.sql
+  └─ 20260501125406_add_lastname_newstype/
+    └─ migration.sql
+  └─ 20260502215330_add_product_fields/
+    └─ migration.sql
+  └─ 20260503135918_add_product_images/
+    └─ migration.sql
+  └─ 20260503145228_add_seo_and_site_pages/
+    └─ migration.sql
+  └─ 20260503171039_add_reviews/
+    └─ migration.sql
+  └─ 20260504082222_add_page_views/
+    └─ migration.sql
+  └─ 20260504124213_add_featured_and_excerpt/
+    └─ migration.sql
+  └─ 20260504133326_add_messages/
+    └─ migration.sql
+  └─ 20260505225851_add_wishlist_promo_stockalert_quickorder_tracking_reset/
+    └─ migration.sql
+  └─ 20260506101936_add_expiration_date/
+    └─ migration.sql
+  └─ 20260506134841_add_visitor_id/
+    └─ migration.sql
+  └─ 20260506225118_add_callback_email_verification/
+    └─ migration.sql
+  └─ 20260507100721_add_address_fields/
+    └─ migration.sql
+  └─ 20260507121017_add_cart_is_pack/
+    └─ migration.sql
+  └─ 20260508150122_add_hour_to_pageview/
+    └─ migration.sql
+  └─ 20260509171901_add_product_tags/
+    └─ migration.sql
+  └─ 20260510202832_analytics_unique_index/
+    └─ migration.sql
+  └─ 20260517132739_add_search_synonym/
+    └─ migration.sql
+  └─ 20260531234651_add_product_is_wholesale/
+    └─ migration.sql
+  └─ 20260601000000_add_product_is_imported/
+    └─ migration.sql
+  └─ 20260708130000_add_review_author_admin_reply/
+    └─ migration.sql
+  └─ 20260722120000_add_presentation_block/
+    └─ migration.sql
+  └─ 20260724000000_add_support_chat/
+    └─ migration.sql
+  └─ 20260817120000_add_product_video/
+    └─ migration.sql
+  └─ 20261001130000_guest_checkout_promo_starts/
+    └─ migration.sql
+
+All migrations have been successfully applied.
+
+Running 7 tests using 1 worker
+
+[WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED ::1:587
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED ::1:587) {
+[WebServer]   errno: -111,
+[WebServer]   code: 'ESOCKET',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '::1',
+[WebServer]   port: 587,
+[WebServer]   command: 'CONN'
+[WebServer] }
+  ✓  1 tests/e2e/checkout.spec.ts:37:5 › Гость: товар → localStorage → корзина → заказ, без аккаунта (4.1s)
+[WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED ::1:587
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED ::1:587) {
+[WebServer]   errno: -111,
+[WebServer]   code: 'ESOCKET',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '::1',
+[WebServer]   port: 587,
+[WebServer]   command: 'CONN'
+[WebServer] }
+  ✓  2 tests/e2e/checkout.spec.ts:53:5 › Гость: промокод 15%, серверный итог 850 ₽, самовывоз (2.7s)
+  ✓  3 tests/e2e/checkout.spec.ts:62:5 › Гостевая корзина: изменения количества, промокод и удаление (2.5s)
+[WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED ::1:587
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED ::1:587) {
+[WebServer]   errno: -111,
+[WebServer]   code: 'ESOCKET',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '::1',
+[WebServer]   port: 587,
+[WebServer]   command: 'CONN'
+[WebServer] }
+[WebServer] Failed to send client order confirmation: Error: connect ECONNREFUSED 127.0.0.1:587
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:587) {
+[WebServer]   errno: -111,
+[WebServer]   code: 'ESOCKET',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 587,
+[WebServer]   command: 'CONN'
+[WebServer] }
+  ✓  4 tests/e2e/checkout.spec.ts:74:5 › Авторизованный покупатель: серверная корзина, промокод, заказ в кабинете (4.1s)
+  ✓  5 tests/e2e/checkout.spec.ts:90:5 › Неверный и просроченный промокод не применяются (2.5s)
+[WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED ::1:587
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED ::1:587) {
+[WebServer]   errno: -111,
+[WebServer]   code: 'ESOCKET',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '::1',
+[WebServer]   port: 587,
+[WebServer]   command: 'CONN'
+[WebServer] }
+  ✓  6 tests/e2e/checkout.spec.ts:100:5 › Лимит использований проверяется и при применении, и при оформлении (4.2s)
+  ✓  7 tests/e2e/checkout.spec.ts:109:5 › Админ: Настройки → Промокоды, создание и отключение; скидка в заказах (2.0s)
+
+  7 passed (24.0s)

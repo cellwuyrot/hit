@@ -1,6 +1,7 @@
 "use client";
+import Link from "next/link";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -30,8 +31,8 @@ export default function WishlistPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("userToken");
-    if (!token) { setLoading(false); return; }
-    setLoggedIn(true);
+    if (!token) { startTransition(() => setLoading(false)); return; }
+    startTransition(() => setLoggedIn(true));
     fetch("/api/user/wishlist", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => {
@@ -57,7 +58,7 @@ export default function WishlistPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
               <p className="text-text-gray mb-4">Авторизуйтесь, чтобы видеть избранные товары</p>
-              <a href="/account" className="inline-block px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">Войти</a>
+              <Link href="/account" className="inline-block px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">Войти</Link>
             </div>
           ) : items.length === 0 ? (
             <div className="bg-bg-white rounded-xl border border-border p-8 text-center">
@@ -66,7 +67,7 @@ export default function WishlistPage() {
               </svg>
               <p className="text-text-gray mb-2">Список избранного пуст</p>
               <p className="text-sm text-text-light mb-4">Нажмите сердечко на карточке товара, чтобы добавить в избранное</p>
-              <a href="/catalog" className="inline-block px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">Перейти в каталог</a>
+              <Link href="/catalog" className="inline-block px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">Перейти в каталог</Link>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">

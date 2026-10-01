@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 function getVisitorId(): string {
   const key = "_vid";
-  let vid = document.cookie.match(new RegExp(`(?:^|; )${key}=([^;]*)`));
+  const vid = document.cookie.match(new RegExp(`(?:^|; )${key}=([^;]*)`));
   if (vid) return vid[1];
   const id = crypto.randomUUID();
   document.cookie = `${key}=${id}; path=/; max-age=${365 * 24 * 3600}; SameSite=Lax`;
