@@ -61,7 +61,7 @@ export function useLiveMessages({ streamUrl, listUrl, authToken }: Options) {
     startTransition(() => setMessages([]));
     if (!streamUrl && !listUrl) return;
 
-    void reload();
+    startTransition(() => { void reload(); });
 
     let es: EventSource | null = null;
     if (streamUrl) {

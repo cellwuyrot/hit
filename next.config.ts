@@ -10,6 +10,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   compress: true,
+  outputFileTracingRoot: process.cwd(),
+  turbopack: { root: process.cwd() },
   headers: async () => [
     {
       source: "/(.*)",

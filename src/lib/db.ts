@@ -5,7 +5,7 @@ let db: Database.Database | null = null;
 
 export function getDb(): Database.Database {
   if (!db) {
-    const dbPath = path.join(process.cwd(), "dev.db");
+    const dbPath = process.env.DATABASE_URL?.replace(/^file:/, "") || path.join(process.cwd(), "dev.db");
     db = new Database(dbPath);
     db.pragma("journal_mode = WAL");
   }

@@ -38,9 +38,9 @@ export async function PUT(request: Request) {
     include: { user: { select: { email: true } } },
   });
 
-  if (status || trackNumber) {
+  if ((status || trackNumber) && (order.email || order.user?.email)) {
     sendOrderStatusUpdate(
-      order.user.email,
+      order.email || order.user?.email || "",
       order.id,
       order.status,
       order.trackNumber || undefined,

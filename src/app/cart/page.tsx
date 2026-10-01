@@ -5,25 +5,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, startTransition } from "react";
-import { showToast } from "@/components/Toast";
-
-interface CartProduct {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  categoryId?: string;
-  brand?: string;
-  packSize?: number | null;
-}
-
-interface CartItem {
-  id: string;
-  productId: string;
-  quantity: number;
-  isPack: boolean;
-  product: CartProduct;
-}
+import { useCheckoutCart, type CheckoutCartItem as CartItem } from "@/components/useCheckoutCart";
 
 interface RecommendedProduct {
   id: string;
@@ -37,29 +19,12 @@ interface RecommendedProduct {
 }
 
 export default function CartPage() {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
+  const { items, loading, error, subtotal, discount: discountAmount, total, promoCode: appliedCode, updateQty, removeItem, applyPromo: checkPromo, removePromo, clearCart } = useCheckoutCart();
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
   const [promoCode, setPromoCode] = useState("");
-  const [promoDiscount, setPromoDiscount] = useState<{ code: string; discountType: string; discountValue: number; minOrder: number } | null>(null);
-  const [promoError, setPromoError] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("userToken");
-    startTransition(() => setToken(saved));
-  }, []);
-
-  useEffect(() => {
-    if (!token) { startTransition(() => setLoading(false)); return; }
-    fetch("/api/user/cart", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.ok ? r.json() : [])
-      .then((data) => startTransition(() => { setItems(data); setLoading(false); }))
-      .catch(() => startTransition(() => setLoading(false)));
-  }, [token]);
-
-  useEffect(() => {
-    if (items.length === 0) { setRecommendations([]); return; }
+    if (items.length === 0) { startTransition(() => setRecommendations([])); return; }
     const categoryIds = [...new Set(items.map((i) => i.product.categoryId).filter(Boolean))];
     const excludeIds = items.map((i) => i.productId);
     const params = new URLSearchParams();
@@ -73,25 +38,6 @@ export default function CartPage() {
       .then((data) => startTransition(() => setRecommendations(Array.isArray(data) ? data : data ? [data] : [])))
       .catch(() => {});
   }, [items]);
-
-  const updateQty = async (productId: string, quantity: number, isPack: boolean) => {
-    if (!token) return;
-    if (quantity < 1) {
-      await fetch("/api/user/cart", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ productId, isPack }),
-      });
-      setItems((prev) => prev.filter((i) => !(i.productId === productId && i.isPack === isPack)));
-    } else {
-      await fetch("/api/user/cart", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ productId, quantity, isPack }),
-      });
-      setItems((prev) => prev.map((i) => (i.productId === productId && i.isPack === isPack) ? { ...i, quantity } : i));
-    }
-  };
 
   const commitQtyInput = (item: CartItem, input: HTMLInputElement, isPack: boolean) => {
     const currentDisplay = isPack
@@ -114,60 +60,9 @@ export default function CartPage() {
     }
   };
 
-  const removeItem = async (productId: string, isPack: boolean) => {
-    if (!token) return;
-    await fetch("/api/user/cart", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ productId, isPack }),
-    });
-    setItems((prev) => prev.filter((i) => !(i.productId === productId && i.isPack === isPack)));
-  };
+  const getItemPrice = (item: CartItem) => item.lineTotal;
 
-  const getItemPrice = (item: CartItem) => {
-    const unitPrice = item.product.price;
-    if (item.isPack) return Math.round(unitPrice * item.quantity * 0.9);
-    return unitPrice * item.quantity;
-  };
-
-  const subtotal = items.reduce((sum, item) => sum + getItemPrice(item), 0);
-  const packDiscount = items.filter(i => i.isPack).reduce((sum, item) => sum + Math.round(item.product.price * item.quantity * 0.1), 0);
-  // minOrder учитываем так же, как сервер при оформлении заказа.
-  const discountAmount = promoDiscount && subtotal >= promoDiscount.minOrder
-    ? Math.min(
-        promoDiscount.discountType === "percent"
-          ? Math.round(subtotal * promoDiscount.discountValue / 100)
-          : promoDiscount.discountValue,
-        subtotal
-      )
-    : 0;
-  const total = Math.max(0, subtotal - discountAmount);
-
-  const applyPromo = async () => {
-    setPromoError("");
-    if (!promoCode.trim()) return;
-    try {
-      const res = await fetch("/api/promo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: promoCode.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok && data.valid) {
-        setPromoDiscount({ code: data.code, discountType: data.discountType, discountValue: data.discountValue, minOrder: data.minOrder ?? 0 });
-        // Пробрасываем код на страницу оформления — иначе скидка показывалась
-        // в корзине, но в заказ не попадала.
-        localStorage.setItem("promoCode", data.code);
-        showToast("Промокод применён!");
-      } else {
-        setPromoError(data.error || "Недействительный промокод");
-        setPromoDiscount(null);
-        localStorage.removeItem("promoCode");
-      }
-    } catch {
-      setPromoError("Ошибка проверки промокода");
-    }
-  };
+  const applyPromo = async () => { if (promoCode.trim()) await checkPromo(promoCode.trim()); };
 
   return (
     <>
@@ -176,18 +71,10 @@ export default function CartPage() {
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
           <h1 className="text-xl sm:text-2xl font-bold text-text-dark mb-4 sm:mb-6">Корзина</h1>
 
-          {!token && (
-            <div className="bg-bg-white rounded-xl border border-border p-8 text-center">
-              <p className="text-text-gray mb-4">Для использования корзины необходимо войти в аккаунт</p>
-              <Link href="/account" className="inline-block bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
-                Войти / Зарегистрироваться
-              </Link>
-            </div>
-          )}
+          {error && <div className="mb-4"><p role="alert" className="text-danger">{error}</p><button onClick={() => void clearCart()} className="text-primary text-sm mt-2">Очистить корзину</button></div>}
+          {loading && <p className="text-text-gray text-center py-8">Загрузка...</p>}
 
-          {token && loading && <p className="text-text-gray text-center py-8">Загрузка...</p>}
-
-          {token && !loading && items.length === 0 && (
+          {!loading && items.length === 0 && (
             <div className="bg-bg-white rounded-xl border border-border p-8 text-center">
               <p className="text-text-gray mb-4">Корзина пуста</p>
               <Link href="/catalog" className="inline-block bg-primary text-white px-6 py-2.5 rounded-lg hover:bg-primary-dark transition-colors font-medium">
@@ -196,7 +83,7 @@ export default function CartPage() {
             </div>
           )}
 
-          {token && !loading && items.length > 0 && (
+          {!loading && items.length > 0 && (
             <>
               <div className="space-y-3">
                 {items.map((item) => (
@@ -277,11 +164,11 @@ export default function CartPage() {
                     Применить
                   </button>
                 </div>
-                {promoError && <p className="text-danger text-xs mt-2">{promoError}</p>}
-                {promoDiscount && (
+                
+                {appliedCode && (
                   <div className="flex items-center justify-between mt-2 text-sm">
-                    <span className="text-success">Промокод «{promoDiscount.code}» применён</span>
-                    <button onClick={() => { setPromoDiscount(null); setPromoCode(""); localStorage.removeItem("promoCode"); }} className="text-text-gray hover:text-danger text-xs">Убрать</button>
+                    <span className="text-success">Промокод «{appliedCode}» применён</span>
+                    <button onClick={() => { void removePromo(); setPromoCode(""); }} className="text-text-gray hover:text-danger text-xs">Убрать</button>
                   </div>
                 )}
               </div>
@@ -290,15 +177,9 @@ export default function CartPage() {
               <div className="mt-4 bg-bg-white rounded-xl border border-border p-4 sm:p-6">
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm text-text-gray">
-                    <span>Товаров: {items.reduce((s, i) => s + i.quantity, 0)}</span>
-                    <span>{(subtotal + packDiscount).toLocaleString("ru-RU")} ₽</span>
+                    <span>Сумма товаров ({items.reduce((s, i) => s + i.quantity, 0)} шт.)</span>
+                    <span>{subtotal.toLocaleString("ru-RU")} ₽</span>
                   </div>
-                  {packDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Скидка за упаковку (−10%)</span>
-                      <span>−{packDiscount.toLocaleString("ru-RU")} ₽</span>
-                    </div>
-                  )}
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-sm text-success">
                       <span>Скидка по промокоду</span>

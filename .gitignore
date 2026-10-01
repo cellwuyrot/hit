@@ -54,3 +54,10 @@ next-env.d.ts
 # generated feeds
 /public/merchant-feed.xml
 /public/yandex-feed.xml
+
+# local test results and deployment backups
+/test-results/
+/playwright-report/
+/backups/
+*.db-wal
+*.db-shm

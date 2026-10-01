@@ -1,0 +1,106 @@
+
+> shop@0.1.0 build
+> next build
+
+▲ Next.js 16.2.4 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 8.0s
+  Running TypeScript ...
+  Finished TypeScript in 7.4s ...
+  Collecting page data using 1 worker ...
+  Generating static pages using 1 worker (0/72) ...
+  Generating static pages using 1 worker (18/72) 
+  Generating static pages using 1 worker (36/72) 
+  Generating static pages using 1 worker (54/72) 
+✓ Generating static pages using 1 worker (72/72) in 730ms
+  Finalizing page optimization ...
+
+Route (app)                       Revalidate  Expire
+┌ ○ /                                     1m      1y
+├ ○ /_not-found
+├ ○ /about                                1m      1y
+├ ○ /account
+├ ○ /admin
+├ ƒ /api/admin/analytics
+├ ƒ /api/admin/auth
+├ ƒ /api/admin/callbacks
+├ ƒ /api/admin/categories
+├ ƒ /api/admin/chat
+├ ƒ /api/admin/chat/messages
+├ ƒ /api/admin/chat/stream
+├ ƒ /api/admin/clients
+├ ƒ /api/admin/export
+├ ƒ /api/admin/import
+├ ƒ /api/admin/inline
+├ ƒ /api/admin/messages
+├ ƒ /api/admin/news
+├ ƒ /api/admin/orders
+├ ƒ /api/admin/pages
+├ ƒ /api/admin/presentation
+├ ƒ /api/admin/products
+├ ƒ /api/admin/promo
+├ ƒ /api/admin/quick-orders
+├ ƒ /api/admin/reviews
+├ ƒ /api/admin/reviews/import
+├ ƒ /api/admin/slider
+├ ƒ /api/admin/synonyms
+├ ƒ /api/admin/tracking
+├ ƒ /api/admin/upload
+├ ƒ /api/admin/videos
+├ ƒ /api/analytics
+├ ƒ /api/callback
+├ ƒ /api/categories
+├ ƒ /api/chat/messages
+├ ƒ /api/chat/start
+├ ƒ /api/chat/stream
+├ ƒ /api/checkout/quote
+├ ƒ /api/merchant-feed
+├ ƒ /api/news
+├ ƒ /api/pages
+├ ƒ /api/products
+├ ƒ /api/products/recommend
+├ ƒ /api/promo
+├ ƒ /api/quick-order
+├ ƒ /api/reviews
+├ ƒ /api/search
+├ ƒ /api/site-settings
+├ ƒ /api/slider
+├ ƒ /api/static/[...path]
+├ ƒ /api/stock-alert
+├ ƒ /api/uploads/[...path]
+├ ƒ /api/user/auth
+├ ƒ /api/user/cart
+├ ƒ /api/user/messages
+├ ƒ /api/user/orders
+├ ƒ /api/user/orders/[id]/repeat
+├ ƒ /api/user/profile
+├ ƒ /api/user/reset-password
+├ ƒ /api/user/verify
+├ ƒ /api/user/wishlist
+├ ƒ /api/yandex-feed
+├ ○ /cart
+├ ƒ /catalog
+├ ƒ /catalog/[...slug]
+├ ○ /checkout
+├ ○ /compare
+├ ○ /contacts                             1m      1y
+├ ○ /delivery                             1m      1y
+├ ○ /import                               1m      1y
+├ ○ /manifest.webmanifest
+├ ƒ /news
+├ ƒ /news/[slug]
+├ ○ /opengraph-image
+├ ○ /presentation                         1m      1y
+├ ○ /privacy
+├ ƒ /product/[slug]
+├ ○ /returns
+├ ○ /robots.txt
+├ ○ /sitemap.xml
+├ ○ /wholesale                            1m      1y
+└ ○ /wishlist
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

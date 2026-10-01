@@ -63,7 +63,7 @@ export async function PATCH(request: Request) {
     parsedValue = value === "" || value === null ? null : Number(value);
   }
 
-  const updated = await (prisma as Record<string, any>)[config.table].update({
+  const updated = await (prisma as unknown as Record<string, { update: (args: { where: { id: string }; data: Record<string, string | number | null> }) => Promise<unknown> }>)[config.table].update({
     where: { id },
     data: { [field]: parsedValue },
   });
@@ -103,7 +103,7 @@ export async function PUT(request: Request) {
 
   await Promise.all(
     orderedIds.map((id: string, index: number) =>
-      (prisma as Record<string, any>)[table].update({
+      (prisma as unknown as Record<string, { update: (args: { where: { id: string }; data: Record<string, string | number | null> }) => Promise<unknown> }>)[table].update({
         where: { id },
         data: { order: index },
       })

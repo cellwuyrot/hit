@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, startTransition } from "react";
 
 interface InlineEditContextValue {
   editing: boolean;
@@ -24,7 +24,7 @@ export function InlineEditProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
-    setIsAdmin(!!token);
+    startTransition(() => setIsAdmin(!!token));
   }, []);
 
   return (

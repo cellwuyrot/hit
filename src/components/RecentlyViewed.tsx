@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -18,7 +18,7 @@ export default function RecentlyViewed() {
   useEffect(() => {
     try {
       const viewed: ViewedProduct[] = JSON.parse(localStorage.getItem("recentlyViewed") || "[]");
-      setProducts(viewed.slice(0, 6));
+      startTransition(() => setProducts(viewed.slice(0, 6)));
     } catch {}
   }, []);
 

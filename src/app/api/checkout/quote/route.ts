@@ -4,8 +4,6 @@ export async function POST(request: Request) {
   try {
     const userId = checkoutUser(request);
     const body = await checkoutBody(request);
-    if (!body.code) return Response.json({ error: "Код не указан" }, { status: 400 });
-    const quote = await quoteCheckout(userId, body.items, body.code);
-    return Response.json({ valid: true, code: quote.promoCode, ...quote });
+    return Response.json(await quoteCheckout(userId, body.items, body.promoCode, true));
   } catch (error) { return checkoutFailure(error); }
 }
