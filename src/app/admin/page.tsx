@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, startTransition } from "react";
 import Link from "next/link";
 import { useLiveMessages } from "@/components/useLiveMessages";
+import AdminOrderNote from "@/components/AdminOrderNote";
 import PromoCodesPanel from "@/components/PromoCodesPanel";
 import { extractYouTubeId } from "@/lib/youtube";
 
@@ -98,6 +99,7 @@ interface Order {
   phone: string;
   address: string;
   comment: string;
+  adminNote: string;
   trackNumber: string;
   trackUrl: string;
   createdAt: string;
@@ -233,7 +235,9 @@ function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, tok
                 <span className="font-bold text-primary">{order.total.toLocaleString("ru-RU")} ₽</span>
               </div>
               {order.promoCode && <p className="text-sm text-green-600 mt-2">Промокод: {order.promoCode} · Скидка: −{order.discount.toLocaleString("ru-RU")} ₽ · Итого: {order.total.toLocaleString("ru-RU")} ₽</p>}
-              {order.comment && <p className="text-xs text-text-gray mt-1">Комментарий: {order.comment}</p>}
+              {order.comment && <p className="text-xs text-text-gray mt-1">Комментарий покупателя: {order.comment}</p>}
+
+              <AdminOrderNote orderId={order.id} note={order.adminNote || ""} token={token} onSaved={fetchData} />
 
               {/* Tracking section */}
               <div className="mt-2 pt-2 border-t border-border/50">
