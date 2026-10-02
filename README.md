@@ -103,3 +103,7 @@ prisma/
 
 Инструкция по обновлению, двум командам Git/PM2 и запуску тестов: [docs/GUEST_CHECKOUT_DEPLOY.md](docs/GUEST_CHECKOUT_DEPLOY.md).
 Результаты проверки обновлённой версии: [docs/TEST_REPORT.md](docs/TEST_REPORT.md).
+
+## Внутренние заметки по заказам
+
+Администратор может добавлять, редактировать и очищать приватную заметку к каждому заказу. Покупатель не видит её ни в кабинете, ни через API. Использование и обновление: [docs/ADMIN_ORDER_NOTES.md](docs/ADMIN_ORDER_NOTES.md).

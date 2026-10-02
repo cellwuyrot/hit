@@ -171,7 +171,7 @@ test("Миграция сохраняет старые заказы, позиц�
   try {
     const migration = "20261001130000_guest_checkout_promo_starts";
     for (const dir of readdirSync("prisma/migrations").sort()) {
-      if (dir !== "migration_lock.toml" && dir !== migration) db.exec(readFileSync(`prisma/migrations/${dir}/migration.sql`, "utf8"));
+      if (dir !== "migration_lock.toml" && dir < migration) db.exec(readFileSync(`prisma/migrations/${dir}/migration.sql`, "utf8"));
     }
     db.exec(`
       INSERT INTO "User" (id, email, password) VALUES ('old-user', 'old@example.test', 'test');
@@ -188,5 +188,68 @@ test("Миграция сохраняет старые заказы, позиц�
     assert.ok(db.prepare('SELECT * FROM "Message" WHERE id = ?').get("old-message"));
     assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
     assert.ok(db.prepare("SELECT name FROM sqlite_master WHERE name = 'product_fts'").get());
+    // New additive note migration preserves all existing data and private defaults.
+    db.exec(readFileSync("prisma/migrations/20261001160000_order_admin_note/migration.sql", "utf8"));
+    const migrated = db.prepare('SELECT "adminNote", "total", "discount", "userId" FROM "Order" WHERE "id" = ?').get("old-order") as { adminNote: string; total: number; discount: number; userId: string };
+    assert.equal(migrated.adminNote, ""); assert.equal(migrated.total, 850); assert.equal(migrated.discount, 150); assert.equal(migrated.userId, "old-user");
+    assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
+
   } finally { db.close(); }
+});
+
+test("Внутренняя заметка: создание, изменение, очистка; комментарий покупателя не изменяется", async () => {
+  const order = await createCheckoutOrder(null, { ...customer, items: items(), comment: "Позвонить перед доставкой" });
+  assert.equal(order.adminNote, "");
+  for (const [input, expected] of [["Перезвонить завтра\nУточнить склад", "Перезвонить завтра\nУточнить склад"], ["  Новый текст  ", "Новый текст"], ["", ""]]) {
+    const res = await adminOrderPUT(req({ id: order.id, adminNote: input }, adminToken, "PUT"));
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).adminNote, expected);
+    const saved = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    assert.equal(saved.adminNote, expected); assert.equal(saved.comment, "Позвонить перед доставкой"); assert.equal(saved.total, order.total); assert.equal(saved.status, order.status);
+    const adminList = await adminOrdersGET(req(null, adminToken, "GET"));
+    assert.equal((await adminList.json()).find((o: { id: string }) => o.id === order.id).adminNote, expected);
+  }
+});
+test("Гость и покупатель не могут читать или менять заметки через административный API", async () => {
+  const order = await createCheckoutOrder(null, { ...customer, items: items() });
+  await adminOrderPUT(req({ id: order.id, adminNote: "Внутренние данные" }, adminToken, "PUT"));
+  for (const token of [undefined, userToken, "invalid"]) {
+    assert.equal((await adminOrdersGET(req(null, token, "GET"))).status, 401);
+    assert.equal((await adminOrderPUT(req({ id: order.id, adminNote: "Подмена" }, token, "PUT"))).status, 401);
+  }
+  assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).adminNote, "Внутренние данные");
+});
+test("Личный кабинет/API заказа не возвращает приватную заметку, даже владельцу заказа", async () => {
+  await cartPOST(req({ productId, quantity: 1 }, userToken));
+  const order = await createCheckoutOrder(userId, { ...customer, comment: "Видимый комментарий", adminNote: "Нельзя задать из checkout" });
+  assert.equal(order.adminNote, "");
+  await adminOrderPUT(req({ id: order.id, adminNote: "SECRET_ONLY_FOR_ADMIN" }, adminToken, "PUT"));
+  const res = await orderGET(req(null, userToken, "GET"));
+  const data = await res.json();
+  const own = data.find((o: { id: string }) => o.id === order.id);
+  assert.ok(own); assert.equal(own.comment, "Видимый комментарий");
+  assert.equal(Object.hasOwn(own, "adminNote"), false);
+  assert.equal(JSON.stringify(data).includes("SECRET_ONLY_FOR_ADMIN"), false);
+  const guest = await orderPOST(req({ ...customer, items: items(), adminNote: "Подмена гостем" }));
+  assert.equal(guest.status, 201);
+  const result = await guest.json();
+  assert.equal(Object.hasOwn(result, "adminNote"), false);
+  assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: result.id } })).adminNote, "");
+});
+test("Валидация заметки: строка до 5000 символов, понятная ошибка для несуществующего заказа", async () => {
+  const order = await createCheckoutOrder(null, { ...customer, items: items() });
+  for (const input of [null, 123, { text: "bad" }, "x".repeat(5001)]) {
+    assert.equal((await adminOrderPUT(req({ id: order.id, adminNote: input }, adminToken, "PUT"))).status, 400);
+  }
+  assert.equal((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).adminNote, "");
+  assert.equal((await adminOrderPUT(req({ id: order.id, adminNote: "x".repeat(5000) }, adminToken, "PUT"))).status, 200);
+  assert.equal((await adminOrderPUT(req({ id: "not-found", adminNote: "note" }, adminToken, "PUT"))).status, 404);
+  assert.equal((await adminOrderPUT(req(null, adminToken, "PUT"))).status, 400);
+});
+test("Изменение статуса и трека не стирает внутреннюю заметку", async () => {
+  const order = await createCheckoutOrder(null, { ...customer, items: items() });
+  await adminOrderPUT(req({ id: order.id, adminNote: "Уточнили детали" }, adminToken, "PUT"));
+  assert.equal((await adminOrderPUT(req({ id: order.id, status: "processing", trackNumber: "TEST-TRACK", trackUrl: "https://example.test/track" }, adminToken, "PUT"))).status, 200);
+  const saved = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+  assert.equal(saved.adminNote, "Уточнили детали"); assert.equal(saved.status, "processing"); assert.equal(saved.trackNumber, "TEST-TRACK");
 });

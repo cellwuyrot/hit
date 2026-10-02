@@ -126,3 +126,57 @@ test("Админ: Настройки → Промокоды, создание и
   await expect(page.getByText(/Промокод: E2E15 · Скидка:/).first()).toBeVisible();
   await expect(page.getByText(/гостевой заказ/).first()).toBeVisible();
 });
+
+test("Админская заметка: сохранение после перезагрузки, изменение, отмена и удаление", async ({ page }) => {
+  await page.goto("/admin");
+  await page.getByPlaceholder("Логин", { exact: true }).fill("e2e-admin");
+  await page.getByPlaceholder("Пароль", { exact: true }).fill("e2e-password");
+  await page.getByRole("button", { name: "Войти", exact: true }).click();
+  await page.getByRole("button", { name: /^Заказы \(/ }).click();
+  const { id } = db.prepare('SELECT "id" FROM "Order" WHERE "userId" IS NULL ORDER BY "createdAt" DESC LIMIT 1').get() as { id: string };
+  const note = page.getByRole("region", { name: `Внутренняя заметка заказа ${id}`, exact: true });
+  await note.getByRole("button", { name: "Добавить заметку", exact: true }).click();
+  await note.getByLabel("Текст заметки администратора", { exact: true }).fill("Позвонить после 18:00\nУточнить адрес склада");
+  await note.getByRole("button", { name: "Сохранить заметку", exact: true }).click();
+  await expect(note.getByRole("status")).toHaveText("Заметка сохранена");
+  await page.reload();
+  await page.getByRole("button", { name: /^Заказы \(/ }).click();
+  await expect(note).toContainText("Уточнить адрес склада");
+  await note.getByRole("button", { name: "Редактировать заметку", exact: true }).click();
+  await note.getByLabel("Текст заметки администратора", { exact: true }).fill("Несохранённое изменение");
+  await note.getByRole("button", { name: "Отмена", exact: true }).click();
+  await expect(note).toContainText("Уточнить адрес склада");
+  await expect(note).not.toContainText("Несохранённое изменение");
+  await note.getByRole("button", { name: "Редактировать заметку", exact: true }).click();
+  await note.getByLabel("Текст заметки администратора", { exact: true }).fill("Согласовано с покупателем");
+  await note.getByRole("button", { name: "Сохранить заметку", exact: true }).click();
+  await expect(note).toContainText("Согласовано с покупателем");
+  await note.getByRole("button", { name: "Редактировать заметку", exact: true }).click();
+  await note.getByLabel("Текст заметки администратора", { exact: true }).fill("");
+  await note.getByRole("button", { name: "Сохранить заметку", exact: true }).click();
+  await expect(note.getByRole("status")).toHaveText("Заметка удалена");
+  await expect(note.getByRole("button", { name: "Добавить заметку", exact: true })).toBeVisible();
+  expect((db.prepare('SELECT "adminNote" FROM "Order" WHERE "id" = ?').get(id) as { adminNote: string }).adminNote).toBe("");
+});
+
+test("Покупатель не видит внутреннюю заметку в личном кабинете или API", async ({ page, request }) => {
+  const { id } = db.prepare('SELECT "id" FROM "Order" WHERE "userId" IS NOT NULL LIMIT 1').get() as { id: string };
+  const login = await request.post("/api/admin/auth", { data: { username: "e2e-admin", password: "e2e-password" } });
+  const { token } = await login.json();
+  const marker = "ВНУТРЕННЯЯ_ЗАМЕТКА_НЕ_ДЛЯ_ПОКУПАТЕЛЯ";
+  const save = await request.put("/api/admin/orders", { headers: { Authorization: `Bearer ${token}` }, data: { id, adminNote: marker } });
+  expect(save.status()).toBe(200);
+  const ownOrders = await request.get("/api/user/orders", { headers: { Authorization: `Bearer ${userToken}` } });
+  expect(ownOrders.status()).toBe(200);
+  const own = (await ownOrders.json()).find((o: { id: string }) => o.id === id);
+  expect(own).toBeTruthy(); expect(own).not.toHaveProperty("adminNote"); expect(JSON.stringify(own)).not.toContain(marker);
+  const unauthorized = await request.put("/api/admin/orders", { headers: { Authorization: `Bearer ${userToken}` }, data: { id, adminNote: "Подмена" } });
+  expect(unauthorized.status()).toBe(401);
+  await page.goto("/account");
+  await page.evaluate(token => localStorage.setItem("userToken", token), userToken);
+  await page.reload();
+  await page.getByRole("button", { name: /^Мои заказы \(/ }).click();
+  await expect(page.getByText(`Заказ #${id.slice(0, 8)}`, { exact: true })).toBeVisible();
+  await expect(page.getByText(marker, { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Заметка администратора", { exact: true })).toHaveCount(0);
+});

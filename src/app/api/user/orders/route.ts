@@ -9,6 +9,8 @@ export async function GET(request: Request) {
 
   const orders = await prisma.order.findMany({
     where: { userId },
+    // Internal notes must never be returned to a customer, even through the API.
+    omit: { adminNote: true },
     include: { items: { include: { product: true } } },
     orderBy: { createdAt: "desc" },
   });
