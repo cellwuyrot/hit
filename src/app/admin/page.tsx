@@ -1,4 +1,5 @@
 "use client";
+import OrderPreferences from "@/components/OrderPreferences";
 
 import { useState, useEffect, useRef, useCallback, startTransition } from "react";
 import Link from "next/link";
@@ -108,6 +109,9 @@ interface Order {
   promoCode: string;
   discount: number;
   items: OrderItem[];
+  deliveryMethod: string;
+  contactMethod: string;
+  contactDetails: string;
 }
 
 const statusLabels: Record<string, string> = {
@@ -235,7 +239,7 @@ function OrdersPanel({ orders, statusLabels, updateOrderStatus, deleteOrder, tok
                 <span className="font-bold text-primary">{order.total.toLocaleString("ru-RU")} ₽</span>
               </div>
               {order.promoCode && <p className="text-sm text-green-600 mt-2">Промокод: {order.promoCode} · Скидка: −{order.discount.toLocaleString("ru-RU")} ₽ · Итого: {order.total.toLocaleString("ru-RU")} ₽</p>}
-              {order.comment && <p className="text-xs text-text-gray mt-1">Комментарий покупателя: {order.comment}</p>}
+              <OrderPreferences order={order} />
 
               <AdminOrderNote orderId={order.id} note={order.adminNote || ""} token={token} onSaved={fetchData} />
 

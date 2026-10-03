@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import { useState, useEffect, startTransition } from "react";
 import { useCheckoutCart } from "@/components/useCheckoutCart";
+import { CONTACT_METHODS, DELIVERY_METHODS, PICKUP_ADDRESS, contactLabel, deliveryLabel, parseOrderDetails } from "@/lib/order-options";
 import { readGuestCart, writeGuestCart } from "@/lib/guest-cart";
 
 const steps = [
@@ -16,8 +17,8 @@ const steps = [
 export default function CheckoutPage() {
   const { items, token, loading: cartLoading, error: cartError, subtotal, discount, total, promoCode: appliedCode, applyPromo, removePromo } = useCheckoutCart();
   const [promoCode, setPromoCode] = useState("");
-  const [form, setForm] = useState({ name: "", phone: "", address: "", comment: "", email: "" });
-  const [isPickup, setIsPickup] = useState(false);
+  const [form, setForm] = useState({ name: "", phone: "", address: "", comment: "", email: "", contactMethod: "phone", contactDetails: "", deliveryMethod: "cdek" });
+  const isPickup = form.deliveryMethod === "pickup";
   const [error, setError] = useState("");
   const [orderId, setOrderId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,21 +32,19 @@ export default function CheckoutPage() {
       }).catch(() => {});
   }, [token]);
 
-  const handleSubmit = async () => {
+  const validateDetails = () => {
     setError("");
-    if (!form.name || !form.phone || (!isPickup && !form.address)) { setError("Заполните все обязательные поля"); setStep(2); return; }
-    if (!/^[\d\s\+\-\(\)]+$/.test(form.phone) || form.phone.replace(/\D/g, "").length < 10) {
-      setError("Телефон должен содержать минимум 10 цифр"); setStep(2); return;
-    }
-    if (!isPickup && form.address.trim().length < 10) {
-      setError("Укажите полный адрес (город, улица, дом)"); setStep(2); return;
-    }
+    try { parseOrderDetails(form); return true; }
+    catch (e) { setError(e instanceof Error ? e.message : "Проверьте данные заказа"); return false; }
+  };
+  const handleSubmit = async () => {
+    if (!validateDetails()) { setStep(2); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/user/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ ...form, isPickup, items: readGuestCart(), promoCode: appliedCode }),
+        body: JSON.stringify({ ...form, items: readGuestCart(), promoCode: appliedCode }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Не удалось оформить заказ"); return; }
@@ -151,17 +150,14 @@ export default function CheckoutPage() {
               {step === 2 && (
                 <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6">
                   <h2 className="text-base sm:text-lg font-bold text-text-dark mb-3 sm:mb-4">Данные для доставки</h2>
-                  {error && <p className="text-danger text-sm mb-4">{error}</p>}
+                  {error && <p role="alert" className="text-danger text-sm mb-4">{error}</p>}
                   <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <button onClick={() => { setIsPickup(false); setForm({ ...form, address: "" }); }}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${!isPickup ? "bg-primary text-white" : "bg-bg-light text-text-gray border border-border"}`}>
-                        Доставка
-                      </button>
-                      <button onClick={() => { setIsPickup(true); setForm({ ...form, address: "Самовывоз: Москва, ул. Складочная, 1, стр. 18" }); }}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${isPickup ? "bg-green-600 text-white" : "bg-bg-light text-text-gray border border-border"}`}>
-                        Самовывоз
-                      </button>
+                    <div>
+                      <label htmlFor="checkout-delivery" className="text-sm text-text-gray mb-1 block">Выбор доставки *</label>
+                      <select id="checkout-delivery" value={form.deliveryMethod} onChange={e => setForm({ ...form, deliveryMethod: e.target.value })} className="w-full border border-border rounded-lg px-4 py-2.5">
+                        {DELIVERY_METHODS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                      {!isPickup && <p className="text-xs text-text-gray mt-1">Стоимость и условия доставки уточнит менеджер. Тариф доставки не входит в сумму товаров.</p>}
                     </div>
                     {isPickup && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
@@ -171,40 +167,48 @@ export default function CheckoutPage() {
                     )}
                     <div>
                       <label className="text-sm text-text-gray mb-1 block" htmlFor="checkout-name">Имя получателя *</label>
-                      <input id="checkout-name" type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      <input id="checkout-name" maxLength={150} type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                         className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
                     </div>
                     <div>
                       <label className="text-sm text-text-gray mb-1 block" htmlFor="checkout-phone">Телефон *</label>
                       <input id="checkout-phone" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                        placeholder="+7 (___) ___-__-__"
+                        maxLength={40} placeholder="+7 (___) ___-__-__"
                         className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
                     </div>
+                    <div>
+                      <label htmlFor="checkout-contact" className="text-sm text-text-gray mb-1 block">Предпочитаемый способ связи *</label>
+                      <select id="checkout-contact" value={form.contactMethod} onChange={e => setForm({ ...form, contactMethod: e.target.value })} className="w-full border border-border rounded-lg px-4 py-2.5">
+                        {CONTACT_METHODS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                      {form.contactMethod === "whatsapp" && <p className="text-xs text-text-gray mt-1">Свяжемся в WhatsApp по указанному телефону.</p>}
+                    </div>
+                    {form.contactMethod === "telegram" && <div>
+                      <label htmlFor="checkout-telegram" className="text-sm text-text-gray mb-1 block">Telegram: username или ссылка *</label>
+                      <input id="checkout-telegram" value={form.contactDetails} maxLength={200} onChange={e => setForm({ ...form, contactDetails: e.target.value })} placeholder="@username или https://t.me/username" className="w-full border border-border rounded-lg px-4 py-2.5" />
+                    </div>}
                     {!isPickup && (
                     <div>
                       <label className="text-sm text-text-gray mb-1 block" htmlFor="checkout-address">Адрес доставки *</label>
-                      <textarea id="checkout-address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      <textarea id="checkout-address" maxLength={1000} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })}
                         className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" rows={3} />
                     </div>
                     )}
                     <div>
-                      <label className="text-sm text-text-gray mb-1 block" htmlFor="checkout-email">Email (необязательно)</label>
-                      <input id="checkout-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                      <label className="text-sm text-text-gray mb-1 block" htmlFor="checkout-email">{form.contactMethod === "email" ? "Email для связи *" : "Email (необязательно)"}</label>
+                      <input id="checkout-email" maxLength={254} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                         className="w-full border border-border rounded-lg px-4 py-2.5" />
                     </div>
                     <div>
-                      <label className="text-sm text-text-gray mb-1 block">Комментарий</label>
-                      <textarea value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })}
+                      <label htmlFor="checkout-comment" className="text-sm text-text-gray mb-1 block">Комментарий к заказу (необязательно)</label>
+                      <textarea id="checkout-comment" maxLength={2000} placeholder="Пожелания к заказу или доставке" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })}
                         className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" rows={2} />
                     </div>
                   </div>
                   <div className="flex gap-3 mt-4">
                     <button onClick={() => setStep(1)} className="px-6 py-3 border border-border rounded-lg hover:bg-bg-light text-text-dark font-medium">Назад</button>
                     <button onClick={() => {
-                      setError("");
-                      if (!form.name || !form.phone || (!isPickup && !form.address)) { setError("Заполните все обязательные поля"); return; }
-                      if (!/^[\d\s\+\-\(\)]+$/.test(form.phone) || form.phone.replace(/\D/g, "").length < 10) { setError("Телефон должен содержать минимум 10 цифр"); return; }
-                      if (!isPickup && form.address.trim().length < 10) { setError("Укажите полный адрес (город, улица, дом)"); return; }
+                      if (!validateDetails()) return;
                       setStep(3);
                     }} className="flex-1 bg-primary text-white py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium">
                       Далее — Подтверждение
@@ -217,14 +221,16 @@ export default function CheckoutPage() {
               {step === 3 && (
                 <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-6">
                   <h2 className="text-base sm:text-lg font-bold text-text-dark mb-3 sm:mb-4">Подтверждение заказа</h2>
-                  {error && <p className="text-danger text-sm mb-4">{error}</p>}
+                  {error && <p role="alert" className="text-danger text-sm mb-4">{error}</p>}
                   <div className="space-y-4">
                     <div className="p-4 bg-bg-light rounded-lg">
                       <h3 className="text-sm font-medium text-text-gray mb-2">Данные получателя</h3>
                       <p className="text-sm text-text-dark">{form.name}</p>
                       <p className="text-sm text-text-dark">{form.phone}</p>
-                      <p className="text-sm text-text-dark">{form.address}</p>
-                      {form.comment && <p className="text-sm text-text-gray mt-1">Комментарий: {form.comment}</p>}
+                      <p className="text-sm text-text-dark">Доставка: {deliveryLabel(form.deliveryMethod)}</p>
+                      <p className="text-sm text-text-dark">{isPickup ? PICKUP_ADDRESS : form.address}</p>
+                      <p className="text-sm text-text-dark">Предпочитаемый способ связи: {contactLabel(form.contactMethod)}{form.contactMethod === "telegram" ? ` · ${form.contactDetails}` : form.contactMethod === "email" ? ` · ${form.email}` : ` · ${form.phone}`}</p>
+                      {form.comment && <p className="text-sm text-text-gray mt-1 whitespace-pre-wrap break-words">Комментарий к заказу: {form.comment}</p>}
                       <button onClick={() => setStep(2)} className="text-primary text-sm hover:underline mt-2">Изменить</button>
                     </div>
                     <div className="p-4 bg-bg-light rounded-lg">
