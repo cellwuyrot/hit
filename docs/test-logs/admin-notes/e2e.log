@@ -5,11 +5,11 @@
 Loaded Prisma config from prisma.config.ts.
 
 Prisma schema loaded from prisma/schema.prisma.
-Datasource "db": SQLite database "test.db" at "file:/tmp/tophitt-e2e-KyAM5l/test.db"
+Datasource "db": SQLite database "test.db" at "file:/tmp/tophitt-e2e-EKq8BS/test.db"
 
-SQLite database test.db created at file:/tmp/tophitt-e2e-KyAM5l/test.db
+SQLite database test.db created at file:/tmp/tophitt-e2e-EKq8BS/test.db
 
-29 migrations found in prisma/migrations
+28 migrations found in prisma/migrations
 
 Applying migration `20260430143627_init`
 Applying migration `20260430173944_v2_subcategories_users_orders_news`
@@ -39,7 +39,6 @@ Applying migration `20260724000000_add_support_chat`
 Applying migration `20260817120000_add_product_video`
 Applying migration `20261001130000_guest_checkout_promo_starts`
 Applying migration `20261001160000_order_admin_note`
-Applying migration `20261002150000_order_contact_delivery`
 
 The following migration(s) have been applied:
 
@@ -100,12 +99,10 @@ migrations/
     └─ migration.sql
   └─ 20261001160000_order_admin_note/
     └─ migration.sql
-  └─ 20261002150000_order_contact_delivery/
-    └─ migration.sql
 
 All migrations have been successfully applied.
 
-Running 14 tests using 1 worker
+Running 9 tests using 1 worker
 
 [WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED 127.0.0.1:587
 [WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:587) {
@@ -116,7 +113,7 @@ Running 14 tests using 1 worker
 [WebServer]   port: 587,
 [WebServer]   command: 'CONN'
 [WebServer] }
-  ✓   1 tests/e2e/checkout.spec.ts:45:5 › Гость: товар → localStorage → корзина → заказ, без аккаунта (3.9s)
+  ✓  1 tests/e2e/checkout.spec.ts:37:5 › Гость: товар → localStorage → корзина → заказ, без аккаунта (9.7s)
 [WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED 127.0.0.1:587
 [WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:587) {
 [WebServer]   errno: -111,
@@ -126,8 +123,8 @@ Running 14 tests using 1 worker
 [WebServer]   port: 587,
 [WebServer]   command: 'CONN'
 [WebServer] }
-  ✓   2 tests/e2e/checkout.spec.ts:61:5 › Гость: промокод 15%, серверный итог 850 ₽, самовывоз (2.5s)
-  ✓   3 tests/e2e/checkout.spec.ts:70:5 › Гостевая корзина: изменения количества, промокод и удаление (2.5s)
+  ✓  2 tests/e2e/checkout.spec.ts:53:5 › Гость: промокод 15%, серверный итог 850 ₽, самовывоз (4.9s)
+  ✓  3 tests/e2e/checkout.spec.ts:62:5 › Гостевая корзина: изменения количества, промокод и удаление (4.8s)
 [WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED 127.0.0.1:587
 [WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:587) {
 [WebServer]   errno: -111,
@@ -146,21 +143,8 @@ Running 14 tests using 1 worker
 [WebServer]   port: 587,
 [WebServer]   command: 'CONN'
 [WebServer] }
-  ✓   4 tests/e2e/checkout.spec.ts:82:5 › Авторизованный покупатель: серверная корзина, промокод, заказ в кабинете (3.5s)
-  ✓   5 tests/e2e/checkout.spec.ts:98:5 › Неверный и просроченный промокод не применяются (2.3s)
-[WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED 127.0.0.1:587
-[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:587) {
-[WebServer]   errno: -111,
-[WebServer]   code: 'ESOCKET',
-[WebServer]   syscall: 'connect',
-[WebServer]   address: '127.0.0.1',
-[WebServer]   port: 587,
-[WebServer]   command: 'CONN'
-[WebServer] }
-  ✓   6 tests/e2e/checkout.spec.ts:108:5 › Лимит использований проверяется и при применении, и при оформлении (3.6s)
-  ✓   7 tests/e2e/checkout.spec.ts:117:5 › Админ: Настройки → Промокоды, создание и отключение; скидка в заказах (2.1s)
-  ✓   8 tests/e2e/checkout.spec.ts:138:5 › Админская заметка: сохранение после перезагрузки, изменение, отмена и удаление (2.5s)
-  ✓   9 tests/e2e/checkout.spec.ts:170:5 › Покупатель не видит внутреннюю заметку в личном кабинете или API (2.4s)
+  ✓  4 tests/e2e/checkout.spec.ts:74:5 › Авторизованный покупатель: серверная корзина, промокод, заказ в кабинете (7.3s)
+  ✓  5 tests/e2e/checkout.spec.ts:90:5 › Неверный и просроченный промокод не применяются (4.3s)
 [WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED ::1:587
 [WebServer]     at <unknown> (Error: connect ECONNREFUSED ::1:587) {
 [WebServer]   errno: -111,
@@ -170,55 +154,9 @@ Running 14 tests using 1 worker
 [WebServer]   port: 587,
 [WebServer]   command: 'CONN'
 [WebServer] }
-  ✓  10 tests/e2e/checkout.spec.ts:195:7 › Checkout: СДЭК, связь telegram, комментарий в базе и админке (3.2s)
-[WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED 127.0.0.1:587
-[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:587) {
-[WebServer]   errno: -111,
-[WebServer]   code: 'ESOCKET',
-[WebServer]   syscall: 'connect',
-[WebServer]   address: '127.0.0.1',
-[WebServer]   port: 587,
-[WebServer]   command: 'CONN'
-[WebServer] }
-[WebServer] Failed to send client order confirmation: Error: connect ECONNREFUSED 127.0.0.1:587
-[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:587) {
-[WebServer]   errno: -111,
-[WebServer]   code: 'ESOCKET',
-[WebServer]   syscall: 'connect',
-[WebServer]   address: '127.0.0.1',
-[WebServer]   port: 587,
-[WebServer]   command: 'CONN'
-[WebServer] }
-  ✓  11 tests/e2e/checkout.spec.ts:195:7 › Checkout: Почта России, связь email, комментарий в базе и админке (2.8s)
-[WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED ::1:587
-[WebServer]     at <unknown> (Error: connect ECONNREFUSED ::1:587) {
-[WebServer]   errno: -111,
-[WebServer]   code: 'ESOCKET',
-[WebServer]   syscall: 'connect',
-[WebServer]   address: '::1',
-[WebServer]   port: 587,
-[WebServer]   command: 'CONN'
-[WebServer] }
-  ✓  12 tests/e2e/checkout.spec.ts:195:7 › Checkout: Самовывоз, связь whatsapp, комментарий в базе и админке (3.1s)
-[WebServer] Failed to send admin order notification: Error: connect ECONNREFUSED 127.0.0.1:587
-[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:587) {
-[WebServer]   errno: -111,
-[WebServer]   code: 'ESOCKET',
-[WebServer]   syscall: 'connect',
-[WebServer]   address: '127.0.0.1',
-[WebServer]   port: 587,
-[WebServer]   command: 'CONN'
-[WebServer] }
-[WebServer] Failed to send client order confirmation: Error: connect ECONNREFUSED ::1:587
-[WebServer]     at <unknown> (Error: connect ECONNREFUSED ::1:587) {
-[WebServer]   errno: -111,
-[WebServer]   code: 'ESOCKET',
-[WebServer]   syscall: 'connect',
-[WebServer]   address: '::1',
-[WebServer]   port: 587,
-[WebServer]   command: 'CONN'
-[WebServer] }
-  ✓  13 tests/e2e/checkout.spec.ts:212:5 › Авторизованный checkout: комментарий, телефон, СДЭК показаны в личном кабинете (3.2s)
-  ✓  14 tests/e2e/checkout.spec.ts:224:5 › Checkout блокирует отсутствующий email/Telegram и сохраняет адрес при переключении доставки (2.5s)
+  ✓  6 tests/e2e/checkout.spec.ts:100:5 › Лимит использований проверяется и при применении, и при оформлении (7.5s)
+  ✓  7 tests/e2e/checkout.spec.ts:109:5 › Админ: Настройки → Промокоды, создание и отключение; скидка в заказах (3.2s)
+  ✓  8 tests/e2e/checkout.spec.ts:130:5 › Админская заметка: сохранение после перезагрузки, изменение, отмена и удаление (3.9s)
+  ✓  9 tests/e2e/checkout.spec.ts:162:5 › Покупатель не видит внутреннюю заметку в личном кабинете или API (4.2s)
 
-  14 passed (43.1s)
+  9 passed (54.9s)

@@ -1,3 +1,4 @@
+import { parseOrderDetails, OrderDetailsError } from "@/lib/order-options";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { getUserIdFromRequest, getTokenFromRequest } from "@/lib/auth";
@@ -91,19 +92,13 @@ export async function quoteCheckout(userId: string | null, items: unknown, code?
   });
 }
 export async function createCheckoutOrder(userId: string | null, body: Record<string, unknown>) {
-  const name = text(body.name, 150, "Имя");
-  const phone = text(body.phone, 40, "Телефон");
-  const email = text(body.email, 254, "Email");
-  const pickup = body.isPickup === true;
-  const address = pickup ? "Самовывоз: Москва, ул. Складочная, 1, стр. 18" : text(body.address, 1000, "Адрес");
-  const comment = text(body.comment, 2000, "Комментарий");
-  if (!name || !phone) throw new CheckoutError("Укажите имя и телефон");
-  if (!/^[\d\s+()\-]+$/.test(phone) || phone.replace(/\D/g, "").length < 10 || phone.replace(/\D/g, "").length > 15) throw new CheckoutError("Укажите корректный телефон (10–15 цифр)");
-  if (!pickup && address.length < 10) throw new CheckoutError("Укажите полный адрес доставки или выберите самовывоз");
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new CheckoutError("Укажите корректный email");
   return prisma.$transaction(async tx => {
     const user = userId ? await tx.user.findUnique({ where: { id: userId }, select: { email: true } }) : null;
     if (userId && !user) throw new CheckoutError("Пользователь не найден", 401);
+    let details;
+    try { details = parseOrderDetails(body, user?.email || ""); }
+    catch (error) { if (error instanceof OrderDetailsError) throw new CheckoutError(error.message); throw error; }
+
     const quote = await calculate(tx, userId, body.items, body.promoCode);
     for (const item of quote.items) {
       const changed = await tx.product.updateMany({ where: { id: item.productId, inStock: { gte: item.quantity } }, data: { inStock: { decrement: item.quantity } } });
@@ -121,7 +116,7 @@ export async function createCheckoutOrder(userId: string | null, body: Record<st
       if (!changed.count) throw new CheckoutError("Промокод больше недоступен. Проверьте его повторно", 409);
     }
     const order = await tx.order.create({ data: {
-      userId, name, phone, address, email: email || user?.email || "", comment,
+      userId, ...details,
       subtotal: quote.subtotal, total: quote.total, promoCode: quote.promoCode, discount: quote.discount,
       items: { create: quote.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.lineTotal / i.quantity })) },
     }, include: { items: { include: { product: true } } } });

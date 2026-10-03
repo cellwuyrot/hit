@@ -1,4 +1,5 @@
 "use client";
+import OrderPreferences from "@/components/OrderPreferences";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -50,6 +51,12 @@ interface Order {
   trackUrl?: string;
   promoCode?: string;
   discount?: number;
+  deliveryMethod: string;
+  contactMethod: string;
+  contactDetails: string;
+  phone: string;
+  email: string;
+  comment: string;
 }
 
 const statusLabels: Record<string, string> = {
@@ -614,6 +621,7 @@ export default function AccountPage() {
                       </div>
                     ))}
                   </div>
+                  <OrderPreferences order={order} />
                   {/* Tracking info */}
                   {order.trackNumber && (
                     <div className="mt-3 pt-3 border-t border-border">

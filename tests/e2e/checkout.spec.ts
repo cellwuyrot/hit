@@ -4,7 +4,7 @@ import Database from "better-sqlite3";
 import { readFileSync } from "node:fs";
 const { productId, userToken } = JSON.parse(readFileSync(process.env.E2E_FIXTURE_FILE!, "utf8")) as { productId: string; userToken: string };
 const db = new Database(process.env.DATABASE_URL!.replace(/^file:/, ""), { readonly: true });
-type OrderRow = { id: string; userId: string | null; total: number; discount: number; subtotal: number; promoCode: string };
+type OrderRow = { id: string; userId: string | null; total: number; discount: number; subtotal: number; promoCode: string; contactMethod: string; contactDetails: string; deliveryMethod: string; comment: string; email: string };
 const getOrder = (id: string) => db.prepare('SELECT * FROM "Order" WHERE "id" = ?').get(id) as OrderRow;
 const getPromo = (code: string) => db.prepare('SELECT * FROM "PromoCode" WHERE "code" = ?').get(code) as { active: number };
 const userCount = () => (db.prepare('SELECT COUNT(*) AS total FROM "User"').get() as { total: number }).total;
@@ -18,13 +18,21 @@ async function apply(page: Page, code: string) {
   await page.getByPlaceholder("Введите промокод").fill(code);
   await page.getByRole("button", { name: "Применить", exact: true }).click();
 }
-async function finish(page: Page, pickup = false) {
+async function finish(page: Page, pickup = false, options?: { contactMethod: string; deliveryMethod: string; comment: string }) {
   await page.getByRole("button", { name: "Далее — Данные доставки" }).click();
   await page.getByLabel("Имя получателя *", { exact: true }).fill("Покупатель E2E");
   await page.getByLabel("Телефон *", { exact: true }).fill("+7 999 123 45 67");
-  if (pickup) await page.getByRole("button", { name: "Самовывоз", exact: true }).click();
+  if (pickup) await page.getByLabel("Выбор доставки *", { exact: true }).selectOption("pickup");
   else await page.getByLabel("Адрес доставки *", { exact: true }).fill("Москва, Тестовая улица, дом 1");
+  if (options) {
+    await page.getByLabel("Выбор доставки *", { exact: true }).selectOption(options.deliveryMethod);
+    await page.getByLabel("Предпочитаемый способ связи *", { exact: true }).selectOption(options.contactMethod);
+    if (options.contactMethod === "telegram") await page.getByLabel("Telegram: username или ссылка *", { exact: true }).fill("@e2e_contact");
+    if (options.contactMethod === "email") await page.getByLabel("Email для связи *", { exact: true }).fill("contact@example.test");
+    await page.getByLabel("Комментарий к заказу (необязательно)", { exact: true }).fill(options.comment);
+  }
   await page.getByRole("button", { name: "Далее — Подтверждение" }).click();
+  if (options) await expect(page.getByText(`Комментарий к заказу: ${options.comment}`, { exact: true })).toBeVisible();
   const response = page.waitForResponse(r => r.url().endsWith("/api/user/orders") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Подтвердить заказ" }).click();
   const r = await response;
@@ -179,4 +187,53 @@ test("Покупатель не видит внутреннюю заметку �
   await expect(page.getByText(`Заказ #${id.slice(0, 8)}`, { exact: true })).toBeVisible();
   await expect(page.getByText(marker, { exact: true })).toHaveCount(0);
   await expect(page.getByText("Заметка администратора", { exact: true })).toHaveCount(0);
+});
+
+for (const [deliveryMethod, contactMethod, label] of [
+  ["cdek", "telegram", "СДЭК"], ["russian_post", "email", "Почта России"], ["pickup", "whatsapp", "Самовывоз"],
+]) {
+  test(`Checkout: ${label}, связь ${contactMethod}, комментарий в базе и админке`, async ({ page, request }) => {
+    await addGuest(page); await page.goto("/checkout");
+    const comment = `Пожелания ${deliveryMethod}\nСвязаться после 18:00`;
+    const result = await finish(page, deliveryMethod === "pickup", { deliveryMethod, contactMethod, comment });
+    const saved = getOrder(result.id);
+    expect(saved.deliveryMethod).toBe(deliveryMethod); expect(saved.contactMethod).toBe(contactMethod); expect(saved.comment).toBe(comment);
+    if (contactMethod === "telegram") expect(saved.contactDetails).toBe("@e2e_contact");
+    if (contactMethod === "email") expect(saved.email).toBe("contact@example.test");
+    const auth = await request.post("/api/admin/auth", { data: { username: "e2e-admin", password: "e2e-password" } });
+    const { token } = await auth.json();
+    await page.goto("/admin"); await page.evaluate(token => localStorage.setItem("admin_token", token), token); await page.reload();
+    await page.getByRole("button", { name: /^Заказы \(/ }).click();
+    const card = page.locator('div.p-4.bg-bg-light.rounded-lg').filter({ has: page.getByText(`#${result.id.slice(0, 8)}`, { exact: true }) });
+    await expect(card).toContainText(`Доставка: ${label}`); await expect(card).toContainText("Связаться после 18:00");
+    await expect(card).toContainText("Предпочитаемый способ связи:");
+  });
+}
+test("Авторизованный checkout: комментарий, телефон, СДЭК показаны в личном кабинете", async ({ page }) => {
+  await page.goto("/account"); await page.evaluate(token => localStorage.setItem("userToken", token), userToken);
+  await page.goto("/product/e2e-product"); await page.getByRole("button", { name: "В корзину", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Добавлено!", exact: true })).toBeVisible();
+  await page.goto("/checkout");
+  const result = await finish(page, false, { deliveryMethod: "cdek", contactMethod: "phone", comment: "Комментарий авторизованного покупателя" });
+  await page.getByRole("link", { name: "Мои заказы", exact: true }).click();
+  await page.getByRole("button", { name: /^Мои заказы \(/ }).click();
+  const card = page.locator('div.bg-bg-white.rounded-xl.border').filter({ has: page.getByText(`Заказ #${result.id.slice(0, 8)}`, { exact: true }) });
+  await expect(card).toContainText("Доставка: СДЭК"); await expect(card).toContainText("Телефон");
+  await expect(card).toContainText("Комментарий авторизованного покупателя");
+});
+test("Checkout блокирует отсутствующий email/Telegram и сохраняет адрес при переключении доставки", async ({ page }) => {
+  await addGuest(page); await page.goto("/checkout"); await page.getByRole("button", { name: "Далее — Данные доставки" }).click();
+  await page.getByLabel("Имя получателя *", { exact: true }).fill("Тест");
+  await page.getByLabel("Телефон *", { exact: true }).fill("+79991234567");
+  await page.getByLabel("Адрес доставки *", { exact: true }).fill("Москва, Тестовая улица, дом 1");
+  await page.getByLabel("Выбор доставки *", { exact: true }).selectOption("pickup");
+  await expect(page.getByLabel("Адрес доставки *", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Выбор доставки *", { exact: true }).selectOption("russian_post");
+  await expect(page.getByLabel("Адрес доставки *", { exact: true })).toHaveValue("Москва, Тестовая улица, дом 1");
+  await page.getByLabel("Предпочитаемый способ связи *", { exact: true }).selectOption("email");
+  await page.getByRole("button", { name: "Далее — Подтверждение" }).click();
+  await expect(page.locator('main [role="alert"]')).toContainText("Укажите email");
+  await page.getByLabel("Предпочитаемый способ связи *", { exact: true }).selectOption("telegram");
+  await page.getByRole("button", { name: "Далее — Подтверждение" }).click();
+  await expect(page.locator('main [role="alert"]')).toContainText("Укажите Telegram");
 });

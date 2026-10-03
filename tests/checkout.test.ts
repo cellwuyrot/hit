@@ -2,6 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { prisma } from "../src/lib/prisma";
 import { createCheckoutOrder, quoteCheckout } from "../src/lib/checkout";
+import { orderDetailsHtml } from "../src/lib/email";
 import { signToken } from "../src/lib/auth";
 import { POST as orderPOST, GET as orderGET } from "../src/app/api/user/orders/route";
 import { POST as promoPOST } from "../src/app/api/promo/route";
@@ -192,6 +193,13 @@ test("Миграция сохраняет старые заказы, позиц�
     db.exec(readFileSync("prisma/migrations/20261001160000_order_admin_note/migration.sql", "utf8"));
     const migrated = db.prepare('SELECT "adminNote", "total", "discount", "userId" FROM "Order" WHERE "id" = ?').get("old-order") as { adminNote: string; total: number; discount: number; userId: string };
     assert.equal(migrated.adminNote, ""); assert.equal(migrated.total, 850); assert.equal(migrated.discount, 150); assert.equal(migrated.userId, "old-user");
+    db.exec(`UPDATE "Order" SET "adminNote" = 'Legacy private note', "comment" = 'Legacy customer comment' WHERE "id" = 'old-order';
+      INSERT INTO "Order" ("id", "total", "address", "updatedAt") VALUES ('old-pickup', 100, 'Самовывоз: Москва, склад', CURRENT_TIMESTAMP);`);
+    db.exec(readFileSync("prisma/migrations/20261002150000_order_contact_delivery/migration.sql", "utf8"));
+    const options = db.prepare('SELECT * FROM "Order" WHERE "id" = ?').get("old-order") as { contactMethod: string; deliveryMethod: string; adminNote: string; comment: string; total: number };
+    assert.equal(options.contactMethod, "phone"); assert.equal(options.deliveryMethod, ""); assert.equal(options.adminNote, "Legacy private note"); assert.equal(options.comment, "Legacy customer comment"); assert.equal(options.total, 850);
+    assert.equal((db.prepare('SELECT "deliveryMethod" FROM "Order" WHERE "id" = ?').get("old-pickup") as { deliveryMethod: string }).deliveryMethod, "pickup");
+
     assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
 
   } finally { db.close(); }
@@ -252,4 +260,62 @@ test("Изменение статуса и трека не стирает вну
   assert.equal((await adminOrderPUT(req({ id: order.id, status: "processing", trackNumber: "TEST-TRACK", trackUrl: "https://example.test/track" }, adminToken, "PUT"))).status, 200);
   const saved = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
   assert.equal(saved.adminNote, "Уточнили детали"); assert.equal(saved.status, "processing"); assert.equal(saved.trackNumber, "TEST-TRACK");
+});
+
+for (const contactMethod of ["phone", "telegram", "whatsapp", "email"]) {
+  for (const deliveryMethod of ["cdek", "russian_post", "pickup"]) {
+    test(`Гость: связь ${contactMethod}, доставка ${deliveryMethod}, многострочный комментарий`, async () => {
+      const order = await createCheckoutOrder(null, { ...customer, items: items(), contactMethod, deliveryMethod,
+        email: contactMethod === "email" ? "guest@example.test" : "", contactDetails: "https://t.me/guest_contact",
+        address: deliveryMethod === "pickup" ? "" : customer.address, comment: "Не звонить утром\nУпаковать аккуратно" });
+      assert.equal(order.contactMethod, contactMethod); assert.equal(order.deliveryMethod, deliveryMethod);
+      assert.equal(order.contactDetails, contactMethod === "telegram" ? "@guest_contact" : "");
+      assert.equal(order.comment, "Не звонить утром\nУпаковать аккуратно"); assert.equal(order.adminNote, ""); assert.equal(order.total, 1000);
+      if (deliveryMethod === "pickup") assert.match(order.address, /^Самовывоз:/);
+      const saved = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+      assert.equal(saved.deliveryMethod, deliveryMethod); assert.equal(saved.contactMethod, contactMethod);
+      const list = await adminOrdersGET(req(null, adminToken, "GET"));
+      assert.equal((await list.json()).find((o: { id: string }) => o.id === order.id).comment, order.comment);
+    });
+  }
+}
+for (const contactMethod of ["phone", "telegram", "whatsapp", "email"]) {
+  test(`Авторизованный покупатель: связь ${contactMethod}, Почта России, комментарий и скидка`, async () => {
+    await cartPOST(req({ productId, quantity: 1 }, userToken));
+    const order = await createCheckoutOrder(userId, { ...customer, contactMethod, deliveryMethod: "russian_post", contactDetails: "@user_contact", comment: "Упаковать отдельно", promoCode: "USER150" });
+    assert.equal(order.total, 850); assert.equal(order.contactMethod, contactMethod); assert.equal(order.email, "customer@example.test");
+    const list = await orderGET(req(null, userToken, "GET"));
+    const own = (await list.json()).find((o: { id: string }) => o.id === order.id);
+    assert.equal(own.deliveryMethod, "russian_post"); assert.equal(own.comment, "Упаковать отдельно"); assert.equal(Object.hasOwn(own, "adminNote"), false);
+  });
+}
+test("Неизвестные способы, пустая почта/Telegram и конфликт самовывоза отклоняются без заказа", async () => {
+  const count = await prisma.order.count();
+  const stock = (await prisma.product.findUniqueOrThrow({ where: { id: productId } })).inStock;
+  for (const invalid of [
+    { contactMethod: "sms" }, { contactMethod: null }, { deliveryMethod: "courier" }, { deliveryMethod: null },
+    { contactMethod: "email", email: "" }, { contactMethod: "email", email: "broken" },
+    { contactMethod: "telegram", contactDetails: "" }, { contactMethod: "telegram", contactDetails: "https://evil.test/user" },
+    { deliveryMethod: "cdek", isPickup: true }, { deliveryMethod: "pickup", isPickup: false },
+    { deliveryMethod: "cdek", address: "" }, { deliveryMethod: "russian_post", address: "short" },
+  ]) {
+    await assert.rejects(() => createCheckoutOrder(null, { ...customer, items: items(), ...invalid }));
+    const res = await orderPOST(req({ ...customer, items: items(), ...invalid })); assert.equal(res.status, 400);
+  }
+  assert.equal(await prisma.order.count(), count); assert.equal((await prisma.product.findUniqueOrThrow({ where: { id: productId } })).inStock, stock);
+});
+test("Комментарий необязателен, лимит 2000 символов, внутреннюю заметку клиент не задаёт", async () => {
+  const max = await createCheckoutOrder(null, { ...customer, items: items(), comment: "x".repeat(2000) }); assert.equal(max.comment.length, 2000);
+  for (const comment of ["x".repeat(2001), { text: "bad" }, 123]) await assert.rejects(() => createCheckoutOrder(null, { ...customer, items: items(), comment }));
+  const empty = await createCheckoutOrder(null, { ...customer, items: items(), comment: " ", adminNote: "Подмена" }); assert.equal(empty.comment, ""); assert.equal(empty.adminNote, "");
+});
+test("Совместимость старого isPickup и очистка неактивного Telegram-контакта", async () => {
+  const legacy = await createCheckoutOrder(null, { ...customer, address: "", items: items(), isPickup: true });
+  assert.equal(legacy.deliveryMethod, "pickup"); assert.equal(legacy.contactMethod, "phone");
+  const current = await createCheckoutOrder(null, { ...customer, items: items(), contactMethod: "phone", contactDetails: "@old_telegram" }); assert.equal(current.contactDetails, "");
+});
+test("Шаблон письма содержит доставку, связь и безопасный комментарий, но не adminNote", async () => {
+  const order = await createCheckoutOrder(null, { ...customer, items: items(), deliveryMethod: "russian_post", contactMethod: "telegram", contactDetails: "@test_user", comment: "<img src=x onerror=alert(1)>\nВторая строка" });
+  const html = orderDetailsHtml({ ...order, adminNote: "PRIVATE_NOT_IN_EMAIL" } as typeof order);
+  assert.match(html, /Почта России/); assert.match(html, /Telegram/); assert.match(html, /@test_user/); assert.match(html, /&lt;img/); assert.ok(!html.includes("<img src=x")); assert.ok(!html.includes("PRIVATE_NOT_IN_EMAIL"));
 });

@@ -1,3 +1,4 @@
+import { contactLabel, deliveryLabel } from "@/lib/order-options";
 import nodemailer from "nodemailer";
 
 const smtpUser = process.env.SMTP_USER || "";
@@ -37,6 +38,10 @@ interface OrderEmailData {
   phone: string;
   address: string;
   comment: string;
+  contactMethod?: string;
+  contactDetails?: string;
+  deliveryMethod?: string;
+  email?: string;
   total: number;
   promoCode?: string;
   discount?: number;
@@ -59,17 +64,20 @@ function emailWrapper(content: string) {
   `;
 }
 
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
 function orderItemsHtml(items: OrderItem[]) {
   return items.map(item => `
     <tr>
-      <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #334155;">${item.product.name}</td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #334155;">${escapeHtml(item.product.name)}</td>
       <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #64748b; text-align: center;">${item.quantity}</td>
       <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #334155; text-align: right;">${(item.price * item.quantity).toLocaleString("ru-RU")} ₽</td>
     </tr>
   `).join("");
 }
 
-function orderDetailsHtml(order: OrderEmailData) {
+export function orderDetailsHtml(order: OrderEmailData) {
   const discountRow = order.promoCode && order.discount && order.discount > 0
     ? `<p style="color: #16a34a; font-size: 14px;">Промокод «${order.promoCode}» — скидка ${order.discount.toLocaleString("ru-RU")} ₽</p>`
     : "";
@@ -89,10 +97,12 @@ function orderDetailsHtml(order: OrderEmailData) {
     ${discountRow}
     <p style="font-size: 18px; font-weight: bold; color: #4A90D9; text-align: right;">Итого: ${order.total.toLocaleString("ru-RU")} ₽</p>
     <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
-    <p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Получатель:</strong> ${order.name}</p>
-    <p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Телефон:</strong> ${order.phone}</p>
-    <p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Адрес:</strong> ${order.address}</p>
-    ${order.comment ? `<p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Комментарий:</strong> ${order.comment}</p>` : ""}
+    <p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Получатель:</strong> ${escapeHtml(order.name)}</p>
+    <p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Телефон:</strong> ${escapeHtml(order.phone)}</p>
+    <p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Адрес:</strong> ${escapeHtml(order.address)}</p>
+    <p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Доставка:</strong> ${escapeHtml(deliveryLabel(order.deliveryMethod))}</p>
+    <p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Предпочитаемый способ связи:</strong> ${escapeHtml(contactLabel(order.contactMethod))} — ${escapeHtml(order.contactMethod === "telegram" ? order.contactDetails || "" : order.contactMethod === "email" ? order.email || "" : order.phone)}</p>
+    ${order.comment ? `<p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Комментарий:</strong> ${escapeHtml(order.comment).replace(/\n/g, "<br />")}</p>` : ""}
   `;
 }
 
@@ -132,8 +142,8 @@ export async function sendOrderNotificationToAdmin(order: OrderEmailData, custom
       subject: `Новый заказ #${order.id.slice(0, 8)} — ${order.total.toLocaleString("ru-RU")} ₽`,
       html: emailWrapper(`
         <div style="background: #dbeafe; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
-          <p style="color: #1e40af; font-size: 14px; margin: 0; font-weight: bold;">📦 Новый заказ от ${order.name}</p>
-          <p style="color: #1e40af; font-size: 13px; margin: 4px 0 0;">Email клиента: ${customerEmail}</p>
+          <p style="color: #1e40af; font-size: 14px; margin: 0; font-weight: bold;">📦 Новый заказ от ${escapeHtml(order.name)}</p>
+          <p style="color: #1e40af; font-size: 13px; margin: 4px 0 0;">Email клиента: ${escapeHtml(customerEmail)}</p>
         </div>
         ${orderDetailsHtml(order)}
       `),
