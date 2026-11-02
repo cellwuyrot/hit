@@ -154,7 +154,7 @@ export default function HeroSlider({ slides: initialSlides }: HeroSliderProps) {
                 />
                 {(slide.title || slide.subtitle) && !editing && (
                   <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent flex items-center">
-                    <div className="px-4 sm:px-8 md:px-16">
+                    <div className={`${slides.length > 1 ? "px-16" : "px-4 sm:px-8"} md:px-16`}>
                       {slide.title && (
                         <h2 className="text-white text-lg sm:text-2xl md:text-4xl font-bold mb-1 sm:mb-2">{slide.title}</h2>
                       )}
@@ -167,7 +167,7 @@ export default function HeroSlider({ slides: initialSlides }: HeroSliderProps) {
               </Link>
               {editing && (
                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent flex items-center pointer-events-auto">
-                  <div className="px-4 sm:px-8 md:px-16 pointer-events-auto">
+                  <div className={`${slides.length > 1 ? "px-16" : "px-4 sm:px-8"} md:px-16 pointer-events-auto`}>
                     <InlineEditable
                       model="slider"
                       id={slide.id}
@@ -196,7 +196,7 @@ export default function HeroSlider({ slides: initialSlides }: HeroSliderProps) {
             <button
               onClick={prev}
               aria-label="Предыдущий слайд"
-              className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1.5 sm:p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center bg-white/90 hover:bg-white rounded-full shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <svg className="w-5 h-5 text-text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -205,24 +205,12 @@ export default function HeroSlider({ slides: initialSlides }: HeroSliderProps) {
             <button
               onClick={next}
               aria-label="Следующий слайд"
-              className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1.5 sm:p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center bg-white/90 hover:bg-white rounded-full shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <svg className="w-5 h-5 text-text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2">
-              {slides.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrent(index)}
-                  aria-label={`Слайд ${index + 1}`}
-                  className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-colors shadow-sm ${
-                    index === current ? "bg-white border-2 border-gray-700" : "bg-gray-800/70 border border-gray-600"
-                  }`}
-                />
-              ))}
-            </div>
           </>
         )}
       </div>
