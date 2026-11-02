@@ -67,7 +67,7 @@ export function AddPackButton({ productId, inStock, packSize, price }: { product
   return (
     <button ref={btnRef} onClick={addPack}
       className={`w-full px-6 py-3 rounded-lg font-medium transition-all duration-300 text-sm ${
-        addedPack ? "bg-success text-white scale-95" : "bg-green-600 hover:bg-green-700 text-white active:scale-95"
+        addedPack ? "bg-success text-white scale-95" : "bg-white border border-border hover:border-primary text-primary active:scale-95"
       }`}>
       {addedPack ? "Упаковка добавлена!" : `1 упаковка (${packSize} шт.) — ${packTotal.toLocaleString("ru-RU")} ₽ (скидка 10%)`}
     </button>

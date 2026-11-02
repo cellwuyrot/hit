@@ -122,7 +122,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "analytics" | "categories" | "products" | "popular" | "slider" | "presentation" | "news" | "orders" | "chats" | "reviews" | "videos" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
+type TabType = "overview" | "analytics" | "categories" | "products" | "popular" | "slider" | "presentation" | "news" | "orders" | "chats" | "reviews" | "videos" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
 
 interface CallbackItem {
   id: string;
@@ -574,8 +574,8 @@ export default function AdminPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [activeTab, setActiveTab] = useState<TabType>("orders");
-  const [navGroup, setNavGroup] = useState("Продажи");
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [navGroup, setNavGroup] = useState("Обзор");
   const [chatUnread, setChatUnread] = useState(0);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -583,6 +583,7 @@ export default function AdminPage() {
   const [slides, setSlides] = useState<SliderImage[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [overviewLoaded, setOverviewLoaded] = useState(false);
 
   const [catName, setCatName] = useState("");
   const [catIcon, setCatIcon] = useState("");
@@ -653,6 +654,7 @@ export default function AdminPage() {
     if (slideRes.ok) setSlides(await slideRes.json());
     if (newsRes.ok) setNews(await newsRes.json());
     if (ordersRes.ok) setOrders(await ordersRes.json());
+    setOverviewLoaded(prodRes.ok && ordersRes.ok);
     if (pagesRes.ok) {
       const pages: SitePage[] = await pagesRes.json();
       const map: Record<string, SitePage> = {};
@@ -1180,10 +1182,11 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, chats: chatUnread > 0 ? `Чаты (${chatUnread})` : "Чаты", reviews: "Отзывы", videos: "Видео", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
+    overview: "Рабочий стол", analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, chats: chatUnread > 0 ? `Чаты (${chatUnread})` : "Чаты", reviews: "Отзывы", videos: "Видео", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
   };
 
   const navGroups: Record<string, TabType[]> = {
+    "Обзор": ["overview"],
     "Продажи": ["orders", "clients", "callbacks", "chats"],
     "Каталог": ["products", "categories", "reviews", "videos", "synonyms"],
     "Сайт и продвижение": ["popular", "slider", "presentation", "news", "site-editor"],
@@ -1206,15 +1209,26 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <nav aria-label="Разделы управления" className="mb-6 rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap gap-2 border-b border-border pb-3">
-            {Object.keys(navGroups).map(group => <button key={group} onClick={() => { setNavGroup(group); setActiveTab(navGroups[group][0]); }} aria-current={navGroup === group ? "page" : undefined} className={`px-4 py-2 rounded-lg text-sm font-semibold ${navGroup === group ? "bg-primary text-white" : "text-text-gray hover:bg-bg-light"}`}>{group}</button>)}
+      <div className="max-w-7xl mx-auto px-4 py-6 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7">
+        <nav aria-label="Разделы управления" className="mb-6 lg:mb-0 rounded-xl border border-border bg-white p-3 self-start">
+          <p className="font-bold text-text-dark px-3 py-2">Управление магазином</p>
+          <div className="flex flex-wrap lg:flex-col gap-1">
+            {Object.keys(navGroups).map(group => <div key={group} className="lg:w-full"><button onClick={() => { setNavGroup(group); setActiveTab(navGroups[group][0]); }} aria-current={navGroup === group ? "page" : undefined} className={`min-h-11 w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${navGroup === group ? "bg-primary/10 text-primary" : "text-text-gray hover:bg-bg-light"}`}>{group}</button>{navGroup === group && group !== "Обзор" && <div className="hidden lg:flex flex-col gap-1 pl-3 py-1">{navGroups[group].map(tab => <button key={tab} onClick={() => setActiveTab(tab)} aria-pressed={activeTab === tab} className={`text-left px-3 py-2 rounded-lg text-sm ${activeTab === tab ? "text-primary font-semibold bg-bg-light" : "text-text-gray hover:bg-bg-light"}`}>{tabLabels[tab]}</button>)}</div>}</div>)}
           </div>
-          <div className="flex gap-2 flex-wrap pt-3">
-            {navGroups[navGroup].map(tab => <button key={tab} onClick={() => setActiveTab(tab)} aria-pressed={activeTab === tab} className={`px-3 py-2 rounded-lg text-sm ${activeTab === tab ? "bg-primary/10 text-primary font-semibold" : "text-text-gray hover:bg-bg-light"}`}>{tabLabels[tab]}</button>)}
-          </div>
+          {navGroup !== "Обзор" && <div className="lg:hidden flex gap-2 flex-wrap pt-3 border-t border-border">{navGroups[navGroup].map(tab => <button key={tab} onClick={() => setActiveTab(tab)} aria-pressed={activeTab === tab} className={`px-3 py-2 rounded-lg text-sm ${activeTab === tab ? "bg-primary/10 text-primary font-semibold" : "text-text-gray hover:bg-bg-light"}`}>{tabLabels[tab]}</button>)}</div>}
         </nav>
+        <div className="min-w-0">
+        {activeTab === "overview" && <section aria-label="Рабочий стол">
+          <h2 className="text-3xl font-bold text-text-dark mb-2">Рабочий стол</h2>
+          <p className="text-text-gray mb-6">Главное для работы с магазином — без лишних элементов.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="bg-white border border-border rounded-xl p-5"><p className="text-sm text-text-gray">Новые заказы</p><p className="text-2xl font-bold mt-2">{overviewLoaded ? orders.filter(o => o.status === "new").length : "—"}</p></div>
+            <div className="bg-white border border-border rounded-xl p-5"><p className="text-sm text-text-gray">Всего заказов</p><p className="text-2xl font-bold mt-2">{overviewLoaded ? orders.length : "—"}</p></div>
+            <div className="bg-white border border-border rounded-xl p-5"><p className="text-sm text-text-gray">Товаров в каталоге</p><p className="text-2xl font-bold mt-2">{overviewLoaded ? products.length : "—"}</p></div>
+          </div>
+          <div className="bg-white border border-border rounded-xl p-5"><div className="flex justify-between items-center gap-3 mb-4"><h3 className="font-bold text-lg">Последние заказы</h3><button onClick={() => { setNavGroup("Продажи"); setActiveTab("orders"); }} className="text-primary text-sm font-medium">Все заказы →</button></div>{!overviewLoaded ? <p className="text-text-gray text-sm">Загрузка данных или ошибка получения. Откройте раздел заказов для проверки.</p> : orders.length === 0 ? <p className="text-text-gray text-sm py-4">Заказов пока нет.</p> : <div className="divide-y divide-border">{orders.slice(0, 5).map(order => <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"><span>Заказ #{order.id.slice(0, 8)} · {order.name}</span><span className="text-text-gray">{statusLabels[order.status] || order.status} · {order.total.toLocaleString("ru-RU")} ₽</span></div>)}</div>}</div>
+          <h3 className="font-bold text-lg mt-7 mb-3">Быстрые действия</h3><div className="flex flex-wrap gap-2"><button onClick={() => { setNavGroup("Каталог"); setActiveTab("products"); }} className="min-h-11 px-4 py-2 bg-white border border-border rounded-lg text-sm">Товары и импорт</button><button onClick={() => { setNavGroup("Каталог"); setActiveTab("categories"); }} className="min-h-11 px-4 py-2 bg-white border border-border rounded-lg text-sm">Категории</button><button onClick={() => { setNavGroup("Настройки и аналитика"); setActiveTab("settings"); }} className="min-h-11 px-4 py-2 bg-white border border-border rounded-lg text-sm">Условия доставки</button></div>
+        </section>}
 
         {/* Analytics */}
         {activeTab === "analytics" && <AnalyticsPanel token={token} />}
@@ -1532,10 +1546,10 @@ export default function AdminPage() {
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                   <p className="text-xs text-text-gray mt-1">Мета-теги для поисковиков. Не видны клиентам на сайте.</p>
                 </div>
-                <div className="md:col-span-2 lg:col-span-3 flex items-center gap-4">
+                <div className="md:col-span-2 lg:col-span-3 flex flex-wrap items-center gap-3">
                   <button type="submit" className="bg-primary hover:bg-primary-dark text-white text-sm px-6 py-2 rounded-lg">{editingProd ? "Сохранить" : "Добавить"}</button>
                   {editingProd && <button type="button" onClick={() => { setEditingProd(null); setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false, isWholesale: false, tags: "" }); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
-                  <label className="flex items-center gap-2 text-sm cursor-pointer ml-auto border border-yellow-300 bg-yellow-50 rounded-lg px-3 py-2">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer sm:ml-auto border border-yellow-300 bg-yellow-50 rounded-lg px-3 py-2">
                     <input type="checkbox" checked={prodForm.isFeatured} onChange={(e) => setProdForm({ ...prodForm, isFeatured: e.target.checked })} className="accent-yellow-500 w-4 h-4" />
                     <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                     <span className="text-yellow-700 font-medium">Популярный товар</span>
@@ -2052,6 +2066,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

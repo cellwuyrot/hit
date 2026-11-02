@@ -1,3 +1,4 @@
+import CatalogSort from "@/components/CatalogSort";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -101,8 +102,8 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
   const totalPages = Math.ceil(totalCount / PER_PAGE);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-      <div className="hidden lg:block w-72 flex-shrink-0">
+    <div className="flex flex-col lg:flex-row gap-5 lg:gap-8">
+      <div className="hidden lg:block w-60 flex-shrink-0">
         <CatalogFilters
           brands={allBrands}
           productTypes={allTypes}
@@ -145,7 +146,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
       </div>
 
       <div className="flex-1 min-w-0">
-        {!search && <section aria-label="Категории каталога" className="mb-6 rounded-2xl border border-border bg-white p-4 sm:p-5"><div className="flex justify-between items-baseline gap-3 mb-3"><h2 className="text-base font-bold text-text-dark">Покупки по категориям</h2><span className="text-xs text-text-gray">Выберите раздел</span></div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">{categories.map(cat => <Link key={cat.id} href={`/catalog/${cat.slug}`} className="rounded-xl border border-border bg-bg-light p-3 hover:border-primary hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary transition-colors"><span className="block text-sm font-semibold text-text-dark">{cat.name}</span><span className="block text-xs text-text-gray mt-1">{cat._count.products + cat.children.reduce((sum, child) => sum + child._count.products, 0)} товаров →</span></Link>)}</div></section>}
+        {!search && <section aria-label="Категории каталога" className="mb-6"><div className="flex justify-between items-baseline gap-3 mb-3"><h2 className="text-base font-bold text-text-dark">Покупки по категориям</h2><span className="text-xs text-text-gray">Выберите раздел</span></div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">{categories.map(cat => <Link key={cat.id} href={`/catalog/${cat.slug}`} className="rounded-xl border border-border bg-white p-4 min-h-20 hover:border-primary hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary transition-colors"><span className="block text-sm font-semibold text-text-dark">{cat.name}</span><span className="block text-xs text-text-gray mt-1">{cat._count.products + cat.children.reduce((sum, child) => sum + child._count.products, 0)} товаров →</span></Link>)}</div></section>}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-3">
           <MobileFilterDrawer
             brands={allBrands}
@@ -163,8 +164,8 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
             {totalPages > 1 ? <span className="text-text-light">{` (стр. ${page} из ${totalPages})`}</span> : null}
           </p>
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-            <span className="text-text-gray hidden sm:inline">Сортировка:</span>
-            <SortLinks current={sort} searchParams={searchParams} />
+            
+            <CatalogSort current={sort} searchParams={searchParams} />
           </div>
         </div>
 
@@ -201,31 +202,6 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
   );
 }
 
-function SortLinks({ current, searchParams }: { current: string; searchParams: Record<string, string | undefined> }) {
-  const sorts = [
-    { key: "popular", label: "По популярности" },
-    { key: "name", label: "По алфавиту" },
-    { key: "price_asc", label: "По цене ↑" },
-    { key: "price_desc", label: "По цене ↓" },
-  ];
-  return (
-    <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-      {sorts.map((s) => (
-        <Link
-          key={s.key}
-          href={`?${new URLSearchParams(Object.entries({ ...searchParams, sort: s.key, page: undefined }).filter((entry): entry is [string, string] => typeof entry[1] === "string")).toString()}`}
-          className={`px-2 sm:px-3 py-1 rounded-md transition-colors text-xs sm:text-sm ${
-            current === s.key
-              ? "bg-primary text-white"
-              : "bg-bg-light text-text-gray hover:text-text-dark"
-          }`}
-        >
-          {s.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
 
 export default async function CatalogPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
@@ -236,8 +212,8 @@ export default async function CatalogPage({ searchParams }: PageProps) {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <Breadcrumbs items={[{ label: "Каталог" }]} />
 
-          <h1 className="text-xl sm:text-2xl font-bold text-text-dark mb-1 sm:mb-2">Каталог товаров ТОПХИТ</h1>
-          <p className="text-text-gray text-sm mb-4 sm:mb-6">Покупайте поштучно или упаковками со скидкой 10% — доставка и самовывоз</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-text-dark mb-2">Каталог товаров</h1>
+          <p className="text-text-gray text-sm mb-4 sm:mb-6">Выберите категорию и найдите нужные товары</p>
 
           <Suspense fallback={<SkeletonProductGrid count={8} />}>
             <CatalogContent searchParams={resolvedParams} />

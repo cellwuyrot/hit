@@ -89,7 +89,7 @@ export default function CartPage() {
                 {items.map((item) => (
                   <div key={item.id} className={`bg-bg-white rounded-xl border ${item.isPack ? "border-green-300" : "border-border"} p-3 sm:p-4`}>
                     <div className="flex items-center gap-3 sm:gap-4">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-bg-light rounded-lg flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">📦</div>
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-bg-light rounded-lg flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative">{item.product.image ? <Image src={item.product.image} alt="" fill sizes="64px" className="object-contain" /> : <span aria-hidden="true">▧</span>}</div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-text-dark text-sm sm:text-base truncate">{item.product.name}</h3>
                         <p className="text-xs sm:text-sm text-text-gray">
@@ -98,7 +98,7 @@ export default function CartPage() {
                             : `${item.product.price.toLocaleString("ru-RU")} ₽ за шт.`}
                         </p>
                       </div>
-                      <button onClick={() => removeItem(item.productId, item.isPack)} className="text-text-gray hover:text-danger transition-colors flex-shrink-0">
+                      <button aria-label={`Удалить ${item.product.name}`} onClick={() => removeItem(item.productId, item.isPack)} className="text-text-gray hover:text-danger transition-colors flex-shrink-0">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -158,7 +158,7 @@ export default function CartPage() {
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value)}
                     placeholder="Промокод"
-                    className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className="min-w-0 flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                   <button onClick={applyPromo} className="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 transition-colors">
                     Применить

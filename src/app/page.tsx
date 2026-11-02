@@ -8,7 +8,8 @@ import InlineSetting from "@/components/InlineSetting";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
-export const revalidate = 60;
+// Всегда читаем актуальный каталог из текущей базы, а не из сборочной копии.
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const now = new Date();
@@ -74,46 +75,33 @@ export default async function HomePage() {
       <Header />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
       <main className="flex-1">
-        {/* Hero Slider */}
-        <section className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          <HeroSlider slides={slides} />
-        </section>
-
-        {/* H1 + УТП / Оффер */}
-        <section className="max-w-7xl mx-auto px-3 sm:px-4 pt-2 sm:pt-4 pb-4 sm:pb-6">
-          <div className="bg-gradient-to-br from-bg-white to-primary/[0.03] rounded-2xl border border-border p-5 sm:p-8 text-center">
-            <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-extrabold text-text-dark leading-tight mb-3 sm:mb-4">
-              Товары оптом и в розницу<br className="hidden sm:block" /> по ценам от производителя
-            </h1>
-            <p className="text-text-gray text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-5 sm:mb-6 leading-relaxed">
-              Продукты, бытовая химия, товары для дома — <strong className="text-text-dark">от 1 штуки</strong> или <strong className="text-text-dark">упаковками со скидкой&nbsp;10%</strong>. Доставка по Москве и МО, самовывоз со склада.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/catalog" className="bg-primary hover:bg-primary-dark text-white font-bold px-8 py-3 rounded-xl transition-colors text-sm sm:text-base shadow-md hover:shadow-lg">
-                Перейти в каталог
-              </Link>
-              <Link href="/wholesale" className="border-2 border-primary text-primary hover:bg-primary hover:text-white font-bold px-8 py-3 rounded-xl transition-all text-sm sm:text-base">
-                Оптовым клиентам
-              </Link>
+        <section className="max-w-7xl mx-auto px-4 py-6">
+          <div className="home-hero relative overflow-hidden rounded-xl min-h-[390px] md:min-h-[360px] flex items-start md:items-center p-6 sm:p-10 md:p-14">
+            <div className="relative z-10 max-w-md">
+              <p className="text-primary uppercase tracking-widest text-xs font-bold mb-4">Товары для каждого дня</p>
+              <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-extrabold text-text-dark leading-tight mb-4">Всё нужное —<br />в одном месте</h1>
+              <p className="text-text-gray text-base leading-relaxed mb-6">Товары для дома и бизнеса: выбирайте поштучно или упаковками.</p>
+              <div className="flex flex-wrap gap-3"><Link href="/catalog" className="inline-flex items-center min-h-11 bg-primary hover:bg-primary-dark text-white font-semibold px-6 py-3 rounded-lg">Перейти в каталог <span aria-hidden="true" className="ml-3">→</span></Link><Link href="/wholesale" className="inline-flex items-center min-h-11 bg-white/90 text-primary border border-border font-semibold px-6 py-3 rounded-lg">Оптовым клиентам</Link></div>
             </div>
           </div>
         </section>
+        {slides.length > 0 && <section className="max-w-7xl mx-auto px-4 pb-5"><HeroSlider slides={slides} /></section>}
 
         {/* Advantages */}
         <ScrollReveal>
           <section className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
               {[
-                { icon: "🚚", key: "home-benefit-1", title: "Бесплатная доставка", desc: "При заказе от 5 000 ₽" },
-                { icon: "🛡️", key: "home-benefit-2", title: "Гарантия качества", desc: "Проверенные поставщики, документы на товар" },
-                { icon: "💬", key: "home-benefit-3", title: "Быстрая поддержка", desc: "Ответим в рабочее время: ПН-ПТ с 09:00 до 18:00" },
-                { icon: "↩️", key: "home-benefit-4", title: "Возврат 14 дней", desc: "Согласно закону «О защите прав потребителей»" },
+                { icon: "🚚", key: "home-benefit-1", title: "Доставка и самовывоз", desc: "Подробнее об условиях на сайте" },
+                { icon: "🛡️", key: "home-benefit-2", title: "Товары для дома", desc: "Выбор для повседневных задач" },
+                { icon: "💬", key: "home-benefit-3", title: "Поддержка покупателей", desc: "Свяжитесь с нами по вопросам заказа" },
+                { icon: "↩️", key: "home-benefit-4", title: "Розница и опт", desc: "Покупайте в нужном количестве" },
               ].map((item) => (
                 <div key={item.key} className="bg-bg-white rounded-xl border border-border p-3 sm:p-4 flex items-start gap-2.5 sm:gap-3 hover:shadow-md transition-shadow">
                   <span className="text-xl sm:text-2xl flex-shrink-0">{item.icon}</span>
                   <div>
                     <InlineSetting settingKey={`${item.key}-title`} fallback={item.title} as="h3" className="font-heading text-xs sm:text-sm font-bold text-text-dark" />
-                    <InlineSetting settingKey={`${item.key}-desc`} fallback={item.desc} as="p" className="text-[10px] sm:text-xs text-text-gray mt-0.5" />
+                    <InlineSetting settingKey={`${item.key}-desc`} fallback={item.desc} as="p" className="text-xs sm:text-sm text-text-gray mt-0.5" />
                   </div>
                 </div>
               ))}
