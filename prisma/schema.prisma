@@ -60,6 +60,7 @@ model Product {
   orderItems  OrderItem[]
   reviews     Review[]
   videos      ProductVideo[]
+  campaigns   CampaignProduct[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 }
@@ -349,4 +350,43 @@ model SearchSynonym {
 
   @@index([word])
   @@index([synonym])
+}
+
+// Рекламные страницы не изменяют товары и не удаляют их при редактировании кампании.
+model Campaign {
+  id              String @id @default(uuid())
+  slug            String @unique
+  name            String
+  heading         String
+  description     String @default("")
+  metaTitle       String @default("")
+  metaDescription String @default("")
+  image           String @default("")
+  published       Boolean @default(false)
+  allowIndex      Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  products        CampaignProduct[]
+  attributions    CampaignAttribution[]
+}
+
+model CampaignProduct {
+  campaignId String
+  productId  String
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  @@id([campaignId, productId])
+  @@index([productId])
+}
+
+// Первый источник для браузера на странице кампании за календарный день (UTC).
+model CampaignAttribution {
+  campaignId String
+  date       String
+  visitorId  String
+  source     String
+  medium     String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  @@id([campaignId, date, visitorId])
+  @@index([date])
 }

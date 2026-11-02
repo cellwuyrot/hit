@@ -19,7 +19,6 @@ async function apply(page: Page, code: string) {
   await page.getByRole("button", { name: "Применить", exact: true }).click();
 }
 async function finish(page: Page, pickup = false, options?: { contactMethod: string; deliveryMethod: string; comment: string }) {
-  await page.getByRole("button", { name: "Далее — Данные доставки" }).click();
   await page.getByLabel("Имя получателя *", { exact: true }).fill("Покупатель E2E");
   await page.getByLabel("Телефон *", { exact: true }).fill("+7 999 123 45 67");
   if (pickup) await page.getByLabel("Выбор доставки *", { exact: true }).selectOption("pickup");
@@ -31,8 +30,7 @@ async function finish(page: Page, pickup = false, options?: { contactMethod: str
     if (options.contactMethod === "email") await page.getByLabel("Email для связи *", { exact: true }).fill("contact@example.test");
     await page.getByLabel("Комментарий к заказу (необязательно)", { exact: true }).fill(options.comment);
   }
-  await page.getByRole("button", { name: "Далее — Подтверждение" }).click();
-  if (options) await expect(page.getByText(`Комментарий к заказу: ${options.comment}`, { exact: true })).toBeVisible();
+  if (options) await expect(page.getByLabel("Комментарий к заказу (необязательно)", { exact: true })).toHaveValue(options.comment);
   const response = page.waitForResponse(r => r.url().endsWith("/api/user/orders") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Подтвердить заказ" }).click();
   const r = await response;
@@ -50,7 +48,7 @@ test("Гость: товар → localStorage → корзина → заказ,
   await page.reload();
   await expect(page.getByText("E2E товар", { exact: true }).first()).toBeVisible();
   await page.getByRole("link", { name: "Оформить заказ" }).click();
-  await expect(page.getByRole("button", { name: "Далее — Данные доставки" })).toBeVisible();
+  await expect(page.getByLabel("Имя получателя *", { exact: true })).toBeVisible();
   await expect(page.getByText("Зарегистрироваться — по желанию")).toHaveCount(0);
   const order = await finish(page);
   await expect(page.getByRole("link", { name: "Зарегистрироваться — по желанию" })).toBeVisible();
@@ -142,6 +140,7 @@ test("Админская заметка: сохранение после пер�
   await page.getByPlaceholder("Логин", { exact: true }).fill("e2e-admin");
   await page.getByPlaceholder("Пароль", { exact: true }).fill("e2e-password");
   await page.getByRole("button", { name: "Войти", exact: true }).click();
+  await page.getByRole("button", { name: "Продажи", exact: true }).click();
   await page.getByRole("button", { name: /^Заказы \(/ }).click();
   const { id } = db.prepare('SELECT "id" FROM "Order" WHERE "userId" IS NULL ORDER BY "createdAt" DESC LIMIT 1').get() as { id: string };
   const note = page.getByRole("region", { name: `Внутренняя заметка заказа ${id}`, exact: true });
@@ -150,6 +149,7 @@ test("Админская заметка: сохранение после пер�
   await note.getByRole("button", { name: "Сохранить заметку", exact: true }).click();
   await expect(note.getByRole("status")).toHaveText("Заметка сохранена");
   await page.reload();
+  await page.getByRole("button", { name: "Продажи", exact: true }).click();
   await page.getByRole("button", { name: /^Заказы \(/ }).click();
   await expect(note).toContainText("Уточнить адрес склада");
   await note.getByRole("button", { name: "Редактировать заметку", exact: true }).click();
@@ -205,7 +205,8 @@ for (const [deliveryMethod, contactMethod, label] of [
     const auth = await request.post("/api/admin/auth", { data: { username: "e2e-admin", password: "e2e-password" } });
     const { token } = await auth.json();
     await page.goto("/admin"); await page.evaluate(token => localStorage.setItem("admin_token", token), token); await page.reload();
-    await page.getByRole("button", { name: /^Заказы \(/ }).click();
+    await page.getByRole("button", { name: "Продажи", exact: true }).click();
+  await page.getByRole("button", { name: /^Заказы \(/ }).click();
     const card = page.locator('div.p-4.bg-bg-light.rounded-lg').filter({ has: page.getByText(`#${result.id.slice(0, 8)}`, { exact: true }) });
     await expect(card).toContainText(`Доставка: ${label}`); await expect(card).toContainText("Связаться после 18:00");
     await expect(card).toContainText("Предпочитаемый способ связи:");
@@ -224,7 +225,7 @@ test("Авторизованный checkout: комментарий, телеф�
   await expect(card).toContainText("Комментарий авторизованного покупателя");
 });
 test("Checkout блокирует отсутствующий email/Telegram и сохраняет адрес при переключении доставки", async ({ page }) => {
-  await addGuest(page); await page.goto("/checkout"); await page.getByRole("button", { name: "Далее — Данные доставки" }).click();
+  await addGuest(page); await page.goto("/checkout");
   await page.getByLabel("Имя получателя *", { exact: true }).fill("Тест");
   await page.getByLabel("Телефон *", { exact: true }).fill("+79991234567");
   await page.getByLabel("Адрес доставки *", { exact: true }).fill("Москва, Тестовая улица, дом 1");
@@ -233,10 +234,10 @@ test("Checkout блокирует отсутствующий email/Telegram и �
   await page.getByLabel("Выбор доставки *", { exact: true }).selectOption("russian_post");
   await expect(page.getByLabel("Адрес доставки *", { exact: true })).toHaveValue("Москва, Тестовая улица, дом 1");
   await page.getByLabel("Предпочитаемый способ связи *", { exact: true }).selectOption("email");
-  await page.getByRole("button", { name: "Далее — Подтверждение" }).click();
+  await page.getByRole("button", { name: "Подтвердить заказ" }).click();
   await expect(page.locator('main [role="alert"]')).toContainText("Укажите email");
   await page.getByLabel("Предпочитаемый способ связи *", { exact: true }).selectOption("telegram");
-  await page.getByRole("button", { name: "Далее — Подтверждение" }).click();
+  await page.getByRole("button", { name: "Подтвердить заказ" }).click();
   await expect(page.locator('main [role="alert"]')).toContainText("Укажите Telegram");
 });
 
@@ -299,6 +300,63 @@ test("Условия доставки редактируются в настро
   await page.goto("/delivery");
   await expect(page.getByText("Тестовые условия: стоимость согласуется с менеджером.")).toBeVisible();
   await addGuest(page); await page.goto("/checkout");
-  await page.getByRole("button", { name: "Далее — Данные доставки" }).click();
   await expect(page.getByText("Тестовые условия: стоимость согласуется с менеджером.")).toBeVisible();
+});
+
+test("Редизайн: на товаре и в сравнении показано наличие, а не остаток", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/product/e2e-product");
+  await expect(page.getByText("В наличии", { exact: true })).toBeVisible();
+  await expect(page.getByText(/В наличии \(100 шт/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Сравнить", exact: true }).click();
+  await page.goto("/compare");
+  await expect(page.getByText("В наличии", { exact: true })).toBeVisible();
+  await expect(page.getByText("100 шт.", { exact: true })).toHaveCount(0);
+});
+
+test("Редизайн: поиск доступен на телефоне, сортировка сохраняет запрос", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const search = page.getByRole("searchbox", { name: "Поиск товаров" });
+  await expect(search).toBeVisible();
+  await search.fill("E2E");
+  await search.press("Enter");
+  await expect(page).toHaveURL(/search=E2E/);
+  await page.getByLabel("Сортировка", { exact: true }).selectOption("price_asc");
+  await expect(page).toHaveURL(/search=E2E/);
+  await expect(page).toHaveURL(/sort=price_asc/);
+  await page.getByRole("button", { name: "Фильтры" }).click();
+  await page.getByRole("button", { name: "Закрыть фильтры" }).click();
+});
+
+test("Редизайн: пустая корзина и проверка обязательных данных", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/checkout");
+  await expect(page.getByText("Корзина пуста")).toBeVisible();
+  await addGuest(page);
+  await page.goto("/checkout");
+  await expect(page.getByLabel("Имя получателя *", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Выбор доставки *", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Подтвердить заказ" }).click();
+  await expect(page.locator('main [role="alert"]')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("Редизайн: главная использует актуальный каталог и показывает его без прокрутки анимации", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Категории товаров" })).toBeVisible();
+  await expect(page.getByText("E2E товар").first()).toBeVisible();
+  const hidden = await page.locator(".scroll-reveal").evaluateAll(nodes => nodes.some(node => getComputedStyle(node).opacity === "0"));
+  expect(hidden).toBe(false);
+});
+
+test("Редизайн: форма товара в админке помещается на мобильном экране", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/admin");
+  await page.getByPlaceholder("Логин", { exact: true }).fill("e2e-admin");
+  await page.getByPlaceholder("Пароль", { exact: true }).fill("e2e-password");
+  await page.getByRole("button", { name: "Войти", exact: true }).click();
+  await page.getByRole("button", { name: "Каталог", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Добавить товар" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

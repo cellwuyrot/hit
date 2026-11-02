@@ -198,7 +198,7 @@ export default async function ProductPage({ params }: PageProps) {
               {/* Availability */}
               <div className="flex items-center gap-2 mb-4">
                 {product.inStock > 0 ? (
-                  <span className="text-success text-sm font-medium">В наличии ({product.inStock} шт.)</span>
+                  <span className="text-success text-sm font-medium">В наличии</span>
                 ) : (
                   <div className="space-y-2">
                     <span className="text-danger text-sm font-medium block">Нет в наличии</span>
@@ -247,6 +247,7 @@ export default async function ProductPage({ params }: PageProps) {
                 Купить оптом
               </Link>
 
+              <div className="bg-white border border-border rounded-xl p-5 mb-6"><h2 className="font-bold text-text-dark mb-2">Доставка и самовывоз</h2><p className="text-sm text-text-gray mb-2">Подробные условия доставки и получения заказа.</p><Link href="/delivery" className="text-primary font-medium text-sm hover:underline">Подробнее об условиях →</Link></div>
               {/* Description */}
               <InlineProductDescription id={product.id} description={product.description} />
             </div>

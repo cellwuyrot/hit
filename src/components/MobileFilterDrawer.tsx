@@ -44,6 +44,8 @@ export default function MobileFilterDrawer({
 
   const apply = () => {
     const params = new URLSearchParams();
+    const search = searchParams.get("search");
+    if (search) params.set("search", search);
     if (priceFrom > minPrice) params.set("priceFrom", String(priceFrom));
     if (priceTo < maxPrice) params.set("priceTo", String(priceTo));
     if (selectedBrands.length > 0) params.set("brands", selectedBrands.join(","));
@@ -61,7 +63,12 @@ export default function MobileFilterDrawer({
     setSelectedBrands([]);
     setSelectedTypes([]);
     setSelectedColors([]);
-    router.push("?");
+    const params = new URLSearchParams();
+    const search = searchParams.get("search");
+    const sort = searchParams.get("sort");
+    if (search) params.set("search", search);
+    if (sort) params.set("sort", sort);
+    router.push(`?${params.toString()}`);
     setOpen(false);
   };
 
@@ -69,7 +76,7 @@ export default function MobileFilterDrawer({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="lg:hidden flex items-center gap-2 px-4 py-2 bg-bg-white border border-border rounded-lg text-sm text-text-dark hover:border-primary transition-colors"
+        className="lg:hidden flex items-center gap-2 min-h-11 px-4 py-2 bg-bg-white border border-border rounded-lg text-sm text-text-dark hover:border-primary transition-colors"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -86,7 +93,7 @@ export default function MobileFilterDrawer({
           <div className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-white animate-slide-in-right overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-border px-4 py-3 flex items-center justify-between z-10">
               <h3 className="font-heading font-bold text-text-dark">Фильтры</h3>
-              <button onClick={() => setOpen(false)} className="text-text-gray hover:text-text-dark p-1">
+              <button onClick={() => setOpen(false)} aria-label="Закрыть фильтры" className="text-text-gray hover:text-text-dark p-1">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>

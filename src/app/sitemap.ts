@@ -1,13 +1,17 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 
+// Карта должна отражать текущие товары и опубликованные кампании, а не данные сборки.
+export const dynamic = "force-dynamic";
+
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://tophitt.ru";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [categories, products, news] = await Promise.all([
+  const [categories, products, news, campaigns] = await Promise.all([
     prisma.category.findMany({ select: { slug: true, parent: { select: { slug: true } } } }),
     prisma.product.findMany({ select: { slug: true, updatedAt: true } }),
     prisma.news.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
+    prisma.campaign.findMany({ where: { published: true, allowIndex: true }, select: { slug: true, updatedAt: true } }),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -44,5 +48,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...categoryPages, ...productPages, ...newsPages];
+  const campaignPages: MetadataRoute.Sitemap = campaigns.map(c => ({ url: `${BASE_URL}/campaign/${c.slug}`, lastModified: c.updatedAt }));
+  return [...staticPages, ...categoryPages, ...productPages, ...newsPages, ...campaignPages];
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, startTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 interface Product {
   id: string;
@@ -17,14 +18,17 @@ interface Product {
 }
 
 export default function RecommendationPopup() {
+  const pathname = usePathname();
+  const [shownPath, setShownPath] = useState("");
   const [product, setProduct] = useState<Product | null>(null);
   const [visible, setVisible] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem("rec_shown")) return;
+    if (sessionStorage.getItem("rec_shown") || (pathname !== "/" && !pathname.startsWith("/product/")) || !window.matchMedia("(min-width: 640px)").matches) return;
 
-    const viewedCategories: string[] = JSON.parse(localStorage.getItem("viewed_categories") || "[]");
+    let viewedCategories: string[] = [];
+    try { const parsed = JSON.parse(localStorage.getItem("viewed_categories") || "[]"); if (Array.isArray(parsed)) viewedCategories = parsed.filter((x): x is string => typeof x === "string"); } catch { /* повреждённую историю не используем */ }
 
     const params = new URLSearchParams();
     if (viewedCategories.length > 0) {
@@ -41,6 +45,7 @@ export default function RecommendationPopup() {
           if (data) {
             startTransition(() => {
               setProduct(data);
+              setShownPath(pathname);
               setVisible(true);
             });
             sessionStorage.setItem("rec_shown", "1");
@@ -50,28 +55,28 @@ export default function RecommendationPopup() {
           }
         })
         .catch(() => {});
-    }, 2000);
+    }, 8000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [pathname]);
 
   const close = () => {
     setAnimateIn(false);
     setTimeout(() => setVisible(false), 300);
   };
 
-  if (!visible || !product) return null;
+  if (!visible || !product || pathname !== shownPath) return null;
 
   return (
     <div
-      className={`fixed bottom-4 left-4 z-[9998] w-64 sm:w-72 transition-all duration-300 ease-out ${
+      className={`hidden sm:block fixed bottom-4 left-4 z-[9998] w-64 sm:w-72 transition-all duration-300 ease-out ${
         animateIn ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
       } max-sm:left-2 max-sm:right-2 max-sm:bottom-2 max-sm:w-auto`}
     >
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
           <span className="text-xs font-semibold text-primary">Рекомендуем</span>
-          <button onClick={close} className="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors text-sm leading-none">&times;</button>
+          <button onClick={close} aria-label="Закрыть рекомендацию" className="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors text-sm leading-none">&times;</button>
         </div>
 
         <Link href={`/product/${product.slug}`} onClick={close} className="flex gap-3 p-3 group">

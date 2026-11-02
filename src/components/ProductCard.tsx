@@ -119,12 +119,12 @@ export default function ProductCard({
   const { editing: inlineEditing } = useInlineEdit();
 
   return (
-    <div className="bg-bg-white rounded-xl border border-border hover:shadow-lg transition-all duration-300 p-3 sm:p-4 flex flex-col group">
+    <div className="bg-bg-white rounded-xl border border-border hover:border-primary/40 transition-colors p-3 flex flex-col group min-w-0">
       <div className="relative">
         <Link href={`/product/${slug}`} className="block">
           <div className="relative aspect-square mb-2 sm:mb-3 bg-bg-light rounded-lg flex items-center justify-center overflow-hidden">
             {image ? (
-              <Image src={image} alt={name} fill className="object-contain p-2 transition-transform duration-400 group-hover:scale-110" />
+              <Image src={image} alt={name} fill className="object-contain p-2 transition-transform duration-300 group-hover:scale-105" />
             ) : (
               <div className="flex flex-col items-center justify-center text-text-light">
                 <svg className="w-10 h-10 sm:w-12 sm:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,8 +158,9 @@ export default function ProductCard({
         {/* Wishlist heart */}
         <button
           onClick={toggleWishlist}
+          aria-label={inWishlist ? "Убрать из избранного" : "Добавить в избранное"}
           disabled={wishlistLoading}
-          className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-sm transition-all opacity-0 group-hover:opacity-100 sm:opacity-100"
+          className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-10 h-10 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-sm transition-all opacity-100"
         >
           <svg className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${inWishlist ? "text-danger fill-danger" : "text-text-gray hover:text-danger"}`}
             fill={inWishlist ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
@@ -181,7 +182,7 @@ export default function ProductCard({
         </div>
       ) : (
         <Link href={`/product/${slug}`} className="block">
-          <h3 className="text-xs sm:text-sm font-medium text-text-dark leading-tight mb-1 sm:mb-1.5 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] hover:text-primary transition-colors overflow-hidden">{name}</h3>
+          <h3 className="text-sm font-medium text-text-dark leading-snug mb-1 sm:mb-1.5 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] hover:text-primary transition-colors overflow-hidden">{name}</h3>
         </Link>
       )}
 
@@ -237,14 +238,14 @@ export default function ProductCard({
       {/* Action buttons */}
       <div className="mt-2 sm:mt-3 space-y-1.5 sm:space-y-2">
         <button ref={cartBtnRef} onClick={addToCart} disabled={inStock === 0}
-          className={`w-full text-xs sm:text-sm font-medium py-2 sm:py-2.5 rounded-lg transition-all duration-200 ${
+          className={`w-full text-sm font-semibold min-h-11 py-2.5 rounded-lg transition-all duration-200 ${
             added ? "bg-success text-white animate-bounce-in" : inStock === 0 ? "bg-gray-200 text-text-gray cursor-not-allowed" : "bg-primary hover:bg-primary-dark text-white active:scale-95"
           }`}>
           {added ? "Добавлено!" : inStock === 0 ? "Нет в наличии" : "В корзину"}
         </button>
 
         <div className="flex gap-1.5 sm:gap-2">
-          <button onClick={toggleCompare}
+          <button onClick={toggleCompare} aria-label={inCompare ? "Убрать из сравнения" : "Сравнить"}
             className={`flex-1 flex items-center justify-center gap-1 text-xs py-1.5 sm:py-2 rounded-lg border transition-colors ${
               inCompare ? "border-primary text-primary bg-primary/5" : "border-border text-text-gray hover:text-primary hover:border-primary"
             }`}>

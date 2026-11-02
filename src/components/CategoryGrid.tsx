@@ -112,14 +112,14 @@ export default function CategoryGrid({ categories: initialCategories }: { catego
               </svg>
             </div>
           )}
-          <div className="bg-bg-white rounded-2xl border border-border p-4 sm:p-5 hover:shadow-md hover:border-primary/40 transition-all group h-full">
+          <div className="bg-bg-white rounded-xl border border-border p-4 sm:p-5 hover:border-primary/40 transition-colors group h-full">
             {editing ? (
               <div>
-                <div className="mb-2 sm:mb-3 flex justify-center">
+                <div className="mb-2 flex justify-start">
                   {cat.icon && (cat.icon.startsWith("/") || cat.icon.startsWith("http")) ? (
-                    <img src={cat.icon} alt={cat.name} className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg" style={{ maxWidth: 256, maxHeight: 256 }} />
+                    <img src={cat.icon} alt={cat.name} className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-lg" style={{ maxWidth: 256, maxHeight: 256 }} />
                   ) : (
-                    <span className="text-2xl sm:text-3xl">{cat.icon || "📦"}</span>
+                    <span className="text-xl sm:text-2xl">{cat.icon || "📦"}</span>
                   )}
                 </div>
                 <InlineEditable
@@ -128,19 +128,19 @@ export default function CategoryGrid({ categories: initialCategories }: { catego
                   field="name"
                   value={cat.name}
                   as="h3"
-                  className="font-medium text-text-dark text-center text-sm sm:text-base"
+                  className="font-semibold text-text-dark text-left text-sm sm:text-base"
                 />
               </div>
             ) : (
               <Link href={`/catalog/${cat.slug}`} className="block rounded-lg focus-visible:outline-2 focus-visible:outline-primary" aria-label={`Открыть категорию ${cat.name}`}>
-                <div className="mb-2 sm:mb-3 flex justify-center">
+                <div className="mb-2 flex justify-start">
                   {cat.icon && (cat.icon.startsWith("/") || cat.icon.startsWith("http")) ? (
-                    <img src={cat.icon} alt={cat.name} className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg" style={{ maxWidth: 256, maxHeight: 256 }} />
+                    <img src={cat.icon} alt={cat.name} className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-lg" style={{ maxWidth: 256, maxHeight: 256 }} />
                   ) : (
-                    <span className="text-2xl sm:text-3xl">{cat.icon || "📦"}</span>
+                    <span className="text-xl sm:text-2xl">{cat.icon || "📦"}</span>
                   )}
                 </div>
-                <h3 className="font-medium text-text-dark text-center text-sm sm:text-base group-hover:text-primary transition-colors">{cat.name}</h3>
+                <h3 className="font-semibold text-text-dark text-left text-sm sm:text-base group-hover:text-primary transition-colors">{cat.name}</h3>
               </Link>
             )}
             {cat.children.length > 0 && (
@@ -148,7 +148,7 @@ export default function CategoryGrid({ categories: initialCategories }: { catego
                 onClick={() => toggle(cat.id)}
                 aria-expanded={expanded === cat.id}
                 aria-label={`Подкатегории: ${cat.name}`}
-                className="mt-1.5 sm:mt-2 w-full flex items-center justify-center gap-1 text-[10px] sm:text-xs text-text-gray hover:text-primary transition-colors"
+                className="mt-1.5 sm:mt-2 w-full min-h-11 flex items-center justify-start gap-1 text-sm text-text-gray hover:text-primary transition-colors"
               >
                 <span>Подкатегории: {cat.children.length}</span>
                 <svg

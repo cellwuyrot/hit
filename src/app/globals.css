@@ -1,20 +1,20 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-primary: #4A90D9;
-  --color-primary-dark: #3A7BC8;
-  --color-primary-light: #6BA5E3;
-  --color-secondary: #5BA3E6;
+  --color-primary: #1764AD;
+  --color-primary-dark: #104E89;
+  --color-primary-light: #4384C1;
+  --color-secondary: #4384C1;
   --color-accent: #F59E0B;
   --color-accent-dark: #D97706;
-  --color-bg-light: #F0F4F8;
+  --color-bg-light: #F7F9FB;
   --color-bg-white: #FFFFFF;
-  --color-text-dark: #1A2332;
-  --color-text-gray: #6B7280;
-  --color-text-light: #9CA3AF;
-  --color-border: #E2E8F0;
-  --color-success: #22C55E;
-  --color-danger: #EF4444;
+  --color-text-dark: #1D2B3A;
+  --color-text-gray: #526779;
+  --color-text-light: #738594;
+  --color-border: #DFE7ED;
+  --color-success: #267753;
+  --color-danger: #C83B35;
   --color-warning: #F59E0B;
   --font-heading: var(--font-manrope), 'Manrope', system-ui, sans-serif;
 }
@@ -114,7 +114,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Skeleton shimmer */
 .skeleton {
-  background: linear-gradient(90deg, #E2E8F0 25%, #F0F4F8 50%, #E2E8F0 75%);
+  background: linear-gradient(90deg, #DFE7ED 25%, #F7F9FB 50%, #DFE7ED 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 8px;
@@ -122,8 +122,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Scroll reveal */
 .scroll-reveal {
-  opacity: 0;
-  transform: translateY(20px);
+  opacity: 1;
+  transform: none;
   transition: opacity 0.6s ease-out, transform 0.6s ease-out;
 }
 
@@ -280,3 +280,11 @@ input[type="range"]::-webkit-slider-thumb {
   .pres-float-slow,
   .pres-scroll-indicator { animation: none; }
 }
+
+/* Shared visual language */
+:focus-visible { outline: 3px solid #d58420; outline-offset: 2px; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), a { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+.home-hero { background: #eee9df url('/hero-household.webp') 72% center / cover no-repeat; }
+@media(max-width:640px) { .home-hero { background-position: 68% center; } .home-hero::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(246,242,234,.96) 0%,rgba(246,242,234,.83) 44%,transparent 80%); } }
