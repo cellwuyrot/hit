@@ -8,7 +8,6 @@ const transportConfig: nodemailer.TransportOptions = {
   host: process.env.SMTP_HOST || "localhost",
   port: parseInt(process.env.SMTP_PORT || "587", 10),
   secure: process.env.SMTP_SECURE === "true",
-  tls: { rejectUnauthorized: false },
 } as nodemailer.TransportOptions;
 
 if (smtpUser) {
