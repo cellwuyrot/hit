@@ -1,4 +1,5 @@
 import CatalogSort from "@/components/CatalogSort";
+import CategoryBrowser from "@/components/CategoryBrowser";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -37,8 +38,10 @@ interface PageProps {
 async function CatalogContent({ searchParams }: { searchParams: Record<string, string | undefined> }) {
   const search = searchParams.search?.trim();
   const sort = searchParams.sort || "popular";
-  const priceFrom = searchParams.priceFrom ? Number(searchParams.priceFrom) : undefined;
-  const priceTo = searchParams.priceTo ? Number(searchParams.priceTo) : undefined;
+  const fromValue = Number(searchParams.priceFrom);
+  const toValue = Number(searchParams.priceTo);
+  const priceFrom = searchParams.priceFrom && Number.isFinite(fromValue) && fromValue >= 0 ? fromValue : undefined;
+  const priceTo = searchParams.priceTo && Number.isFinite(toValue) && toValue >= 0 ? toValue : undefined;
   const brands = searchParams.brands?.split(",").filter(Boolean);
   const types = searchParams.types?.split(",").filter(Boolean);
   const colors = searchParams.colors?.split(",").filter(Boolean);
@@ -95,9 +98,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
   const allBrands = [...new Set(allProducts.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
   const allTypes = [...new Set(allProducts.map((p) => p.productType).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
   const allColors = [...new Set(allProducts.map((p) => p.color).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
-  const prices = allProducts.map((p) => p.price);
-  const minPrice = Math.min(...prices, 0);
-  const maxPrice = Math.max(...prices, 10000);
+  const { minPrice, maxPrice } = allProducts.reduce((range, p) => ({ minPrice: Math.min(range.minPrice, p.price), maxPrice: Math.max(range.maxPrice, p.price) }), { minPrice: 0, maxPrice: 10000 });
 
   const totalPages = Math.ceil(totalCount / PER_PAGE);
 
@@ -146,7 +147,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
       </div>
 
       <div className="flex-1 min-w-0">
-        {!search && <section aria-label="Категории каталога" className="mb-6"><div className="flex justify-between items-baseline gap-3 mb-3"><h2 className="text-base font-bold text-text-dark">Покупки по категориям</h2><span className="text-xs text-text-gray">Выберите раздел</span></div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">{categories.map(cat => <Link key={cat.id} href={`/catalog/${cat.slug}`} className="rounded-xl border border-border bg-white p-4 min-h-20 hover:border-primary hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary transition-colors"><span className="block text-sm font-semibold text-text-dark">{cat.name}</span><span className="block text-xs text-text-gray mt-1">{cat._count.products + cat.children.reduce((sum, child) => sum + child._count.products, 0)} товаров →</span></Link>)}</div></section>}
+        {!search && <CategoryBrowser categories={categories} />}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-3">
           <MobileFilterDrawer
             brands={allBrands}
