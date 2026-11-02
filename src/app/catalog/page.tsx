@@ -145,6 +145,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
       </div>
 
       <div className="flex-1 min-w-0">
+        {!search && <section aria-label="Категории каталога" className="mb-6 rounded-2xl border border-border bg-white p-4 sm:p-5"><div className="flex justify-between items-baseline gap-3 mb-3"><h2 className="text-base font-bold text-text-dark">Покупки по категориям</h2><span className="text-xs text-text-gray">Выберите раздел</span></div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">{categories.map(cat => <Link key={cat.id} href={`/catalog/${cat.slug}`} className="rounded-xl border border-border bg-bg-light p-3 hover:border-primary hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary transition-colors"><span className="block text-sm font-semibold text-text-dark">{cat.name}</span><span className="block text-xs text-text-gray mt-1">{cat._count.products + cat.children.reduce((sum, child) => sum + child._count.products, 0)} товаров →</span></Link>)}</div></section>}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-3">
           <MobileFilterDrawer
             brands={allBrands}
@@ -163,7 +164,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
           </p>
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
             <span className="text-text-gray hidden sm:inline">Сортировка:</span>
-            <SortLinks current={sort} />
+            <SortLinks current={sort} searchParams={searchParams} />
           </div>
         </div>
 
@@ -200,7 +201,7 @@ async function CatalogContent({ searchParams }: { searchParams: Record<string, s
   );
 }
 
-function SortLinks({ current }: { current: string }) {
+function SortLinks({ current, searchParams }: { current: string; searchParams: Record<string, string | undefined> }) {
   const sorts = [
     { key: "popular", label: "По популярности" },
     { key: "name", label: "По алфавиту" },
@@ -212,7 +213,7 @@ function SortLinks({ current }: { current: string }) {
       {sorts.map((s) => (
         <Link
           key={s.key}
-          href={`?sort=${s.key}`}
+          href={`?${new URLSearchParams(Object.entries({ ...searchParams, sort: s.key, page: undefined }).filter((entry): entry is [string, string] => typeof entry[1] === "string")).toString()}`}
           className={`px-2 sm:px-3 py-1 rounded-md transition-colors text-xs sm:text-sm ${
             current === s.key
               ? "bg-primary text-white"

@@ -144,26 +144,19 @@ export default function AccountPage() {
       setError("Пароль должен быть минимум 6 символов"); return;
     }
     if (tab === "login") {
-      // Try admin auth first
-      const adminRes = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: form.email, password: form.password }),
-      });
-      if (adminRes.ok) {
-        const adminData = await adminRes.json();
-        localStorage.setItem("admin_token", adminData.token);
-        router.push("/admin");
-        return;
-      }
-      // Then try user auth
-      const res = await fetch("/api/user/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "login", email: form.email, password: form.password }),
+      const res = await fetch("/api/auth", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: form.email, password: form.password }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Неверный логин или пароль"); return; }
+      if (data.role === "admin") {
+        localStorage.removeItem("userToken");
+        localStorage.setItem("admin_token", data.token);
+        router.push("/admin");
+        return;
+      }
+      localStorage.removeItem("admin_token");
       localStorage.setItem("userToken", data.token);
       setToken(data.token);
       setForm({ email: "", password: "" });
@@ -195,13 +188,8 @@ export default function AccountPage() {
     const verifyData = await verifyRes.json();
     if (!verifyRes.ok) { setError(verifyData.error); return; }
 
-    const res = await fetch("/api/user/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "register", email: form.email, password: form.password, verified: true }),
-    });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error); return; }
+    const data = verifyData;
+    localStorage.removeItem("admin_token");
     localStorage.setItem("userToken", data.token);
     setToken(data.token);
     setForm({ email: "", password: "" });

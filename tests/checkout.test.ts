@@ -200,6 +200,13 @@ test("Миграция сохраняет старые заказы, позиц�
     assert.equal(options.contactMethod, "phone"); assert.equal(options.deliveryMethod, ""); assert.equal(options.adminNote, "Legacy private note"); assert.equal(options.comment, "Legacy customer comment"); assert.equal(options.total, 850);
     assert.equal((db.prepare('SELECT "deliveryMethod" FROM "Order" WHERE "id" = ?').get("old-pickup") as { deliveryMethod: string }).deliveryMethod, "pickup");
 
+    db.exec(`INSERT INTO "EmailVerification" ("id", "email", "code", "expiresAt", "createdAt") VALUES ('old-verification', 'legacy@example.test', '123456', '2099-01-01', CURRENT_TIMESTAMP);`);
+    db.exec(readFileSync("prisma/migrations/20261102120000_verification_attempts/migration.sql", "utf8"));
+    db.exec(readFileSync("prisma/migrations/20261102121000_order_request_key/migration.sql", "utf8"));
+    assert.equal((db.prepare('SELECT "attempts" FROM "EmailVerification" WHERE "id" = ?').get('old-verification') as { attempts: number }).attempts, 0);
+    assert.equal((db.prepare('SELECT "requestKey" FROM "Order" WHERE "id" = ?').get('old-order') as { requestKey: string | null }).requestKey, null);
+    assert.ok(db.prepare('SELECT * FROM "Product" WHERE "id" = ?').get('old-product'));
+    assert.ok(db.prepare('SELECT * FROM "OrderItem" WHERE "id" = ?').get('old-item'));
     assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
 
   } finally { db.close(); }

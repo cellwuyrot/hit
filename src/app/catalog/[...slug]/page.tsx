@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import CatalogFilters from "@/components/CatalogFilters";
+import MobileFilterDrawer from "@/components/MobileFilterDrawer";
 import Pagination, { PER_PAGE } from "@/components/Pagination";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -115,15 +116,15 @@ async function CategoryContent({
   const minPrice = Math.min(...prices, 0);
   const maxPrice = Math.max(...prices, 10000);
 
-  const minCatPrice = Math.min(...catProducts.map((p) => p.price));
-  const maxCatPrice = Math.max(...catProducts.map((p) => p.price));
+  const minCatPrice = catProducts.length ? Math.min(...catProducts.map((p) => p.price)) : 0;
+  const maxCatPrice = catProducts.length ? Math.max(...catProducts.map((p) => p.price)) : 0;
   const brandsInCat = [...new Set(catProducts.map((p) => p.brand).filter(Boolean))];
   const inStockCount = catProducts.filter((p) => p.inStock > 0).length;
 
   const faqItems: { q: string; a: string }[] = [
     {
       q: `Сколько стоит ${category.name.toLowerCase()} в ТОПХИТ?`,
-      a: `Цены на ${category.name.toLowerCase()} в нашем магазине — от ${minCatPrice} ₽ до ${maxCatPrice} ₽. Скидка 10% при покупке упаковкой.`,
+      a: catProducts.length ? `Цены на ${category.name.toLowerCase()} — от ${minCatPrice} ₽ до ${maxCatPrice} ₽.` : "Товары в этой категории пока не добавлены.",
     },
     {
       q: `Какие бренды ${category.name.toLowerCase()} есть в наличии?`,
@@ -133,7 +134,7 @@ async function CategoryContent({
     },
     {
       q: `Как заказать ${category.name.toLowerCase()} с доставкой?`,
-      a: "Добавьте товары в корзину и оформите заказ. Доставка по Москве и МО бесплатно. Также доступен самовывоз со склада по адресу: ул. Складочная, д. 1, стр. 18.",
+      a: "Добавьте товары в корзину и оформите заказ. Стоимость и условия доставки уточнит менеджер. Также доступен самовывоз.",
     },
   ];
 
@@ -173,25 +174,7 @@ async function CategoryContent({
             price: p.price,
             availability: p.inStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
             itemCondition: "https://schema.org/NewCondition",
-            hasMerchantReturnPolicy: {
-              "@type": "MerchantReturnPolicy",
-              "@id": "https://tophitt.ru/returns#policy",
-              applicableCountry: "RU",
-              returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
-              merchantReturnDays: 14,
-              returnMethod: "https://schema.org/ReturnByMail",
-              returnFees: "https://schema.org/FreeReturn",
-            },
-            shippingDetails: {
-              "@type": "OfferShippingDetails",
-              shippingRate: { "@type": "MonetaryAmount", value: "0", currency: "RUB" },
-              shippingDestination: { "@type": "DefinedRegion", addressCountry: "RU" },
-              deliveryTime: {
-                "@type": "ShippingDeliveryTime",
-                handlingTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 3, unitCode: "DAY" },
-                transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 7, unitCode: "DAY" },
-              },
-            },
+
           },
         },
       })),
@@ -206,8 +189,8 @@ async function CategoryContent({
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }} />
       <Breadcrumbs items={breadcrumbItems} />
 
       <InlineCategoryName id={category.id} name={category.name} />
@@ -235,7 +218,8 @@ async function CategoryContent({
           />
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
+          <div className="lg:hidden mb-4"><MobileFilterDrawer brands={allBrands} productTypes={allTypes} colors={allColors} minPrice={minPrice} maxPrice={maxPrice} /></div>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <p className="text-sm text-text-gray">
               {"Подобрано: "}
@@ -244,7 +228,7 @@ async function CategoryContent({
             </p>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-text-gray">Сортировка:</span>
-              <SortLinks current={sort} />
+              <SortLinks current={sort} searchParams={searchParams} />
             </div>
           </div>
 
@@ -297,7 +281,7 @@ async function CategoryContent({
   );
 }
 
-function SortLinks({ current }: { current: string }) {
+function SortLinks({ current, searchParams }: { current: string; searchParams: Record<string, string | undefined> }) {
   const sorts = [
     { key: "popular", label: "По популярности" },
     { key: "name", label: "По алфавиту" },
@@ -309,7 +293,7 @@ function SortLinks({ current }: { current: string }) {
       {sorts.map((s) => (
         <Link
           key={s.key}
-          href={`?sort=${s.key}`}
+          href={`?${new URLSearchParams(Object.entries({ ...searchParams, sort: s.key, page: undefined }).filter((entry): entry is [string, string] => typeof entry[1] === "string")).toString()}`}
           className={`px-3 py-1 rounded-md transition-colors ${
             current === s.key
               ? "bg-primary text-white"

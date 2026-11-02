@@ -38,6 +38,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Название обязательно" }, { status: 400 });
   }
 
+  if (parentId) {
+    const parent = await prisma.category.findUnique({ where: { id: parentId } });
+    if (!parent || parent.parentId) return Response.json({ error: "Выберите существующую корневую категорию" }, { status: 400 });
+  }
   const slug = await uniqueCategorySlug(slugify(name));
   const category = await prisma.category.create({
     data: {
@@ -56,7 +60,10 @@ export async function PUT(request: Request) {
     return Response.json({ error: "ID и название обязательны" }, { status: 400 });
   }
 
-  const slug = await uniqueCategorySlug(slugify(name), id);
+  const existing = await prisma.category.findUnique({ where: { id }, include: { _count: { select: { children: true } } } });
+  if (!existing) return Response.json({ error: "Категория не найдена" }, { status: 404 });
+  if ((parentId || null) !== existing.parentId) return Response.json({ error: "Перемещение меняет адрес страницы. Сначала подготовьте карту перенаправлений." }, { status: 409 });
+  const slug = existing.slug;
   const category = await prisma.category.update({
     where: { id },
     data: {
@@ -75,6 +82,9 @@ export async function DELETE(request: Request) {
     return Response.json({ error: "ID обязателен" }, { status: 400 });
   }
 
-  await prisma.category.delete({ where: { id } });
+  // Check and delete in one database operation to avoid a gap between counting
+  // products and deleting the category.
+  const result = await prisma.category.deleteMany({ where: { id, products: { none: {} }, children: { none: {} } } });
+  if (!result.count) return Response.json({ error: "Категория не найдена или не пуста. Сначала перенесите товары и подкатегории." }, { status: 409 });
   return Response.json({ success: true });
 }

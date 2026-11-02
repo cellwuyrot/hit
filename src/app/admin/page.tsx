@@ -574,7 +574,8 @@ export default function AdminPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [activeTab, setActiveTab] = useState<TabType>("categories");
+  const [activeTab, setActiveTab] = useState<TabType>("orders");
+  const [navGroup, setNavGroup] = useState("Продажи");
   const [chatUnread, setChatUnread] = useState(0);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -622,6 +623,7 @@ export default function AdminPage() {
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
 
   const [importStatus, setImportStatus] = useState("");
+  const [importOverrides, setImportOverrides] = useState<Record<number, { categoryId?: string; brand?: string; productType?: string }>>({});
   const [importPreview, setImportPreview] = useState<ImportRow[]>([]);
   const [importSelected, setImportSelected] = useState<Set<number>>(new Set());
   const [importLoading, setImportLoading] = useState(false);
@@ -724,7 +726,8 @@ export default function AdminPage() {
     const body = editingCat
       ? { id: editingCat.id, name: catName, icon: catIcon, order: catOrder, parentId: catParentId || null, ...seoFields }
       : { name: catName, icon: catIcon, order: catOrder, parentId: catParentId || null, ...seoFields };
-    await fetch("/api/admin/categories", { method, headers: hdrs(), body: JSON.stringify(body) });
+    const result = await fetch("/api/admin/categories", { method, headers: hdrs(), body: JSON.stringify(body) });
+    if (!result.ok) { alert((await result.json()).error || "Не удалось сохранить категорию"); return; }
     setCatName(""); setCatIcon(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); setEditingCat(null);
     fetchData();
   };
@@ -742,12 +745,13 @@ export default function AdminPage() {
       setSitePages((prev) => ({ ...prev, [slug]: page }));
       setPageSaveMsg("Сохранено");
       setTimeout(() => setPageSaveMsg(""), 3000);
-    }
+    } else { setPageSaveMsg("Ошибка: не удалось сохранить страницу"); }
   };
 
   const deleteCategory = async (id: string) => {
-    if (!confirm("Удалить категорию? Все товары в ней также будут удалены.")) return;
-    await fetch("/api/admin/categories", { method: "DELETE", headers: hdrs(), body: JSON.stringify({ id }) });
+    if (!confirm("Удалить пустую категорию? Товары не будут удалены.")) return;
+    const result = await fetch("/api/admin/categories", { method: "DELETE", headers: hdrs(), body: JSON.stringify({ id }) });
+    if (!result.ok) { alert((await result.json()).error || "Не удалось удалить категорию"); return; }
     fetchData();
   };
 
@@ -756,14 +760,16 @@ export default function AdminPage() {
     e.preventDefault();
     const method = editingProd ? "PUT" : "POST";
     const body = editingProd ? { id: editingProd.id, ...prodForm } : prodForm;
-    await fetch("/api/admin/products", { method, headers: hdrs(), body: JSON.stringify(body) });
+    const result = await fetch("/api/admin/products", { method, headers: hdrs(), body: JSON.stringify(body) });
+    if (!result.ok) { alert((await result.json()).error || "Не удалось сохранить товар"); return; }
     setProdForm({ name: "", description: "", price: "", oldPrice: "", image: "", image2: "", image3: "", image4: "", inStock: "0", packSize: "", expirationDate: "", brand: "", color: "", productType: "", categoryId: "", isFeatured: false, isWholesale: false, tags: "" });
     setEditingProd(null); fetchData();
   };
 
   const deleteProduct = async (id: string) => {
     if (!confirm("Удалить товар?")) return;
-    await fetch("/api/admin/products", { method: "DELETE", headers: hdrs(), body: JSON.stringify({ id }) });
+    const res = await fetch("/api/admin/products", { method: "DELETE", headers: hdrs(), body: JSON.stringify({ id }) });
+    if (!res.ok) { alert((await res.json()).error || "Не удалось удалить товар"); return; }
     setSelectedProducts((prev) => { const next = new Set(prev); next.delete(id); return next; });
     fetchData();
   };
@@ -794,11 +800,12 @@ export default function AdminPage() {
   const bulkDeleteProducts = async () => {
     if (selectedProducts.size === 0) return;
     if (!confirm(`Удалить ${selectedProducts.size} товар(ов)?`)) return;
-    await fetch("/api/admin/products", {
+    const res = await fetch("/api/admin/products", {
       method: "DELETE",
       headers: hdrs(),
       body: JSON.stringify({ ids: Array.from(selectedProducts) }),
     });
+    if (!res.ok) { alert((await res.json()).error || "Не удалось удалить товары"); return; }
     setSelectedProducts(new Set());
     fetchData();
   };
@@ -1031,6 +1038,7 @@ export default function AdminPage() {
         weight: mapped.weight ? Number(mapped.weight) : null,
       };
     });
+    setImportOverrides({});
     setImportPreview(preview);
     const all = new Set<number>(preview.map((r) => r.index));
     setImportSelected(all);
@@ -1053,7 +1061,9 @@ export default function AdminPage() {
             mapped[targetField] = row[sourceCol];
           }
         }
-        return mapped;
+        const index = importRawRows.indexOf(row);
+        const override = importOverrides[index] || {};
+        return { ...mapped, ...override };
       });
 
     const res = await fetch("/api/admin/import", {
@@ -1072,8 +1082,8 @@ export default function AdminPage() {
     }
     setImportLoading(false);
     if (res.ok) {
-      setImportStatus(`Новых: ${data.imported}, обновлено: ${data.updated || 0} из ${data.total}`);
       resetImport();
+      setImportStatus(`Новых: ${data.imported}, обновлено: ${data.updated || 0} из ${data.total}`);
       fetchData();
     } else {
       setImportStatus(`Ошибка: ${data.error}`);
@@ -1173,6 +1183,12 @@ export default function AdminPage() {
     analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, chats: chatUnread > 0 ? `Чаты (${chatUnread})` : "Чаты", reviews: "Отзывы", videos: "Видео", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
   };
 
+  const navGroups: Record<string, TabType[]> = {
+    "Продажи": ["orders", "clients", "callbacks", "chats"],
+    "Каталог": ["products", "categories", "reviews", "videos", "synonyms"],
+    "Сайт и продвижение": ["popular", "slider", "presentation", "news", "site-editor"],
+    "Настройки и аналитика": ["analytics", "company", "settings"],
+  };
   return (
     <div className="min-h-screen bg-bg-light">
       <header className="bg-bg-white shadow-sm border-b border-border">
@@ -1191,14 +1207,14 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {(Object.keys(tabLabels) as TabType[]).map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === tab ? "bg-primary text-white" : "bg-bg-white text-text-gray hover:text-text-dark border border-border"}`}>
-              {tabLabels[tab]}
-            </button>
-          ))}
-        </div>
+        <nav aria-label="Разделы управления" className="mb-6 rounded-2xl border border-border bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap gap-2 border-b border-border pb-3">
+            {Object.keys(navGroups).map(group => <button key={group} onClick={() => { setNavGroup(group); setActiveTab(navGroups[group][0]); }} aria-current={navGroup === group ? "page" : undefined} className={`px-4 py-2 rounded-lg text-sm font-semibold ${navGroup === group ? "bg-primary text-white" : "text-text-gray hover:bg-bg-light"}`}>{group}</button>)}
+          </div>
+          <div className="flex gap-2 flex-wrap pt-3">
+            {navGroups[navGroup].map(tab => <button key={tab} onClick={() => setActiveTab(tab)} aria-pressed={activeTab === tab} className={`px-3 py-2 rounded-lg text-sm ${activeTab === tab ? "bg-primary/10 text-primary font-semibold" : "text-text-gray hover:bg-bg-light"}`}>{tabLabels[tab]}</button>)}
+          </div>
+        </nav>
 
         {/* Analytics */}
         {activeTab === "analytics" && <AnalyticsPanel token={token} />}
@@ -1356,7 +1372,10 @@ export default function AdminPage() {
               {/* Step 2: Preview & select rows */}
               {importStep === "preview" && importPreview.length > 0 && (
                 <div className="mt-4">
-                  <h3 className="text-sm font-bold text-text-dark mb-2">Шаг 2: Выберите товары для импорта</h3>
+                  <h3 className="text-sm font-bold text-text-dark mb-2">Шаг 2: Проверьте товары и сопоставьте данные</h3>
+                  <p className="text-sm text-text-gray mb-3">Для неизвестной категории выберите существующую. Бренд и тип можно выбрать из подсказок или вписать вручную. Пустой остаток не меняет имеющийся. Ошибка в любой строке отменит весь импорт.</p>
+                  <datalist id="existing-import-brands">{[...new Set(products.map(p => p.brand).filter(Boolean))].sort().map(x => <option key={x} value={x} />)}</datalist>
+                  <datalist id="existing-import-types">{[...new Set(products.map(p => p.productType).filter(Boolean))].sort().map(x => <option key={x} value={x} />)}</datalist>
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm text-text-dark">
                       Найдено: {importPreview.length} | Выбрано: {importSelected.size}
@@ -1387,6 +1406,7 @@ export default function AdminPage() {
                           <th className="px-2 py-2 text-left">Название</th>
                           <th className="px-2 py-2 text-left">Категория</th>
                           <th className="px-2 py-2 text-left">Бренд</th>
+                          <th className="px-2 py-2 text-left">Тип / группа</th>
                           <th className="px-2 py-2 text-left">Страна</th>
                           <th className="px-2 py-2 text-right">Цена</th>
                           <th className="px-2 py-2 text-right">Вес (кг)</th>
@@ -1398,18 +1418,18 @@ export default function AdminPage() {
                           <tr
                             key={row.index}
                             className={`border-t border-border hover:bg-gray-50 cursor-pointer ${importSelected.has(row.index) ? "bg-blue-50" : ""}`}
-                            onClick={() => toggleImportRow(row.index)}
                           >
                             <td className="px-2 py-1.5">
                               <input type="checkbox" checked={importSelected.has(row.index)} onChange={() => toggleImportRow(row.index)} />
                             </td>
                             <td className="px-2 py-1.5 max-w-[200px] truncate" title={row.name}>{row.name || "—"}</td>
-                            <td className="px-2 py-1.5">{row.category || "—"}</td>
-                            <td className="px-2 py-1.5">{row.brand || "—"}</td>
+                            <td className="px-2 py-1.5"><span className="text-xs block">В файле: {row.category || "—"}</span><select aria-label={`Категория: ${row.name}`} className="border rounded p-1 max-w-52" value={importOverrides[row.index]?.categoryId || ""} onChange={e => setImportOverrides(prev => ({ ...prev, [row.index]: { ...prev[row.index], categoryId: e.target.value } }))}><option value="">Автоматически / без изменения</option>{categories.map(c => <option key={c.id} value={c.id}>{c.parentId ? "↳ " : ""}{c.name}</option>)}</select></td>
+                            <td className="px-2 py-1.5"><input list="existing-import-brands" aria-label={`Бренд: ${row.name}`} className="border rounded p-1 w-36" value={importOverrides[row.index]?.brand ?? row.brand} onChange={e => setImportOverrides(prev => ({ ...prev, [row.index]: { ...prev[row.index], brand: e.target.value } }))} /></td>
+                            <td className="px-2 py-1.5"><input list="existing-import-types" aria-label={`Тип: ${row.name}`} className="border rounded p-1 w-36" value={importOverrides[row.index]?.productType ?? (importRawRows[row.index]?.[Object.keys(importColumnMap).find(k => importColumnMap[k] === "productType") || ""] || "")} onChange={e => setImportOverrides(prev => ({ ...prev, [row.index]: { ...prev[row.index], productType: e.target.value } }))} /></td>
                             <td className="px-2 py-1.5">{row.country || "—"}</td>
                             <td className="px-2 py-1.5 text-right">{row.price || "—"}</td>
                             <td className="px-2 py-1.5 text-right">{row.weight ?? "—"}</td>
-                            <td className="px-2 py-1.5 text-right">{row.inStock || "—"}</td>
+                            <td className="px-2 py-1.5 text-right">{(() => { const h = Object.keys(importColumnMap).find(k => importColumnMap[k] === "inStock"); const raw = h ? importRawRows[row.index]?.[h] : ""; return raw === "" || raw === undefined ? "Не изменять" : raw; })()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1482,11 +1502,13 @@ export default function AdminPage() {
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <input type="text" placeholder="Срок годности" value={prodForm.expirationDate} onChange={(e) => setProdForm({ ...prodForm, expirationDate: e.target.value })}
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                <input type="text" placeholder="Бренд" value={prodForm.brand} onChange={(e) => setProdForm({ ...prodForm, brand: e.target.value })}
+                <datalist id="existing-brands">{[...new Set(products.map(p => p.brand).filter(Boolean))].sort().map(x => <option key={x} value={x} />)}</datalist>
+                <datalist id="existing-types">{[...new Set(products.map(p => p.productType).filter(Boolean))].sort().map(x => <option key={x} value={x} />)}</datalist>
+                <input list="existing-brands" type="text" placeholder="Бренд" value={prodForm.brand} onChange={(e) => setProdForm({ ...prodForm, brand: e.target.value })}
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <input type="text" placeholder="Цвет" value={prodForm.color} onChange={(e) => setProdForm({ ...prodForm, color: e.target.value })}
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                <input type="text" placeholder="Тип товара" value={prodForm.productType} onChange={(e) => setProdForm({ ...prodForm, productType: e.target.value })}
+                <input list="existing-types" type="text" placeholder="Тип товара" value={prodForm.productType} onChange={(e) => setProdForm({ ...prodForm, productType: e.target.value })}
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                 <select value={prodForm.categoryId} onChange={(e) => setProdForm({ ...prodForm, categoryId: e.target.value })} required
                   className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
@@ -1890,7 +1912,7 @@ export default function AdminPage() {
                     <p className="text-xs text-text-gray">{prod.price.toLocaleString("ru-RU")} ₽ — {prod.category?.name}</p>
                   </div>
                   <button onClick={async () => {
-                    await fetch("/api/admin/products", { method: "PUT", headers: hdrs(), body: JSON.stringify({ id: prod.id, name: prod.name, description: prod.description, price: prod.price, oldPrice: prod.oldPrice, image: prod.image, image2: prod.image2, image3: prod.image3, image4: prod.image4, inStock: prod.inStock, brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: false }) });
+                    await fetch("/api/admin/products", { method: "PUT", headers: hdrs(), body: JSON.stringify({ id: prod.id, featuredOnly: true, isFeatured: false }) });
                     fetchData();
                   }} className="text-danger hover:underline text-sm flex-shrink-0">Убрать</button>
                 </div>
@@ -1903,7 +1925,7 @@ export default function AdminPage() {
                   {products.filter(p => !p.isFeatured).map((prod) => (
                     <div key={prod.id} className="flex items-center gap-3 p-2.5 hover:bg-bg-light cursor-pointer" onClick={async () => {
                       if (products.filter(p => p.isFeatured).length >= 8) { alert("Максимум 8 популярных товаров"); return; }
-                      await fetch("/api/admin/products", { method: "PUT", headers: hdrs(), body: JSON.stringify({ id: prod.id, name: prod.name, description: prod.description, price: prod.price, oldPrice: prod.oldPrice, image: prod.image, image2: prod.image2, image3: prod.image3, image4: prod.image4, inStock: prod.inStock, brand: prod.brand, color: prod.color, productType: prod.productType, categoryId: prod.categoryId, isFeatured: true }) });
+                      await fetch("/api/admin/products", { method: "PUT", headers: hdrs(), body: JSON.stringify({ id: prod.id, featuredOnly: true, isFeatured: true }) });
                       fetchData();
                     }}>
                       {prod.image && <img src={prod.image} alt="" className="w-8 h-8 rounded object-cover" />}
@@ -1929,7 +1951,8 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   { slug: "about", label: "О компании" },
-                  { slug: "delivery", label: "Доставка" },
+                  { slug: "delivery", label: "Страница доставки" },
+                  { slug: "delivery_terms", label: "Условия доставки в заказе" },
                   { slug: "contacts", label: "Контакты" },
                   { slug: "wholesale", label: "Оптовые продажи" },
                 ].map((p) => (
@@ -1950,7 +1973,7 @@ export default function AdminPage() {
               <div className="bg-bg-white rounded-xl border border-border p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-text-dark">
-                    Редактирование: {editingPage === "about" ? "О компании" : editingPage === "delivery" ? "Доставка" : editingPage === "contacts" ? "Контакты" : "Оптовые продажи"}
+                    Редактирование: {editingPage === "about" ? "О компании" : editingPage === "delivery" ? "Страница доставки" : editingPage === "delivery_terms" ? "Условия доставки в заказе" : editingPage === "contacts" ? "Контакты" : "Оптовые продажи"}
                   </h3>
                   {pageSaveMsg && <span className="text-sm text-success font-medium">{pageSaveMsg}</span>}
                 </div>
@@ -1960,8 +1983,9 @@ export default function AdminPage() {
                     <input type="text" value={pageForm.title} onChange={(e) => setPageForm({ ...pageForm, title: e.target.value })}
                       placeholder="Заголовок страницы" className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                   </div>
+                  {editingPage === "delivery_terms" && <p className="text-sm text-text-gray">Обычный текст будет показан на странице доставки и при оформлении заказа. Укажите реальные сроки и стоимость; расчёт тарифа автоматически не выполняется.</p>}
                   <div>
-                    <label className="text-sm text-text-gray mb-1 block">Содержимое (HTML поддерживается)</label>
+                    <label className="text-sm text-text-gray mb-1 block">{editingPage === "delivery_terms" ? "Условия доставки (обычный текст)" : "Содержимое (HTML поддерживается)"}</label>
                     <textarea value={pageForm.content} onChange={(e) => setPageForm({ ...pageForm, content: e.target.value })}
                       placeholder={"Введите текст раздела...\n\nПоддерживается HTML разметка:\n<p>Параграф</p>\n<h3>Подзаголовок</h3>\n<ul><li>Пункт</li></ul>\n<strong>Жирный</strong>"}
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono" rows={15} />
@@ -1995,6 +2019,7 @@ export default function AdminPage() {
         {/* Settings */}
         {activeTab === "settings" && (
           <div className="max-w-3xl">
+            <div className="bg-bg-white rounded-xl border border-border p-5 mb-4"><h2 className="font-bold text-text-dark mb-2">Страницы и доставка</h2><p className="text-sm text-text-gray mb-3">Измените страницу доставки и условия, которые видит покупатель при оформлении заказа.</p><button className="text-sm text-primary font-medium hover:underline" onClick={() => { setNavGroup("Сайт и продвижение"); setActiveTab("site-editor"); setEditingPage("delivery_terms"); const p = sitePages.delivery_terms; setPageForm({ title: p?.title || "Условия доставки", content: p?.content || "" }); }}>Открыть условия доставки →</button></div>
             <PromoCodesPanel token={token} />
             <div className="bg-bg-white rounded-xl border border-border p-5">
               <h2 className="font-bold text-text-dark mb-4">Настройки аккаунта</h2>
@@ -2306,12 +2331,13 @@ function ClientsPanel({ token }: { token: string }) {
   useEffect(() => { startTransition(() => { void loadClients(); }); }, []);
 
   const deleteClient = async (id: string, email: string) => {
-    if (!confirm(`Удалить аккаунт клиента ${email}? Это действие необратимо — будут удалены все данные, заказы и отзывы.`)) return;
-    await fetch("/api/admin/clients", {
+    if (!confirm(`Удалить аккаунт клиента ${email}? Аккаунты с заказами защищены от удаления.`)) return;
+    const res = await fetch("/api/admin/clients", {
       method: "DELETE",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ id }),
     });
+    if (!res.ok) { alert((await res.json()).error || "Не удалось удалить клиента"); return; }
     setSelectedClient(null);
     loadClients();
   };

@@ -119,6 +119,7 @@ test("Админ: Настройки → Промокоды, создание и
   await page.getByPlaceholder("Логин", { exact: true }).fill("e2e-admin");
   await page.getByPlaceholder("Пароль", { exact: true }).fill("e2e-password");
   await page.getByRole("button", { name: "Войти", exact: true }).click();
+  await page.getByRole("button", { name: "Настройки и аналитика", exact: true }).click();
   await page.getByRole("button", { name: "Настройки", exact: true }).click();
   const panel = page.getByRole("region", { name: "Промокоды", exact: true });
   await panel.getByLabel("Код промокода", { exact: true }).fill("E2EADMIN");
@@ -130,6 +131,7 @@ test("Админ: Настройки → Промокоды, создание и
   await row.getByRole("button", { name: "Отключить", exact: true }).click();
   await expect(row).toContainText("отключён");
   expect((getPromo("E2EADMIN")).active).toBe(0);
+  await page.getByRole("button", { name: "Продажи", exact: true }).click();
   await page.getByRole("button", { name: /^Заказы \(/ }).click();
   await expect(page.getByText(/Промокод: E2E15 · Скидка:/).first()).toBeVisible();
   await expect(page.getByText(/гостевой заказ/).first()).toBeVisible();
@@ -236,4 +238,67 @@ test("Checkout блокирует отсутствующий email/Telegram и �
   await page.getByLabel("Предпочитаемый способ связи *", { exact: true }).selectOption("telegram");
   await page.getByRole("button", { name: "Далее — Подтверждение" }).click();
   await expect(page.locator('main [role="alert"]')).toContainText("Укажите Telegram");
+});
+
+test("Единый вход отправляет администратора и покупателя в свои кабинеты", async ({ page }) => {
+  await page.goto("/account");
+  await page.getByPlaceholder("Email или Логин").fill("e2e-admin");
+  await page.getByPlaceholder("Пароль", { exact: true }).fill("e2e-password");
+  await page.getByRole("button", { name: "Войти", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin/);
+  await expect(page.getByRole("navigation", { name: "Разделы управления" })).toBeVisible();
+  if (process.env.E2E_SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.E2E_SCREENSHOT_DIR}/admin-desktop.png`, fullPage: false });
+  await page.getByRole("button", { name: "Выйти", exact: true }).click();
+  await page.goto("/account");
+  await page.getByPlaceholder("Email или Логин").fill("e2e@example.test");
+  await page.getByPlaceholder("Пароль", { exact: true }).fill("test-password");
+  await page.getByRole("button", { name: "Войти", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^Мои заказы \(/ })).toBeVisible();
+});
+
+test("Мобильный каталог: категории и фильтры доступны", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/catalog");
+  const categories = page.getByRole("region", { name: "Категории каталога" });
+  await expect(categories).toBeVisible();
+  if (process.env.E2E_SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.E2E_SCREENSHOT_DIR}/catalog-mobile.png`, fullPage: false });
+  await categories.getByRole("link", { name: /E2E/ }).click();
+  await expect(page).toHaveURL(/\/catalog\/e2e/);
+  await expect(page.getByText("E2E товар", { exact: true }).first()).toBeVisible();
+  if (process.env.E2E_SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.E2E_SCREENSHOT_DIR}/category-mobile.png`, fullPage: false });
+});
+
+test("Администратор выбирает существующую категорию, бренд и группу при импорте", async ({ page }) => {
+  await page.goto("/admin");
+  await page.getByPlaceholder("Логин", { exact: true }).fill("e2e-admin");
+  await page.getByPlaceholder("Пароль", { exact: true }).fill("e2e-password");
+  await page.getByRole("button", { name: "Войти", exact: true }).click();
+  await page.getByRole("button", { name: "Каталог", exact: true }).click();
+  await page.locator('input[type="file"][accept=".csv,.xlsx,.xls"]').setInputFiles({ name: "products.csv", mimeType: "text/csv", buffer: Buffer.from("Название,Цена\nНовинка для импорта,150\n") });
+  await page.getByRole("button", { name: "Предпросмотр", exact: true }).click();
+  await page.getByLabel("Категория: Новинка для импорта").selectOption({ label: "E2E" });
+  await page.getByLabel("Бренд: Новинка для импорта").fill("Тестовый бренд");
+  await page.getByLabel("Тип: Новинка для импорта").fill("Тестовая группа");
+  await page.getByRole("button", { name: "Импортировать (1)" }).click();
+  await expect(page.getByText(/Новых: 1, обновлено: 0/)).toBeVisible();
+  const record = db.prepare('SELECT "brand", "productType" FROM "Product" WHERE "name" = ?').get("Новинка для импорта") as { brand: string; productType: string };
+  expect(record.brand).toBe("Тестовый бренд"); expect(record.productType).toBe("Тестовая группа");
+});
+
+test("Условия доставки редактируются в настройках и видны в заказе", async ({ page }) => {
+  await page.goto("/admin");
+  await page.getByPlaceholder("Логин", { exact: true }).fill("e2e-admin");
+  await page.getByPlaceholder("Пароль", { exact: true }).fill("e2e-password");
+  await page.getByRole("button", { name: "Войти", exact: true }).click();
+  await page.getByRole("button", { name: "Настройки и аналитика", exact: true }).click();
+  await page.getByRole("button", { name: "Настройки", exact: true }).click();
+  await page.getByRole("button", { name: /Открыть условия доставки/ }).click();
+  await page.locator("textarea").fill("Тестовые условия: стоимость согласуется с менеджером.");
+  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(page.getByText("Сохранено", { exact: true })).toBeVisible();
+  await page.goto("/delivery");
+  await expect(page.getByText("Тестовые условия: стоимость согласуется с менеджером.")).toBeVisible();
+  await addGuest(page); await page.goto("/checkout");
+  await page.getByRole("button", { name: "Далее — Данные доставки" }).click();
+  await expect(page.getByText("Тестовые условия: стоимость согласуется с менеджером.")).toBeVisible();
 });

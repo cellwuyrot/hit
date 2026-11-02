@@ -243,7 +243,7 @@ export default function Header() {
               </div>
               <span className="text-[10px] sm:text-xs mt-0.5">Корзина</span>
             </Link>
-            <Link href="/account" className="flex flex-col items-center text-text-gray hover:text-primary transition-colors relative overflow-hidden rounded-lg px-2 py-1">
+            <Link href={userLabel === "Админ" ? "/admin" : "/account"} className="flex flex-col items-center text-text-gray hover:text-primary transition-colors relative overflow-hidden rounded-lg px-2 py-1">
               <Ripple />
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -317,7 +317,7 @@ export default function Header() {
               <Link href="/wishlist" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Избранное</Link>
               <Link href="/compare" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Сравнение</Link>
               <Link href="/cart" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Корзина</Link>
-              <Link href="/account" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>{userLabel || "Вход / Кабинет"}</Link>
+              <Link href={userLabel === "Админ" ? "/admin" : "/account"} className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>{userLabel || "Вход / Кабинет"}</Link>
               <div className="border-t border-border my-2" />
             </nav>
           </div>

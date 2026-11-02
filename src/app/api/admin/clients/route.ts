@@ -47,7 +47,8 @@ export async function DELETE(req: NextRequest) {
   const { id } = await req.json();
   if (!id) return Response.json({ error: "ID обязателен" }, { status: 400 });
 
-  await prisma.user.delete({ where: { id } });
+  const result = await prisma.user.deleteMany({ where: { id, orders: { none: {} } } });
+  if (!result.count) return Response.json({ error: "Клиент не найден или имеет заказы; удаление запрещено для сохранения истории" }, { status: 409 });
   return Response.json({ success: true });
 }
 
