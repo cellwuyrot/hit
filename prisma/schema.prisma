@@ -131,6 +131,7 @@ model Order {
   userId       String?
   user         User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
   status       String      @default("new")
+  requestKey   String?     @unique
   total        Float
   subtotal     Float       @default(0)
   email        String      @default("")
@@ -337,6 +338,7 @@ model EmailVerification {
   code      String
   expiresAt DateTime
   createdAt DateTime @default(now())
+  attempts  Int      @default(0)
 }
 
 model SearchSynonym {

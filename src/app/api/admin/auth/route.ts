@@ -30,9 +30,9 @@ export async function PUT(request: Request) {
   const admin = await prisma.admin.findUnique({ where: { id: payload.id } });
   if (!admin) return Response.json({ error: "Админ не найден" }, { status: 404 });
 
-  if (newPassword) {
+  if (newPassword || (newUsername && newUsername !== admin.username)) {
     if (!currentPassword) return Response.json({ error: "Введите текущий пароль" }, { status: 400 });
-    if (newPassword.length < 6) return Response.json({ error: "Новый пароль должен быть минимум 6 символов" }, { status: 400 });
+    if (newPassword && newPassword.length < 6) return Response.json({ error: "Новый пароль должен быть минимум 6 символов" }, { status: 400 });
     if (!(await bcrypt.compare(currentPassword, admin.password))) {
       return Response.json({ error: "Неверный текущий пароль" }, { status: 400 });
     }

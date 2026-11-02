@@ -91,8 +91,15 @@ export async function quoteCheckout(userId: string | null, items: unknown, code?
     return { items: quote.items, subtotal: quote.subtotal, discount: quote.discount, total: quote.total, promoCode: quote.promoCode };
   });
 }
-export async function createCheckoutOrder(userId: string | null, body: Record<string, unknown>) {
+export async function createCheckoutOrder(userId: string | null, body: Record<string, unknown>, requestKey?: string) {
   return prisma.$transaction(async tx => {
+    if (requestKey) {
+      const previous = await tx.order.findUnique({ where: { requestKey }, include: { items: { include: { product: true } } } });
+      if (previous) {
+        if (previous.userId !== userId) throw new CheckoutError("Ключ заказа уже использован", 409);
+        return { ...previous, replayed: true };
+      }
+    }
     const user = userId ? await tx.user.findUnique({ where: { id: userId }, select: { email: true } }) : null;
     if (userId && !user) throw new CheckoutError("Пользователь не найден", 401);
     let details;
@@ -116,11 +123,11 @@ export async function createCheckoutOrder(userId: string | null, body: Record<st
       if (!changed.count) throw new CheckoutError("Промокод больше недоступен. Проверьте его повторно", 409);
     }
     const order = await tx.order.create({ data: {
-      userId, ...details,
+      userId, requestKey: requestKey || null, ...details,
       subtotal: quote.subtotal, total: quote.total, promoCode: quote.promoCode, discount: quote.discount,
       items: { create: quote.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.lineTotal / i.quantity })) },
     }, include: { items: { include: { product: true } } } });
     if (userId) await tx.cartItem.deleteMany({ where: { userId } });
-    return order;
+    return { ...order, replayed: false };
   }, { timeout: 15_000 });
 }

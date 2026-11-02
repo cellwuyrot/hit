@@ -24,11 +24,14 @@ async function main() {
   // Admin — create default only if no admins exist (first install)
   const existingAdmins = await prisma.admin.count();
   if (existingAdmins === 0) {
-    const hashedPassword = await bcrypt.hash("admin123", 10);
-    await prisma.admin.create({
-      data: { username: "admin", password: hashedPassword },
-    });
-    console.log("Default admin created (login: admin). Change password after first login!");
+    const username = process.env.ADMIN_INITIAL_USERNAME;
+    const password = process.env.ADMIN_INITIAL_PASSWORD;
+    if (!username || !password || password.length < 12) {
+      throw new Error("Укажите ADMIN_INITIAL_USERNAME и ADMIN_INITIAL_PASSWORD (минимум 12 символов) для первого администратора");
+    }
+    const hashedPassword = await bcrypt.hash(password, 12);
+    await prisma.admin.create({ data: { username, password: hashedPassword } });
+    console.log("Первый администратор создан.");
   } else {
     console.log(`Skipping admin seed — ${existingAdmins} admin(s) already exist.`);
   }

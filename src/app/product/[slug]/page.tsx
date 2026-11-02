@@ -99,8 +99,6 @@ export default async function ProductPage({ params }: PageProps) {
 
   const images = [product.image, product.image2, product.image3, product.image4].filter(Boolean);
 
-  const priceValidUntil = new Date();
-  priceValidUntil.setFullYear(priceValidUntil.getFullYear() + 1);
 
   const brandName = product.brand || product.category.name || "ТОПХИТ";
   const productDescription = product.description
@@ -126,59 +124,18 @@ export default async function ProductPage({ params }: PageProps) {
       url: `https://tophitt.ru/product/${product.slug}`,
       priceCurrency: "RUB",
       price: product.price,
-      priceValidUntil: priceValidUntil.toISOString().split("T")[0],
       availability: product.inStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
       seller: { "@type": "Organization", name: "ТОПХИТ" },
-      hasMerchantReturnPolicy: {
-        "@type": "MerchantReturnPolicy",
-        "@id": "https://tophitt.ru/returns#policy",
-        applicableCountry: "RU",
-        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
-        merchantReturnDays: 14,
-        returnMethod: "https://schema.org/ReturnByMail",
-        returnFees: "https://schema.org/FreeReturn",
-      },
-      shippingDetails: {
-        "@type": "OfferShippingDetails",
-        shippingRate: {
-          "@type": "MonetaryAmount",
-          value: "0",
-          currency: "RUB",
-        },
-        shippingDestination: {
-          "@type": "DefinedRegion",
-          addressCountry: "RU",
-        },
-        deliveryTime: {
-          "@type": "ShippingDeliveryTime",
-          handlingTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 3, unitCode: "DAY" },
-          transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 7, unitCode: "DAY" },
-        },
-      },
+
     },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: product.reviews.length > 0 ? avgRating.toFixed(1) : "5.0",
-      reviewCount: product.reviews.length > 0 ? product.reviews.length : 1,
-      bestRating: 5,
-      worstRating: 1,
-    },
-    review: product.reviews.length > 0
-      ? product.reviews.slice(0, 5).map((r) => ({
-          "@type": "Review",
-          author: { "@type": "Person", name: r.authorName || r.user?.name || r.user?.email.split("@")[0] || "Покупатель" },
-          datePublished: r.createdAt.toISOString().split("T")[0],
-          reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5, worstRating: 1 },
-          reviewBody: r.text || undefined,
-        }))
-      : [{
-          "@type": "Review",
-          author: { "@type": "Organization", name: "ТОПХИТ" },
-          datePublished: product.createdAt.toISOString().split("T")[0],
-          reviewRating: { "@type": "Rating", ratingValue: 5, bestRating: 5, worstRating: 1 },
-          reviewBody: `${product.name} — рекомендуем!`,
-        }],
+    ...(product.reviews.length > 0 ? {
+      aggregateRating: { "@type": "AggregateRating", ratingValue: avgRating.toFixed(1), reviewCount: product.reviews.length, bestRating: 5, worstRating: 1 },
+      review: product.reviews.slice(0, 5).map((r) => ({
+        "@type": "Review", author: { "@type": "Person", name: r.authorName || r.user?.name || r.user?.email.split("@")[0] || "Покупатель" },
+        datePublished: r.createdAt.toISOString().split("T")[0], reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5, worstRating: 1 }, reviewBody: r.text || undefined,
+      })),
+    } : {}),
   };
 
   const breadcrumbItems = [
@@ -204,8 +161,8 @@ export default async function ProductPage({ params }: PageProps) {
     <>
       <Header />
       <CategoryTracker categoryId={product.categoryId} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd).replace(/</g, "\\u003c") }} />
       <ProductViewTracker id={product.id} name={product.name} slug={product.slug} price={product.price} image={product.image} />
       <main className="flex-1 bg-bg-light">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">

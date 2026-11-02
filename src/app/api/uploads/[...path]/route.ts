@@ -34,6 +34,7 @@ export async function GET(
     return new Response(buffer, {
       headers: {
         "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
+        ...(ext === ".svg" ? { "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'" } : {}),
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     });

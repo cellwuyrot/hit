@@ -17,7 +17,8 @@
     "feeds:generate": "npx tsx scripts/generate-merchant-feed.ts && npx tsx scripts/generate-yandex-feed.ts",
     "fix:slugs": "npx tsx scripts/fix-slugs.ts",
     "test:checkout": "node scripts/test-checkout.mjs",
-    "test:e2e": "node scripts/test-e2e.mjs"
+    "test:e2e": "node scripts/test-e2e.mjs",
+    "test:review": "node scripts/test-review.mjs"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

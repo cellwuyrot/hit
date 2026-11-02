@@ -3,7 +3,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
-import { useState, useEffect, startTransition } from "react";
+import { useState, useEffect, useRef, startTransition } from "react";
 import { useCheckoutCart } from "@/components/useCheckoutCart";
 import { CONTACT_METHODS, DELIVERY_METHODS, PICKUP_ADDRESS, contactLabel, deliveryLabel, parseOrderDetails } from "@/lib/order-options";
 import { readGuestCart, writeGuestCart } from "@/lib/guest-cart";
@@ -17,11 +17,14 @@ const steps = [
 export default function CheckoutPage() {
   const { items, token, loading: cartLoading, error: cartError, subtotal, discount, total, promoCode: appliedCode, applyPromo, removePromo } = useCheckoutCart();
   const [promoCode, setPromoCode] = useState("");
+  const [deliveryTerms, setDeliveryTerms] = useState("Стоимость и условия доставки уточнит менеджер. Тариф доставки не входит в сумму товаров.");
+  useEffect(() => { fetch("/api/pages?slug=delivery_terms").then(r => r.ok ? r.json() : null).then(p => { if (p?.content) setDeliveryTerms(p.content); }).catch(() => {}); }, []);
   const [form, setForm] = useState({ name: "", phone: "", address: "", comment: "", email: "", contactMethod: "phone", contactDetails: "", deliveryMethod: "cdek" });
   const isPickup = form.deliveryMethod === "pickup";
   const [error, setError] = useState("");
   const [orderId, setOrderId] = useState("");
   const [loading, setLoading] = useState(false);
+  const requestKey = useRef<string | null>(null);
   const [step, setStep] = useState(1);
   useEffect(() => {
     if (!token) return;
@@ -41,9 +44,10 @@ export default function CheckoutPage() {
     if (!validateDetails()) { setStep(2); return; }
     setLoading(true);
     try {
+      requestKey.current ||= crypto.randomUUID();
       const res = await fetch("/api/user/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": requestKey.current, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ ...form, items: readGuestCart(), promoCode: appliedCode }),
       });
       const data = await res.json();
@@ -157,7 +161,7 @@ export default function CheckoutPage() {
                       <select id="checkout-delivery" value={form.deliveryMethod} onChange={e => setForm({ ...form, deliveryMethod: e.target.value })} className="w-full border border-border rounded-lg px-4 py-2.5">
                         {DELIVERY_METHODS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
-                      {!isPickup && <p className="text-xs text-text-gray mt-1">Стоимость и условия доставки уточнит менеджер. Тариф доставки не входит в сумму товаров.</p>}
+                      {!isPickup && <p className="text-xs text-text-gray mt-1 whitespace-pre-wrap">{deliveryTerms}</p>}
                     </div>
                     {isPickup && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">

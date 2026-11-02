@@ -21,10 +21,12 @@ export async function POST(request: Request) {
   try {
     const userId = checkoutUser(request);
     const body = await checkoutBody(request);
-    const order = await createCheckoutOrder(userId, body);
+    const requestKey = request.headers.get("Idempotency-Key") || undefined;
+    if (requestKey && !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey)) return Response.json({ error: "Некорректный ключ заказа" }, { status: 400 });
+    const order = await createCheckoutOrder(userId, body, requestKey);
     // Уведомления отправляются только после коммита; сбой SMTP не откатывает заказ.
-    void sendOrderNotificationToAdmin(order, order.email).catch(console.error);
-    if (order.email) void sendOrderConfirmationToClient(order.email, order).catch(console.error);
+    if (!order.replayed) void sendOrderNotificationToAdmin(order, order.email).catch(console.error);
+    if (!order.replayed && order.email) void sendOrderConfirmationToClient(order.email, order).catch(console.error);
     return Response.json({ id: order.id, subtotal: order.subtotal, total: order.total, discount: order.discount, promoCode: order.promoCode }, { status: 201 });
   } catch (error) { return checkoutFailure(error); }
 }

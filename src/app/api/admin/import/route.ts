@@ -105,7 +105,13 @@ export async function PUT(request: Request) {
     return Response.json({ error: "Поддерживаемые форматы: CSV, XLSX, XLS" }, { status: 400 });
   }
 
-  const workbook = XLSX.read(buffer, { type: "buffer" });
+  // UTF-8 CSV is common; fall back to Windows-1251 for older Russian exports.
+  let codepage: number | undefined;
+  if (fileName.endsWith(".csv")) {
+    try { new TextDecoder("utf-8", { fatal: true }).decode(buffer); codepage = 65001; }
+    catch { codepage = 1251; }
+  }
+  const workbook = XLSX.read(buffer, { type: "buffer", ...(codepage ? { codepage } : {}) });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const aoa = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
 
@@ -131,15 +137,13 @@ export async function PUT(request: Request) {
     }
   }
 
-  const minCells = Math.max(3, Math.floor(headers.length * 0.3));
+  const minCells = 1;
 
   const nameColIdx = colIndices[headers.findIndex((h) => {
     const l = h.toLowerCase();
     return AUTO_DETECT.name.includes(l);
   })] ?? -1;
 
-  const catColIdx = colIndices[headers.findIndex((h) => AUTO_DETECT.category.includes(h.toLowerCase()))] ?? -1;
-  const brandColIdx = colIndices[headers.findIndex((h) => AUTO_DETECT.brand.includes(h.toLowerCase()))] ?? -1;
 
   const rows: Record<string, string>[] = [];
   for (let i = headerRowIdx + 1; i < aoa.length; i++) {
@@ -158,9 +162,6 @@ export async function PUT(request: Request) {
       if (nameStr === "ИТОГО УПАКОВОК:" || nameStr.startsWith("ИТОГО")) continue;
     }
 
-    const hasCat = catColIdx >= 0 && row[catColIdx] && String(row[catColIdx]).trim() !== "";
-    const hasBrand = brandColIdx >= 0 && row[brandColIdx] && String(row[brandColIdx]).trim() !== "";
-    if (!hasCat && !hasBrand && nameColIdx >= 0) continue;
 
     const obj: Record<string, string> = {};
     for (let k = 0; k < headers.length; k++) {
@@ -202,136 +203,78 @@ interface ImportProduct {
   tags?: string;
 }
 
-// POST — import products (receive mapped data as JSON)
+// POST — атомарный импорт. Неизвестные категории разрешаются только вручную.
 export async function POST(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
-
-  const body = await request.json();
-  const products: ImportProduct[] = body.products;
-
-  if (!products || products.length === 0) {
-    return Response.json({ error: "Нет товаров для импорта" }, { status: 400 });
-  }
-
-  const validRows = products.filter((r) => r.name);
-  if (validRows.length === 0) {
-    return Response.json({ error: "Не найдено строк с названием товара" }, { status: 400 });
-  }
-
-  const allCategories = await prisma.category.findMany({ orderBy: { order: "asc" } });
-  const catByName = new Map(allCategories.map((c) => [c.name.toLowerCase(), c.id]));
-  const defaultCatId = allCategories[0]?.id;
-
-  if (!defaultCatId) {
-    return Response.json({ error: "Нет категорий в базе данных" }, { status: 400 });
-  }
-
-  const names = validRows.map((r) => String(r.name));
-  const codes = validRows.filter((r) => r.code).map((r) => String(r.code));
-  const barcodes = validRows.filter((r) => r.barcode).map((r) => String(r.barcode));
-
-  const existingProducts = await prisma.product.findMany({
-    where: {
-      OR: [
-        { name: { in: names } },
-        ...(codes.length > 0 ? [{ code: { in: codes } }] : []),
-        ...(barcodes.length > 0 ? [{ barcode: { in: barcodes } }] : []),
-      ],
-    },
-    select: { id: true, name: true, brand: true, inStock: true, code: true, barcode: true },
-  });
-
-  const existingByName = new Map<string, { id: string; inStock: number }>();
-  const existingByCode = new Map<string, { id: string; inStock: number }>();
-  const existingByBarcode = new Map<string, { id: string; inStock: number }>();
-  for (const p of existingProducts) {
-    existingByName.set(`${p.name}|||${p.brand}`, { id: p.id, inStock: p.inStock });
-    if (p.code) existingByCode.set(p.code, { id: p.id, inStock: p.inStock });
-    if (p.barcode) existingByBarcode.set(p.barcode, { id: p.id, inStock: p.inStock });
-  }
-
-  let imported = 0;
-  let updated = 0;
-
-  for (const row of validRows) {
-    const name = String(row.name);
-    const brand = row.brand ? String(row.brand) : "";
-    const price = Number(row.price) || 0;
-    const oldPrice = row.oldPrice != null && row.oldPrice !== "" ? Number(row.oldPrice) : null;
-    const inStock = Number(row.inStock) || 0;
-    const weight = row.weight != null && row.weight !== "" ? Number(row.weight) : null;
-    const volume = row.volume != null && row.volume !== "" ? Number(row.volume) : null;
-    const packSize = row.packSize != null && row.packSize !== "" ? Number(row.packSize) : null;
-
-    const categoryId = (row.category ? catByName.get(String(row.category).toLowerCase()) : undefined) || defaultCatId;
-
-    const codeStr = row.code ? String(row.code) : "";
-    const barcodeStr = row.barcode ? String(row.barcode) : "";
-    const existing = (codeStr && existingByCode.get(codeStr))
-      || (barcodeStr && existingByBarcode.get(barcodeStr))
-      || existingByName.get(`${name}|||${brand}`);
-
-    if (existing) {
-      const updateData: Record<string, unknown> = { inStock };
-      if (price > 0) updateData.price = price;
-      if (oldPrice !== null) updateData.oldPrice = oldPrice;
-      if (brand) updateData.brand = brand;
-      if (row.country) updateData.country = String(row.country);
-      if (weight !== null) updateData.weight = weight;
-      if (volume !== null) updateData.volume = volume;
-      if (packSize !== null) updateData.packSize = packSize;
-      if (codeStr) updateData.code = codeStr;
-      if (barcodeStr) updateData.barcode = barcodeStr;
-      if (row.color) updateData.color = String(row.color);
-      if (row.description) updateData.description = String(row.description);
-      if (row.tags) updateData.tags = String(row.tags);
-      if (row.image) updateData.image = String(row.image);
-      if (row.expirationDate) updateData.expirationDate = String(row.expirationDate);
-
-      await prisma.product.update({
-        where: { id: existing.id },
-        data: updateData,
-      });
-      updated++;
-    } else {
-      let slug = slugify(name);
-      const slugExists = await prisma.product.findFirst({ where: { slug } });
-      if (slugExists) {
-        let counter = 2;
-        while (await prisma.product.findFirst({ where: { slug: `${slug}-${counter}` } })) {
-          counter++;
+  try {
+    const body = await request.json();
+    if (!Array.isArray(body.products) || body.products.length === 0 || body.products.length > 2000)
+      return Response.json({ error: "Выберите от 1 до 2000 строк" }, { status: 400 });
+    const rows = body.products as (ImportProduct & { categoryId?: string })[];
+    const result = await prisma.$transaction(async tx => {
+      const categories = await tx.category.findMany();
+      const all = await tx.product.findMany({ select: { id: true, name: true, brand: true, code: true, barcode: true } });
+      let imported = 0, updated = 0;
+      const seen = new Set<string>();
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const fail = (message: string): never => { throw new Error(`Строка ${i + 1}: ${message}`); };
+        const name = typeof r.name === "string" ? r.name.trim() : "";
+        if (!name) fail("укажите название");
+        const code = String(r.code || "").trim(), barcode = String(r.barcode || "").trim(), brand = String(r.brand || "").trim();
+        const matches = all.filter(p => (code && p.code === code) || (barcode && p.barcode === barcode) || (p.name === name && p.brand === brand));
+        const ids = [...new Set(matches.map(p => p.id))];
+        if (ids.length > 1) fail("неоднозначное совпадение по артикулу, штрихкоду или названию: исправьте файл");
+        const existing = ids[0] ? all.find(p => p.id === ids[0]) : undefined;
+        if (existing && seen.has(existing.id)) fail("товар повторяется в файле");
+        if (existing) seen.add(existing.id);
+        let categoryId: string | undefined;
+        if (r.categoryId) {
+          categoryId = categories.find(c => c.id === r.categoryId)?.id;
+          if (!categoryId) fail("выбранная категория не существует");
+        } else if (r.category) {
+          const cats = categories.filter(c => c.name.toLocaleLowerCase("ru") === String(r.category).trim().toLocaleLowerCase("ru"));
+          if (cats.length !== 1) fail(`категория «${r.category}» не найдена или неоднозначна — выберите её вручную`);
+          categoryId = cats[0].id;
         }
-        slug = `${slug}-${counter}`;
+        if (!existing && !categoryId) fail("для нового товара выберите существующую категорию");
+        function numberField(value: unknown, label: string, integer = false): number | undefined {
+          if (value === undefined || value === null || value === "") return undefined;
+          const n = Number(value);
+          if (!Number.isFinite(n) || n < 0 || (integer && !Number.isInteger(n))) return fail(`некорректное значение «${label}»`);
+          return n;
+        }
+        const price = numberField(r.price, "цена"), stock = numberField(r.inStock, "остаток", true);
+        const oldPrice = numberField(r.oldPrice, "старая цена"), weight = numberField(r.weight, "вес"), volume = numberField(r.volume, "объём"), packSize = numberField(r.packSize, "упаковка", true);
+        if (!existing && (price === undefined || price <= 0)) fail("для нового товара укажите положительную цену");
+        const patch = {
+          ...(price !== undefined ? { price } : {}), ...(stock !== undefined ? { inStock: stock } : {}),
+          ...(oldPrice !== undefined ? { oldPrice } : {}), ...(weight !== undefined ? { weight } : {}),
+          ...(volume !== undefined ? { volume } : {}), ...(packSize !== undefined ? { packSize } : {}),
+          ...(categoryId ? { categoryId } : {}), ...(brand ? { brand } : {}), ...(code ? { code } : {}), ...(barcode ? { barcode } : {}),
+          ...(r.country ? { country: String(r.country) } : {}), ...(r.color ? { color: String(r.color) } : {}),
+          ...(r.productType ? { productType: String(r.productType) } : {}), ...(r.description ? { description: String(r.description) } : {}),
+          ...(r.tags ? { tags: String(r.tags) } : {}), ...(r.image ? { image: String(r.image) } : {}),
+          ...(r.expirationDate ? { expirationDate: String(r.expirationDate) } : {}),
+        };
+        if (existing) {
+          await tx.product.update({ where: { id: existing.id }, data: patch });
+          Object.assign(existing, { brand: brand || existing.brand, code: code || existing.code, barcode: barcode || existing.barcode });
+          updated++;
+        } else {
+          const base = slugify(name); let slug = base, n = 2;
+          while (await tx.product.findUnique({ where: { slug } })) slug = `${base}-${n++}`;
+          const product = await tx.product.create({ data: { ...patch, name, slug, categoryId: categoryId!, price: price! } });
+          all.push({ id: product.id, name: product.name, brand: product.brand, code: product.code, barcode: product.barcode });
+          seen.add(product.id); imported++;
+        }
       }
-      const created = await prisma.product.create({
-        data: {
-          name,
-          slug,
-          price,
-          oldPrice,
-          description: row.description ? String(row.description) : "",
-          image: row.image ? String(row.image) : "",
-          inStock,
-          brand,
-          color: row.color ? String(row.color) : "",
-          productType: row.productType ? String(row.productType) : "",
-          country: row.country ? String(row.country) : "",
-          barcode: barcodeStr,
-          code: codeStr,
-          weight,
-          volume,
-          packSize,
-          expirationDate: row.expirationDate ? String(row.expirationDate) : "",
-          tags: row.tags ? String(row.tags) : "",
-          categoryId,
-        },
-      });
-      existingByName.set(`${name}|||${brand}`, { id: created.id, inStock });
-      if (codeStr) existingByCode.set(codeStr, { id: created.id, inStock });
-      if (barcodeStr) existingByBarcode.set(barcodeStr, { id: created.id, inStock });
-      imported++;
-    }
+      return { imported, updated, total: rows.length, skipped: 0 };
+    }, { timeout: 60000 });
+    return Response.json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Ошибка импорта";
+    console.error("Import failed", err);
+    return Response.json({ error: message.startsWith("Строка ") ? message : "Импорт отменён. Проверьте файл и повторите попытку." }, { status: 400 });
   }
-
-  return Response.json({ imported, updated, total: products.length, skipped: products.length - imported - updated });
 }

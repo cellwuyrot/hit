@@ -112,7 +112,7 @@ export default function CategoryGrid({ categories: initialCategories }: { catego
               </svg>
             </div>
           )}
-          <div className="bg-bg-white rounded-xl border border-border p-3 sm:p-6 hover:shadow-lg hover:border-primary/30 transition-all group">
+          <div className="bg-bg-white rounded-2xl border border-border p-4 sm:p-5 hover:shadow-md hover:border-primary/40 transition-all group h-full">
             {editing ? (
               <div>
                 <div className="mb-2 sm:mb-3 flex justify-center">
@@ -132,7 +132,7 @@ export default function CategoryGrid({ categories: initialCategories }: { catego
                 />
               </div>
             ) : (
-              <Link href={`/catalog/${cat.slug}`}>
+              <Link href={`/catalog/${cat.slug}`} className="block rounded-lg focus-visible:outline-2 focus-visible:outline-primary" aria-label={`Открыть категорию ${cat.name}`}>
                 <div className="mb-2 sm:mb-3 flex justify-center">
                   {cat.icon && (cat.icon.startsWith("/") || cat.icon.startsWith("http")) ? (
                     <img src={cat.icon} alt={cat.name} className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg" style={{ maxWidth: 256, maxHeight: 256 }} />
@@ -146,9 +146,11 @@ export default function CategoryGrid({ categories: initialCategories }: { catego
             {cat.children.length > 0 && (
               <button
                 onClick={() => toggle(cat.id)}
+                aria-expanded={expanded === cat.id}
+                aria-label={`Подкатегории: ${cat.name}`}
                 className="mt-1.5 sm:mt-2 w-full flex items-center justify-center gap-1 text-[10px] sm:text-xs text-text-gray hover:text-primary transition-colors"
               >
-                <span>{cat.children.length} подкатегорий</span>
+                <span>Подкатегории: {cat.children.length}</span>
                 <svg
                   className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-200 ${expanded === cat.id ? "rotate-180" : ""}`}
                   fill="none" stroke="currentColor" viewBox="0 0 24 24"

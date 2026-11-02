@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
 
   const body = await request.json();
-  const { name, description, price, oldPrice, image, inStock, packSize, expirationDate, brand, color, productType, categoryId, isFeatured, isWholesale, isImported, tags } = body;
+  const { name, description, price, oldPrice, image, image2, image3, image4, inStock, packSize, expirationDate, brand, color, productType, categoryId, isFeatured, isWholesale, isImported, tags } = body;
 
   if (!name || !price || !categoryId) {
     return Response.json({ error: "Название, цена и категория обязательны" }, { status: 400 });
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const product = await prisma.product.create({
     data: {
       name, slug, description: description || "", price: Number(price),
-      oldPrice: oldPrice ? Number(oldPrice) : null, image: image || "",
+      oldPrice: oldPrice ? Number(oldPrice) : null, image: image || "", image2: image2 || "", image3: image3 || "", image4: image4 || "",
       inStock: Number(inStock) || 0, packSize: packSize ? Number(packSize) : null,
       expirationDate: expirationDate || "", brand: brand || "", color: color || "",
       productType: productType || "", categoryId, isFeatured: !!isFeatured,
@@ -56,6 +56,10 @@ export async function PUT(request: Request) {
 
   const body = await request.json();
 
+  if (typeof body.id === "string" && typeof body.isFeatured === "boolean" && body.featuredOnly === true) {
+    const product = await prisma.product.update({ where: { id: body.id }, data: { isFeatured: body.isFeatured } });
+    return Response.json(product);
+  }
   // Bulk stock update for all products
   if (body.bulkStock !== undefined) {
     const result = await prisma.product.updateMany({
@@ -84,11 +88,11 @@ export async function PUT(request: Request) {
     data: {
       name, description: description || "", price: Number(price),
       oldPrice: oldPrice ? Number(oldPrice) : null, image: image || "",
-      image2: image2 || "", image3: image3 || "", image4: image4 || "",
-      inStock: Number(inStock) || 0, packSize: packSize ? Number(packSize) : null,
-      expirationDate: expirationDate || "", brand: brand || "", color: color || "",
-      productType: productType || "", categoryId, isFeatured: !!isFeatured,
-      isWholesale: !!isWholesale, isImported: !!isImported, tags: tags || "",
+      ...(image2 !== undefined ? { image2: image2 || "" } : {}), ...(image3 !== undefined ? { image3: image3 || "" } : {}), ...(image4 !== undefined ? { image4: image4 || "" } : {}),
+      ...(inStock !== undefined ? { inStock: Number(inStock) || 0 } : {}), ...(packSize !== undefined ? { packSize: packSize ? Number(packSize) : null } : {}),
+      ...(expirationDate !== undefined ? { expirationDate: expirationDate || "" } : {}), ...(brand !== undefined ? { brand: brand || "" } : {}), ...(color !== undefined ? { color: color || "" } : {}),
+      ...(productType !== undefined ? { productType: productType || "" } : {}), categoryId, ...(isFeatured !== undefined ? { isFeatured: !!isFeatured } : {}),
+      ...(isWholesale !== undefined ? { isWholesale: !!isWholesale } : {}), ...(isImported !== undefined ? { isImported: !!isImported } : {}), ...(tags !== undefined ? { tags: tags || "" } : {}),
     },
   });
   return Response.json(product);
@@ -96,19 +100,5 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   if (!checkAdmin(request)) return Response.json({ error: "Нет доступа" }, { status: 401 });
-
-  const body = await request.json();
-  const { id, ids } = body as { id?: string; ids?: string[] };
-
-  if (ids && ids.length > 0) {
-    const result = await prisma.product.deleteMany({ where: { id: { in: ids } } });
-    return Response.json({ success: true, deleted: result.count });
-  }
-
-  if (!id) {
-    return Response.json({ error: "ID обязателен" }, { status: 400 });
-  }
-
-  await prisma.product.delete({ where: { id } });
-  return Response.json({ success: true, deleted: 1 });
+  return Response.json({ error: "Удаление товаров отключено для сохранения каталога и истории заказов. Установите остаток 0 или перенесите товар." }, { status: 409 });
 }
