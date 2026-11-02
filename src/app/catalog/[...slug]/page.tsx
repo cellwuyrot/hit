@@ -68,8 +68,10 @@ async function CategoryContent({
   const categoryPath = getCategoryPath(category);
 
   const sort = searchParams.sort || "popular";
-  const priceFrom = searchParams.priceFrom ? Number(searchParams.priceFrom) : undefined;
-  const priceTo = searchParams.priceTo ? Number(searchParams.priceTo) : undefined;
+  const fromValue = Number(searchParams.priceFrom);
+  const toValue = Number(searchParams.priceTo);
+  const priceFrom = searchParams.priceFrom && Number.isFinite(fromValue) && fromValue >= 0 ? fromValue : undefined;
+  const priceTo = searchParams.priceTo && Number.isFinite(toValue) && toValue >= 0 ? toValue : undefined;
   const brands = searchParams.brands?.split(",").filter(Boolean);
   const types = searchParams.types?.split(",").filter(Boolean);
   const colors = searchParams.colors?.split(",").filter(Boolean);

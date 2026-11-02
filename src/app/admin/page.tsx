@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useLiveMessages } from "@/components/useLiveMessages";
 import AdminOrderNote from "@/components/AdminOrderNote";
 import PromoCodesPanel from "@/components/PromoCodesPanel";
+import CampaignsPanel from "@/components/CampaignsPanel";
 import { extractYouTubeId } from "@/lib/youtube";
 
 interface Category {
@@ -122,7 +123,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
-type TabType = "overview" | "analytics" | "categories" | "products" | "popular" | "slider" | "presentation" | "news" | "orders" | "chats" | "reviews" | "videos" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
+type TabType = "campaigns" | "overview" | "analytics" | "categories" | "products" | "popular" | "slider" | "presentation" | "news" | "orders" | "chats" | "reviews" | "videos" | "callbacks" | "clients" | "synonyms" | "settings" | "site-editor" | "company";
 
 interface CallbackItem {
   id: string;
@@ -571,6 +572,8 @@ function ChatsPanel({ token }: { token: string }) {
 
 export default function AdminPage() {
   const [token, setToken] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const [categoryStatus, setCategoryStatus] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -731,6 +734,7 @@ export default function AdminPage() {
     const result = await fetch("/api/admin/categories", { method, headers: hdrs(), body: JSON.stringify(body) });
     if (!result.ok) { alert((await result.json()).error || "Не удалось сохранить категорию"); return; }
     setCatName(""); setCatIcon(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); setEditingCat(null);
+    setCategoryStatus("Категория сохранена. Товары и адрес существующей категории не менялись.");
     fetchData();
   };
 
@@ -1182,14 +1186,14 @@ export default function AdminPage() {
 
   const topCategories = categories.filter((c) => !c.parentId);
   const tabLabels: Record<TabType, string> = {
-    overview: "Рабочий стол", analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, chats: chatUnread > 0 ? `Чаты (${chatUnread})` : "Чаты", reviews: "Отзывы", videos: "Видео", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
+    campaigns: "Рекламные кампании", overview: "Рабочий стол", analytics: "Статистика", categories: "Категории", products: "Товары", popular: "Популярные", slider: "Слайдер", presentation: "Презентация", news: "Новости", orders: `Заказы (${orders.length})`, chats: chatUnread > 0 ? `Чаты (${chatUnread})` : "Чаты", reviews: "Отзывы", videos: "Видео", callbacks: `Заявки на звонок`, clients: "Клиенты", synonyms: "Синонимы поиска", "site-editor": "Редактирование сайта", company: "Сведения о компании", settings: "Настройки",
   };
 
   const navGroups: Record<string, TabType[]> = {
     "Обзор": ["overview"],
     "Продажи": ["orders", "clients", "callbacks", "chats"],
     "Каталог": ["products", "categories", "reviews", "videos", "synonyms"],
-    "Сайт и продвижение": ["popular", "slider", "presentation", "news", "site-editor"],
+    "Сайт и продвижение": ["campaigns", "popular", "slider", "presentation", "news", "site-editor"],
     "Настройки и аналитика": ["analytics", "company", "settings"],
   };
   return (
@@ -1230,81 +1234,38 @@ export default function AdminPage() {
           <h3 className="font-bold text-lg mt-7 mb-3">Быстрые действия</h3><div className="flex flex-wrap gap-2"><button onClick={() => { setNavGroup("Каталог"); setActiveTab("products"); }} className="min-h-11 px-4 py-2 bg-white border border-border rounded-lg text-sm">Товары и импорт</button><button onClick={() => { setNavGroup("Каталог"); setActiveTab("categories"); }} className="min-h-11 px-4 py-2 bg-white border border-border rounded-lg text-sm">Категории</button><button onClick={() => { setNavGroup("Настройки и аналитика"); setActiveTab("settings"); }} className="min-h-11 px-4 py-2 bg-white border border-border rounded-lg text-sm">Условия доставки</button></div>
         </section>}
 
+        {activeTab === "campaigns" && <CampaignsPanel token={token} products={products} />}
+
         {/* Analytics */}
         {activeTab === "analytics" && <AnalyticsPanel token={token} />}
 
         {/* Categories */}
         {activeTab === "categories" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="bg-bg-white rounded-xl border border-border p-5">
-              <h2 className="font-bold text-text-dark mb-4">{editingCat ? "Редактировать" : "Добавить"} категорию</h2>
-              <form onSubmit={saveCategory} className="space-y-3">
-                <input type="text" placeholder="Название" value={catName} onChange={(e) => setCatName(e.target.value)} required
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                <div>
-                  <label className="text-xs text-text-gray mb-1 block">Изображение категории (256x256)</label>
-                  <div className="flex gap-2 items-center">
-                    <input type="text" placeholder="URL или эмодзи (напр. 📦)" value={catIcon} onChange={(e) => setCatIcon(e.target.value)}
-                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                    <label className="px-3 py-2 bg-bg-light border border-border rounded-lg text-sm cursor-pointer hover:bg-primary/5">
-                      {uploadingCatIcon ? "..." : "Файл"}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadCatIcon(e.target.files[0]); }} />
-                    </label>
-                  </div>
-                  {catIcon && catIcon.startsWith("/") && (
-                    <img src={catIcon} alt="Превью" className="mt-2 w-16 h-16 object-cover rounded-lg border border-border" />
-                  )}
-                </div>
-                <select value={catParentId} onChange={(e) => setCatParentId(e.target.value)}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
-                  <option value="">Корневая категория</option>
-                  {topCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <input type="number" placeholder="Порядок" value={catOrder} onChange={(e) => setCatOrder(Number(e.target.value))}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-                <div className="border-t border-border pt-3 mt-3">
-                  <p className="text-xs text-text-gray mb-2 font-medium">SEO настройки</p>
-                  <input type="text" placeholder="Meta Title (для поисковиков)" value={catMetaTitle} onChange={(e) => setCatMetaTitle(e.target.value)}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary mb-2" />
-                  <input type="text" placeholder="Meta Description" value={catMetaDesc} onChange={(e) => setCatMetaDesc(e.target.value)}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary mb-2" />
-                  <textarea placeholder="SEO-текст (описание категории)" value={catSeoText} onChange={(e) => setCatSeoText(e.target.value)}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" rows={3} />
-                </div>
-                <div className="flex gap-2">
-                  <button type="submit" className="flex-1 bg-primary hover:bg-primary-dark text-white text-sm py-2 rounded-lg">{editingCat ? "Сохранить" : "Добавить"}</button>
-                  {editingCat && <button type="button" onClick={() => { setEditingCat(null); setCatName(""); setCatIcon(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); }} className="px-4 bg-bg-light text-text-gray text-sm py-2 rounded-lg">Отмена</button>}
-                </div>
-              </form>
+          <section aria-label="Управление категориями" className="space-y-5">
+            <div><h2 className="text-3xl font-bold">Категории</h2><p className="text-text-gray mt-2">Создавайте разделы и подкатегории, редактируйте названия и настройки поиска.</p></div>
+            {categoryStatus && <p role="status" className="rounded-lg bg-green-50 text-success p-3 text-sm">{categoryStatus}</p>}
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)] gap-5 items-start">
+              <div className="bg-white border border-border rounded-xl p-5">
+                <div className="flex flex-wrap justify-between gap-3 mb-4"><div><h3 className="text-lg font-bold">Дерево категорий</h3><p className="text-sm text-text-gray">Всего: {categories.length}</p></div><button type="button" onClick={() => { setEditingCat(null); setCatName(""); setCatIcon(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); setCategoryStatus(""); document.getElementById("category-form")?.scrollIntoView({ behavior: "smooth" }); }} className="min-h-11 px-4 bg-primary text-white rounded-lg text-sm font-semibold">+ Новая категория</button></div>
+                <label htmlFor="category-admin-search" className="block text-sm font-medium mb-1">Поиск по категориям</label><input id="category-admin-search" value={categorySearch} onChange={e => setCategorySearch(e.target.value)} placeholder="Название категории" className="w-full border border-border rounded-lg px-3 py-2.5 min-h-11 text-sm mb-4" />
+                {categories.length === 0 ? <p className="text-text-gray text-sm">Категорий пока нет.</p> : <div className="space-y-3">{topCategories.filter(root => !categorySearch.trim() || root.name.toLowerCase().includes(categorySearch.trim().toLowerCase()) || categories.some(c => c.parentId === root.id && c.name.toLowerCase().includes(categorySearch.trim().toLowerCase()))).map(root => {
+                  const children = categories.filter(c => c.parentId === root.id && (!categorySearch.trim() || root.name.toLowerCase().includes(categorySearch.trim().toLowerCase()) || c.name.toLowerCase().includes(categorySearch.trim().toLowerCase())));
+                  const row = (cat: Category) => <div key={cat.id} className="flex flex-wrap justify-between items-start gap-2 py-3"><div className="min-w-0"><p className="font-semibold break-words">{cat.name}</p><p className="text-sm text-text-gray">{cat.parentId ? "Подкатегория" : "Основная категория"} · товаров напрямую: {cat._count?.products || 0}</p></div><div className="flex flex-wrap gap-3 text-sm"><button type="button" onClick={() => { setEditingCat(cat); setCatName(cat.name); setCatIcon(cat.icon || ""); setCatOrder(cat.order); setCatParentId(cat.parentId || ""); setCatMetaTitle(cat.metaTitle || ""); setCatMetaDesc(cat.metaDescription || ""); setCatSeoText(cat.seoText || ""); setCategoryStatus(""); document.getElementById("category-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="text-primary min-h-11">Изменить</button><button type="button" onClick={() => deleteCategory(cat.id)} className="text-danger min-h-11">Удалить</button></div></div>;
+                  return <div key={root.id} className="border border-border rounded-lg px-4">{row(root)}{children.length > 0 && <div className="border-t border-border pl-4 divide-y divide-border">{children.map(row)}</div>}</div>;
+                })}</div>}
+              </div>
+              <div id="category-form" className="bg-white border border-border rounded-xl p-5 scroll-mt-4"><h3 className="text-lg font-bold mb-1">{editingCat ? "Редактировать категорию" : "Новая категория"}</h3><p className="text-sm text-text-gray mb-4">{editingCat ? "Адрес и расположение существующей категории сохраняются." : "Выберите основную категорию или создайте отдельный раздел."}</p>
+                <form onSubmit={saveCategory} className="space-y-4">
+                  <div><label htmlFor="cat-name" className="block text-sm font-semibold mb-1">Название *</label><input id="cat-name" type="text" value={catName} onChange={e => setCatName(e.target.value)} required className="w-full min-h-11 border border-border rounded-lg px-3 py-2 text-sm" /></div>
+                  <div><label htmlFor="cat-parent" className="block text-sm font-semibold mb-1">Расположение</label><select id="cat-parent" value={catParentId} disabled={!!editingCat} onChange={e => setCatParentId(e.target.value)} className="w-full min-h-11 border border-border rounded-lg px-3 py-2 text-sm disabled:bg-bg-light"><option value="">Основная категория</option>{topCategories.map(c => <option key={c.id} value={c.id}>Подкатегория: {c.name}</option>)}</select>{editingCat && <p className="text-xs text-text-gray mt-1">Перенос категории пока недоступен: он меняет адрес и требует перенаправлений.</p>}</div>
+                  <div><label htmlFor="cat-icon" className="block text-sm font-semibold mb-1">Изображение или эмодзи</label><div className="flex gap-2"><input id="cat-icon" value={catIcon} onChange={e => setCatIcon(e.target.value)} placeholder="URL или эмодзи" className="min-w-0 flex-1 border border-border rounded-lg px-3 py-2 text-sm" /><label className="px-3 py-2 bg-bg-light border border-border rounded-lg text-sm cursor-pointer min-h-11">{uploadingCatIcon ? "Загрузка…" : "Загрузить"}<input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadCatIcon(e.target.files[0]); }} /></label></div>{catIcon && catIcon.startsWith("/") && <img src={catIcon} alt="Изображение категории" className="mt-2 w-16 h-16 object-cover rounded-lg border border-border" />}</div>
+                  <div><label htmlFor="cat-order" className="block text-sm font-semibold mb-1">Порядок в списке</label><input id="cat-order" type="number" value={catOrder} onChange={e => setCatOrder(Number(e.target.value))} className="w-full min-h-11 border border-border rounded-lg px-3 py-2 text-sm" /><p className="text-xs text-text-gray mt-1">Меньшие числа показываются раньше.</p></div>
+                  <details className="border border-border rounded-lg p-3"><summary className="font-semibold text-sm cursor-pointer">Настройки для поисковиков</summary><div className="space-y-3 mt-3"><div><label htmlFor="cat-meta-title" className="block text-sm mb-1">Meta title</label><input id="cat-meta-title" value={catMetaTitle} onChange={e => setCatMetaTitle(e.target.value)} className="w-full min-h-11 border border-border rounded-lg px-3 py-2 text-sm" /></div><div><label htmlFor="cat-meta-desc" className="block text-sm mb-1">Meta description</label><input id="cat-meta-desc" value={catMetaDesc} onChange={e => setCatMetaDesc(e.target.value)} className="w-full min-h-11 border border-border rounded-lg px-3 py-2 text-sm" /></div><div><label htmlFor="cat-seo-text" className="block text-sm mb-1">Описание категории</label><textarea id="cat-seo-text" value={catSeoText} onChange={e => setCatSeoText(e.target.value)} rows={3} className="w-full border border-border rounded-lg px-3 py-2 text-sm" /></div></div></details>
+                  <div className="flex gap-2"><button type="submit" className="flex-1 bg-primary text-white font-semibold min-h-11 rounded-lg text-sm">{editingCat ? "Сохранить изменения" : "Создать категорию"}</button>{editingCat && <button type="button" onClick={() => { setEditingCat(null); setCatName(""); setCatIcon(""); setCatOrder(0); setCatParentId(""); setCatMetaTitle(""); setCatMetaDesc(""); setCatSeoText(""); }} className="px-4 bg-bg-light text-text-gray text-sm rounded-lg min-h-11">Отмена</button>}</div>
+                </form>
+              </div>
             </div>
-            <div className="lg:col-span-2 bg-bg-white rounded-xl border border-border p-5">
-              <h2 className="font-bold text-text-dark mb-4">Все категории ({categories.length})</h2>
-              {categories.length === 0 ? <p className="text-text-gray text-sm">Категорий пока нет</p> : (
-                <div className="space-y-2">
-                  {categories.map((cat) => (
-                    <div key={cat.id} className={`flex items-center justify-between p-3 rounded-lg ${cat.parentId ? "bg-bg-light/50 ml-6 border-l-2 border-primary/20" : "bg-bg-light"}`}>
-                      <div className="flex items-center gap-2">
-                        {cat.icon && (cat.icon.startsWith("/") || cat.icon.startsWith("http")) ? (
-                          <img src={cat.icon} alt="" className="w-8 h-8 object-cover rounded" />
-                        ) : (
-                          <span className="text-lg">{cat.icon || "📦"}</span>
-                        )}
-                        <div>
-                          <span className="font-medium text-text-dark">{cat.name}</span>
-                          {cat.parentId && <span className="text-xs text-primary ml-2">подкатегория</span>}
-                          <span className="text-text-light text-sm ml-2">({cat._count?.products || 0} товаров)</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => { setEditingCat(cat); setCatName(cat.name); setCatIcon(cat.icon || ""); setCatOrder(cat.order); setCatParentId(cat.parentId || ""); setCatMetaTitle(cat.metaTitle || ""); setCatMetaDesc(cat.metaDescription || ""); setCatSeoText(cat.seoText || ""); }} className="text-primary hover:underline text-sm">Изменить</button>
-                        <button onClick={() => deleteCategory(cat.id)} className="text-danger hover:underline text-sm">Удалить</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          </section>
         )}
 
         {/* Products */}
