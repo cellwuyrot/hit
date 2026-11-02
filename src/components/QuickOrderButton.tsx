@@ -41,7 +41,7 @@ export default function QuickOrderButton({ productId, productName }: QuickOrderB
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-full sm:w-auto px-5 py-2.5 bg-accent hover:bg-accent-dark text-white font-medium rounded-lg transition-colors text-sm"
+        className="w-full sm:w-auto min-h-11 px-5 py-2.5 bg-white border border-border hover:border-primary text-primary font-medium rounded-lg transition-colors text-sm"
       >
         Купить в 1 клик
       </button>
@@ -51,7 +51,7 @@ export default function QuickOrderButton({ productId, productName }: QuickOrderB
           <div className="bg-white rounded-xl p-5 sm:p-6 max-w-sm w-full animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading text-lg font-bold text-text-dark">Быстрый заказ</h3>
-              <button onClick={() => setOpen(false)} className="text-text-gray hover:text-text-dark">
+              <button onClick={() => setOpen(false)} aria-label="Закрыть быстрый заказ" className="text-text-gray hover:text-text-dark">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>

@@ -7,7 +7,18 @@ function getVisitorId(): string {
   const key = "_vid";
   const vid = document.cookie.match(new RegExp(`(?:^|; )${key}=([^;]*)`));
   if (vid) return vid[1];
-  const id = crypto.randomUUID();
+
+  let id: string;
+
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    id = crypto.randomUUID();
+  } else if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    id = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  } else {
+    id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
   document.cookie = `${key}=${id}; path=/; max-age=${365 * 24 * 3600}; SameSite=Lax`;
   return id;
 }

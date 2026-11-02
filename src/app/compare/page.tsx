@@ -98,7 +98,7 @@ export default function ComparePage() {
                   {[
                     { label: "Цена", render: (p: Product) => <span className="font-bold text-primary">{p.price.toLocaleString("ru-RU")} ₽</span> },
                     { label: "Старая цена", render: (p: Product) => p.oldPrice ? <span className="line-through text-text-light">{p.oldPrice.toLocaleString("ru-RU")} ₽</span> : "—" },
-                    { label: "Наличие", render: (p: Product) => p.inStock > 0 ? <span className="text-success">{p.inStock} шт.</span> : <span className="text-danger">Нет</span> },
+                    { label: "Наличие", render: (p: Product) => p.inStock > 0 ? <span className="text-success">В наличии</span> : <span className="text-danger">Нет в наличии</span> },
                     { label: "Бренд", render: (p: Product) => p.brand || "—" },
                     { label: "Тип", render: (p: Product) => p.productType || "—" },
                     { label: "Цвет", render: (p: Product) => p.color || "—" },

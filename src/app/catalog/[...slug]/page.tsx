@@ -1,3 +1,4 @@
+import CatalogSort from "@/components/CatalogSort";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -208,7 +209,7 @@ async function CategoryContent({
       )}
 
       <div className="flex gap-6">
-        <div className="hidden lg:block w-72 flex-shrink-0">
+        <div className="hidden lg:block w-60 flex-shrink-0">
           <CatalogFilters
             brands={allBrands}
             productTypes={allTypes}
@@ -227,8 +228,8 @@ async function CategoryContent({
               {Math.ceil(totalCount / PER_PAGE) > 1 ? <span className="text-text-light">{` (стр. ${page} из ${Math.ceil(totalCount / PER_PAGE)})`}</span> : null}
             </p>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-text-gray">Сортировка:</span>
-              <SortLinks current={sort} searchParams={searchParams} />
+              
+              <CatalogSort current={sort} searchParams={searchParams} />
             </div>
           </div>
 
@@ -281,31 +282,6 @@ async function CategoryContent({
   );
 }
 
-function SortLinks({ current, searchParams }: { current: string; searchParams: Record<string, string | undefined> }) {
-  const sorts = [
-    { key: "popular", label: "По популярности" },
-    { key: "name", label: "По алфавиту" },
-    { key: "price_asc", label: "По цене ↑" },
-    { key: "price_desc", label: "По цене ↓" },
-  ];
-  return (
-    <div className="flex gap-2 flex-wrap">
-      {sorts.map((s) => (
-        <Link
-          key={s.key}
-          href={`?${new URLSearchParams(Object.entries({ ...searchParams, sort: s.key, page: undefined }).filter((entry): entry is [string, string] => typeof entry[1] === "string")).toString()}`}
-          className={`px-3 py-1 rounded-md transition-colors ${
-            current === s.key
-              ? "bg-primary text-white"
-              : "bg-bg-light text-text-gray hover:text-text-dark"
-          }`}
-        >
-          {s.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
 
 export default async function CategoryPage({ params, searchParams }: PageProps) {
   const { slug } = await params;

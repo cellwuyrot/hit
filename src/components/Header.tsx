@@ -28,6 +28,7 @@ export default function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [userLabel, setUserLabel] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const router = useRouter();
 
@@ -76,7 +77,7 @@ export default function Header() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+      if (!searchRef.current?.contains(e.target as Node) && !mobileSearchRef.current?.contains(e.target as Node)) {
         setShowSuggestions(false);
       }
     };
@@ -130,9 +131,9 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-bg-white shadow-sm">
+    <header className="bg-bg-white border-b border-border">
       {/* Top bar */}
-      <div className="bg-primary text-white">
+      <div className="bg-[#f3f7fa] text-text-gray border-b border-border">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-[11px] sm:text-sm">
           <div className="flex items-center gap-2 sm:gap-4">
             <InlineSetting settingKey="header-hours" fallback="ПН-ПТ 09:00–18:00" className="" />
@@ -152,13 +153,14 @@ export default function Header() {
             <div className="flex items-center gap-2 sm:gap-3">
               <Image src="/logo.png" alt="ТОПХИТ" width={56} height={56} className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-md" />
               <div>
-                <h1 className="text-xl sm:text-2xl font-extrabold text-primary leading-tight font-heading tracking-tight">ТОПХИТ</h1>
+                <span className="block text-xl sm:text-2xl font-extrabold text-primary leading-tight font-heading tracking-tight">ТОПХИТ</span>
                 <InlineSetting settingKey="header-subtitle" fallback="интернет-магазин" as="p" className="text-[10px] sm:text-xs text-text-gray leading-tight tracking-wide" />
               </div>
             </div>
           </Link>
 
-          {/* Search with autocomplete - hidden on mobile */}
+          <Link href="/catalog" className="hidden md:inline-flex items-center gap-2 bg-primary text-white font-semibold px-5 py-3 rounded-lg hover:bg-primary-dark"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" /></svg><span>Каталог</span></Link>
+          {/* Search with autocomplete */}
           <div className="hidden md:flex flex-1 max-w-xl" ref={searchRef}>
             <div className="relative w-full">
               <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
@@ -167,8 +169,8 @@ export default function Header() {
                   value={searchQuery}
                   onChange={(e) => handleSearchInput(e.target.value)}
                   onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                  placeholder="Поиск товаров..."
-                  className="w-full border border-border rounded-lg px-4 py-2.5 pr-10 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  aria-label="Поиск товаров" placeholder="Найти товары, категории или бренды"
+                  className="w-full bg-bg-light border border-border rounded-lg px-4 py-3 pr-10 focus:border-primary transition-all"
                 />
                 <button type="submit" aria-label="Поиск" className="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-primary transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,6 +258,7 @@ export default function Header() {
               className="md:hidden text-text-gray hover:text-primary transition-colors"
               onClick={() => setMenuOpen(!menuOpen)}
               aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"}
+              aria-expanded={menuOpen}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {menuOpen ? (
@@ -268,51 +271,24 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile search + menu */}
+        <div className="md:hidden mt-3 relative" ref={mobileSearchRef}>
+          <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="relative">
+            <input type="search" aria-label="Поиск товаров" value={searchQuery} onChange={(e) => handleSearchInput(e.target.value)} onFocus={() => suggestions.length > 0 && setShowSuggestions(true)} placeholder="Найти товары или бренды" className="w-full bg-bg-light border border-border rounded-lg px-4 py-3 pr-12" />
+            <button type="submit" aria-label="Поиск" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-text-gray"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></button>
+          </form>
+          {showSuggestions && suggestions.length > 0 && <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-border rounded-lg shadow-lg overflow-hidden">{suggestions.map(item => <button key={item.id} onClick={() => goToProduct(item.slug)} className="w-full flex gap-3 justify-between px-4 py-3 hover:bg-bg-light text-left text-sm"><span>{item.name}</span><strong>{item.price.toLocaleString("ru-RU")} ₽</strong></button>)}<button onClick={handleSearch} className="w-full p-3 border-t border-border text-primary text-sm">Показать все результаты</button></div>}
+        </div>
         {menuOpen && (
           <div className="md:hidden mt-3 pb-2 border-t border-border pt-3 animate-fade-in">
-            <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchInput(e.target.value)}
-                placeholder="Поиск товаров..."
-                className="w-full border border-border rounded-lg px-4 py-2.5 pr-10 focus:outline-none focus:border-primary"
-              />
-              <button type="submit" aria-label="Поиск" className="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-primary">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
-            </form>
-
-            {/* Mobile autocomplete */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="mt-2 bg-white border border-border rounded-xl shadow-lg overflow-hidden">
-                {suggestions.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => goToProduct(item.slug)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-bg-light transition-colors text-left border-b border-border last:border-b-0"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-text-dark truncate">{item.name}</p>
-                    </div>
-                    <span className="text-sm font-bold text-text-dark flex-shrink-0">{item.price.toLocaleString("ru-RU")} ₽</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
             <nav className="mt-3 flex flex-col">
               <Link href="/catalog" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg font-medium transition-colors" onClick={() => setMenuOpen(false)}>Каталог</Link>
               <Link href="/import" className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 py-2.5 px-3 rounded-lg font-medium transition-colors" onClick={() => setMenuOpen(false)}>Импортные товары</Link>
               <Link href="/wholesale" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Оптовые продажи</Link>
               <Link href="/news" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Новости</Link>
               <Link href="/presentation" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg font-medium transition-colors" onClick={() => setMenuOpen(false)}>Презентация</Link>
-              <Link href="/about#delivery" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Доставка</Link>
+              <Link href="/delivery" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Доставка</Link>
               <Link href="/about" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>О компании</Link>
-              <Link href="/about#contacts" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Контакты</Link>
+              <Link href="/contacts" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Контакты</Link>
               <div className="border-t border-border my-2" />
               <Link href="/wishlist" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Избранное</Link>
               <Link href="/compare" className="text-text-dark hover:text-primary hover:bg-bg-light py-2.5 px-3 rounded-lg transition-colors" onClick={() => setMenuOpen(false)}>Сравнение</Link>
@@ -333,9 +309,9 @@ export default function Header() {
             <li><Link href="/wholesale" className="text-text-gray hover:text-primary transition-colors">Оптовые продажи</Link></li>
             <li><Link href="/news" className="text-text-gray hover:text-primary transition-colors">Новости</Link></li>
             <li><Link href="/presentation" className="text-text-gray hover:text-primary transition-colors">Презентация</Link></li>
-            <li><Link href="/about#delivery" className="text-text-gray hover:text-primary transition-colors">Доставка</Link></li>
+            <li><Link href="/delivery" className="text-text-gray hover:text-primary transition-colors">Доставка</Link></li>
             <li><Link href="/about" className="text-text-gray hover:text-primary transition-colors">О компании</Link></li>
-            <li><Link href="/about#contacts" className="text-text-gray hover:text-primary transition-colors">Контакты</Link></li>
+            <li><Link href="/contacts" className="text-text-gray hover:text-primary transition-colors">Контакты</Link></li>
           </ul>
         </div>
       </nav>
