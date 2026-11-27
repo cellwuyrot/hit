@@ -8,6 +8,8 @@ export const CONTACT_METHODS = [
 export const DELIVERY_METHODS = [
   { value: "cdek", label: "СДЭК" },
   { value: "russian_post", label: "Почта России" },
+  { value: "yandex_market", label: "Яндекс Маркет" },
+  { value: "ozon", label: "Озон" },
   { value: "pickup", label: "Самовывоз" },
 ] as const;
 export const PICKUP_ADDRESS = "Самовывоз: Москва, ул. Складочная, 1, стр. 18";

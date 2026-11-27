@@ -165,16 +165,17 @@ model OrderItem {
 }
 
 model News {
-  id        String   @id @default(uuid())
-  title     String
-  slug      String   @unique
-  excerpt   String   @default("")
-  content   String   @default("")
-  image     String   @default("")
-  type      String   @default("article")
-  published Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(uuid())
+  title            String
+  slug             String   @unique
+  excerpt          String   @default("")
+  content          String   @default("")
+  image            String   @default("")
+  type             String   @default("article")
+  published        Boolean  @default(false)
+  sourceProductIds String   @default("[]")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model SitePage {
